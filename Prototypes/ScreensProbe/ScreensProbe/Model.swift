@@ -1,5 +1,6 @@
-// PROTOTYPE, throw away. Fourth round: the chosen setup and running screens in the Ink design
-// system. Earlier rounds are in this branch's history at d6cee05, 6c6edda and b8542a3.
+// PROTOTYPE, throw away. Fifth round: the chosen setup and running screens in the Ink design
+// system, comparing ways to show Rounds. Earlier rounds are in this branch's history at d6cee05,
+// 6c6edda, b8542a3 and 9fc9369.
 import Foundation
 import Observation
 
@@ -118,6 +119,17 @@ final class Runner {
     var timeText: String { clock(Int(remaining.rounded(.up))) }
     var phaseProgress: Double { 1 - remaining / Double(phase.seconds) }
 
+    /// Rounds finished so far, with the running Round as a fraction across its Work and Rest.
+    /// Zero during Prepare, and every Round during Cooldown.
+    var roundsFilled: Double {
+        guard let round = phase.round else { return phase.kind == .prepare ? 0 : Double(rounds) }
+        let parts = phases.filter { $0.round == round }
+        let total = parts.reduce(0) { $0 + $1.seconds }
+        let earlier = phase.kind == .rest ? parts.first?.seconds ?? 0 : 0
+        let elapsed = Double(earlier) + Double(phase.seconds) - remaining
+        return Double(round - 1) + elapsed / Double(total)
+    }
+
     func togglePause() {
         isPaused.toggle()
         if !isPaused { phaseEnd = .now + .milliseconds(Int(remaining * 1000)) }
@@ -127,6 +139,12 @@ final class Runner {
 
     /// Probe-bar shortcut for reaching every Phase quickly. Skipping is not a v1 feature.
     func skip() { advance() }
+
+    /// Launch-argument shortcut to the complete screen.
+    func finish() {
+        isDone = true
+        loop?.cancel()
+    }
 
     func jump(to kind: PhaseKind, remaining seconds: Int?) {
         if let found = phases.firstIndex(where: { $0.kind == kind && ($0.round ?? 0) == 3 })
@@ -169,9 +187,18 @@ final class ProbeState {
     let noBar = UserDefaults.standard.bool(forKey: "noBar")
     var editing: Field?
     var confirmStop = false
+    var roundStyle = RoundStyle.temper
 
     init() {
         let args = UserDefaults.standard
+        roundStyle = RoundStyle(rawValue: args.string(forKey: "roundStyle") ?? "") ?? .temper
+        if args.integer(forKey: "rounds") > 0 {
+            values.rounds = Field.rounds.clamped(args.integer(forKey: "rounds"))
+        }
+        if args.string(forKey: "screen") == "complete" {
+            start()
+            runner?.finish()
+        }
         editing = Field(rawValue: args.string(forKey: "edit") ?? "")
         confirmStop = args.bool(forKey: "confirmStop")
         barVisible = !args.bool(forKey: "hideBar")

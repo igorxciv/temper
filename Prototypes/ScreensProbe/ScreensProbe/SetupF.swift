@@ -14,13 +14,19 @@ struct SetupF: View {
                 Button {
                     state.editing = field
                 } label: {
-                    VStack(spacing: 0) {
-                        Text(field.title).font(.subheadline.weight(.semibold))
-                            .foregroundStyle(titleColor(field))
-                        Text(field.text(state.values[keyPath: field.keyPath]))
-                            .font(.system(size: 52, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(colors.text)
+                    Group {
+                        if field == .rounds {
+                            RoundsPreview(state: state)
+                        } else {
+                            VStack(spacing: 0) {
+                                Text(field.title).font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(titleColor(field))
+                                Text(field.text(state.values[keyPath: field.keyPath]))
+                                    .font(.system(size: 52, weight: .semibold, design: .rounded))
+                                    .monospacedDigit()
+                                    .foregroundStyle(colors.text)
+                            }
+                        }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(.rect)
@@ -41,8 +47,20 @@ struct SetupF: View {
             let sheet = sheetColors(field)
             VStack(spacing: 8) {
                 Text(field.title).font(.headline).foregroundStyle(sheet.title).padding(.top, 20)
+                if field == .rounds { roundsSheetMark }
                 FieldEditor(state: state, field: field)
                     .foregroundStyle(sheet.text)
+                    .overlay {
+                        if field == .rounds, state.roundStyle == .bezel {
+                            RoundDial(
+                                count: state.values.rounds, filled: Double(state.values.rounds),
+                                done: colors.accent, current: colors.accent,
+                                future: colors.separator, maxPip: 5
+                            )
+                            .frame(width: 216, height: 216)
+                            .allowsHitTesting(false)
+                        }
+                    }
             }
             .padding(.horizontal)
             .presentationDetents([.medium])
@@ -50,13 +68,35 @@ struct SetupF: View {
         }
     }
 
+    /// The mark above the Rounds wheel redraws as the wheel turns. Bezel wraps the wheel instead.
+    @ViewBuilder
+    private var roundsSheetMark: some View {
+        switch state.roundStyle {
+        case .temper:
+            TemperBar(
+                count: state.values.rounds, filled: Double(state.values.rounds),
+                track: colors.separator, cut: colors.raised, height: 20
+            )
+            .padding(.top, 8)
+        case .chalk:
+            ChalkTally(
+                count: state.values.rounds, filled: Double(state.values.rounds),
+                done: colors.text, current: colors.text, future: colors.separator,
+                surface: colors.raised, maxSpacing: 12
+            )
+            .frame(height: 52)
+        case .bezel:
+            EmptyView()
+        }
+    }
+
     private func titleColor(_ field: Field) -> Color {
-        field.phaseKind.map { state.theme.phase($0).ring } ?? colors.secondary
+        field.phaseKind.map { state.theme.phase($0).ring } ?? colors.accent
     }
 
     private func sheetColors(_ field: Field) -> (background: Color, title: Color, text: Color) {
         guard let kind = field.phaseKind else {
-            return (colors.raised, colors.secondary, colors.text)
+            return (colors.raised, colors.accent, colors.text)
         }
         let phase = state.theme.phase(kind)
         return (phase.background, phase.ring, phase.text)

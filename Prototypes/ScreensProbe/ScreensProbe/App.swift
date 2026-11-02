@@ -67,9 +67,7 @@ struct CompleteScreen: View {
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 96))
-                .foregroundStyle(colors.accent)
+            RoundsFinished(state: state)
             Text("Workout complete")
                 .font(.system(.largeTitle, design: .rounded, weight: .semibold))
                 .foregroundStyle(colors.text)
