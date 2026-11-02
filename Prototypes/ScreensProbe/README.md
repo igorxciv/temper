@@ -4,6 +4,18 @@ Answers one question: what should the setup, running and Settings screens look l
 
 The timer is a stand-in. It has no audio, no background running and no accuracy claims, and nothing is saved.
 
+## Hold-up round
+
+This branch tests the chosen screens where they weren't tested: small screens, large text, Increase Contrast, Reduce Transparency, color blindness and distance.
+
+The probe bar's third line shows what the app sees: Increase Contrast from the system and as shown, Reduce Transparency, text size, and the ring style or word strength.
+
+- **Half circle:** forces the Increase Contrast colors on or off. The system setting also turns them on.
+- **Ruler, on the running screen:** cycles the ring style through `current`, `thin` and `edge`. Launch with `-timeStyle thin`.
+- **Text icon, on setup:** cycles the word strength through 32%, 45% and 60%. Launch with `-label 0.45`. Increase Contrast always uses 60%.
+
+`python3 -I palette.py` prints the contrast, color-blindness and distance figures. `screenshots/holdup/` has the evidence.
+
 This is the final round, with the layouts, the Ink design system and the outlined setup labels chosen. Earlier variants are in this branch's history: the first round at `d6cee05`, the second at `6c6edda`, the third, with the Tide and Plum themes, at `b8542a3`, the fourth, with "Round 3 of 8" as text, at `9fc9369`, the fifth, with the Chalk and Bezel styles, at `31084cb`, the Temper bar at `825ef26`, the Thread, Italic and Edge labels at `11379f3`, and the Stamped and Fade labels at `8617a1c`.
 
 ## Run it

@@ -8,6 +8,7 @@ struct RunningRing: View {
     let runner: Runner
 
     private var palette: PhaseColors { state.theme.phase(runner.phase.kind) }
+    private var style: TimeStyle { state.timeStyle }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -19,19 +20,23 @@ struct RunningRing: View {
                 .padding(.top, 8)
             Spacer(minLength: 0)
             ZStack {
-                Circle().stroke(palette.track, lineWidth: 20)
+                Circle().stroke(palette.track, lineWidth: style.ringWidth)
                 Circle()
                     .trim(from: 0, to: max(0, 1 - runner.phaseProgress))
-                    .stroke(palette.ring, style: StrokeStyle(lineWidth: 20, lineCap: .round))
+                    .stroke(
+                        palette.ring,
+                        style: StrokeStyle(lineWidth: style.ringWidth, lineCap: .round)
+                    )
                     .rotationEffect(.degrees(-90))
                 Text(runner.timeText)
-                    .font(.system(size: 132, weight: .semibold, design: .rounded).monospacedDigit())
+                    // Set above any phone's width, so the ring alone decides the size.
+                    .font(.system(size: 180, weight: .semibold, design: .rounded).monospacedDigit())
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .padding(.horizontal, 24)
+                    .minimumScaleFactor(0.4)
+                    .padding(.horizontal, style.digitPadding)
             }
             .aspectRatio(1, contentMode: .fit)
-            .padding(10)
+            .padding(style.ringPadding)
             RoundCount(runner: runner)
             Spacer(minLength: 0)
             HStack(spacing: 12) {
@@ -56,8 +61,12 @@ struct RunningRing: View {
                 .stopConfirmation(state)
             }
             .padding(.bottom, 8)
+            // The time is the point of this screen, so the buttons can't grow into it. Their words
+            // stop growing at the largest standard size, and a long press shows them enlarged.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .accessibilityShowsLargeContentViewer()
         }
-        .padding(.horizontal)
+        .padding(.horizontal, style.screenPadding)
         .foregroundStyle(palette.text)
         .background(palette.background.ignoresSafeArea())
     }

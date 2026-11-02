@@ -47,27 +47,27 @@ struct SetupF: View {
     }
 
     private func row(_ field: Field) -> some View {
-        ZStack {
-            word(field)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        // The word takes what the digits leave and dissolves over its last 36 pt, so the fade follows
+        // the real digit width on every screen instead of a fixed share of it.
+        HStack(spacing: 6) {
+            // An overlay on empty space, because the word's own width must not widen the row.
+            Color.clear
+                .overlay(alignment: .leading) { word(field).padding(.leading, 1) }
                 .mask {
-                    // Dissolves just before the digits begin, so a long word never runs under them.
-                    LinearGradient(
-                        stops: [
-                            .init(color: .black, location: 0),
-                            .init(color: .black, location: 0.5),
-                            .init(color: .clear, location: 0.6),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                    HStack(spacing: 0) {
+                        Color.black
+                        LinearGradient(
+                            colors: [.black, .clear], startPoint: .leading, endPoint: .trailing
+                        )
+                        .frame(width: 36)
+                    }
                 }
                 .accessibilityHidden(true)
             Text(field.text(state.values[keyPath: field.keyPath]))
                 .font(.system(size: 52, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(colors.text)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .fixedSize()
         }
     }
 
@@ -87,7 +87,7 @@ struct SetupF: View {
             base.foregroundStyle(colors.background)
         }
         .compositingGroup()
-        .opacity(0.32)
+        .opacity(state.labelOpacity)
     }
 
     private func titleColor(_ field: Field) -> Color {

@@ -165,9 +165,54 @@ final class Runner {
 
 enum Route: Hashable { case settings }
 
+/// How the running screen spends its width. Digits are bound by the width, so these are the only
+/// way to win size back without changing the `00:00` format.
+enum TimeStyle: String, CaseIterable {
+    case current, thin, edge
+
+    var ringWidth: CGFloat {
+        switch self {
+        case .current: 20
+        case .thin: 10
+        case .edge: 6
+        }
+    }
+    var digitPadding: CGFloat {
+        switch self {
+        case .current: 24
+        case .thin: 12
+        case .edge: 6
+        }
+    }
+    var ringPadding: CGFloat {
+        switch self {
+        case .current: 10
+        case .thin: 5
+        case .edge: 3
+        }
+    }
+    var screenPadding: CGFloat {
+        switch self {
+        case .current: 16
+        case .thin: 12
+        case .edge: 6
+        }
+    }
+}
+
 @Observable
 final class ProbeState {
-    let theme = Theme.ink
+    /// Set from the system's Increase Contrast setting. The probe bar can force it for comparing.
+    var systemIncreasedContrast = false
+    var forceIncreasedContrast = UserDefaults.standard.bool(forKey: "ic")
+    var theme: Theme { systemIncreasedContrast || forceIncreasedContrast ? .inkIncreased : .ink }
+    var timeStyle =
+        TimeStyle(rawValue: UserDefaults.standard.string(forKey: "timeStyle") ?? "") ?? .current
+    /// The setup words' opacity at normal contrast. Increase Contrast always uses 0.6, which clears 3:1.
+    var labelStrength =
+        UserDefaults.standard.object(forKey: "label") == nil
+        ? 0.32 : UserDefaults.standard.double(forKey: "label")
+    var labelOpacity: Double { theme == .inkIncreased ? 0.6 : labelStrength }
     var values = Values()
     var runner: Runner?
     var path: [Route] = []

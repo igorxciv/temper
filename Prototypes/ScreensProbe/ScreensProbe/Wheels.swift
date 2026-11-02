@@ -125,5 +125,7 @@ struct StartButton: View {
         }
         .buttonStyle(.glassProminent)
         .padding(.bottom, 6)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .accessibilityShowsLargeContentViewer()
     }
 }

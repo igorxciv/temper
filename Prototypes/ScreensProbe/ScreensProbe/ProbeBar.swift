@@ -31,6 +31,9 @@ extension View {
 #if DEBUG
     struct ProbeBar: View {
         @Bindable var state: ProbeState
+        @Environment(\.colorSchemeContrast) private var contrast
+        @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+        @Environment(\.dynamicTypeSize) private var typeSize
 
         private var onRunning: Bool { state.runner != nil }
 
@@ -39,8 +42,25 @@ extension View {
                 VStack(spacing: 2) {
                     Text(title).font(.caption.bold())
                     Text(detail).font(.caption2)
+                    Text(settingsLine).font(.caption2)
                 }
                 .frame(maxWidth: .infinity)
+                barButton(state.theme == .inkIncreased ? "circle.lefthalf.filled" : "circle") {
+                    state.forceIncreasedContrast.toggle()
+                }
+                if onRunning {
+                    barButton("ruler") {
+                        let all = TimeStyle.allCases
+                        let index = all.firstIndex(of: state.timeStyle) ?? 0
+                        state.timeStyle = all[(index + 1) % all.count]
+                    }
+                } else {
+                    barButton("textformat") {
+                        let steps = [0.32, 0.45, 0.6]
+                        let index = steps.firstIndex(of: state.labelStrength) ?? 0
+                        state.labelStrength = steps[(index + 1) % steps.count]
+                    }
+                }
                 if let runner = state.runner, !runner.isDone {
                     barButton("forward.end.fill") { runner.skip() }
                 }
@@ -56,6 +76,15 @@ extension View {
             .overlay(Capsule().stroke(.yellow, lineWidth: 1))
             .padding(.horizontal, 8)
             .padding(.bottom, 2)
+            .dynamicTypeSize(.large)
+        }
+
+        private var settingsLine: String {
+            let system = contrast == .increased ? "on" : "off"
+            let shown = state.theme == .inkIncreased ? "on" : "off"
+            return
+                "IC sys:\(system) shown:\(shown) RT:\(reduceTransparency ? "on" : "off") \(typeSize) "
+                + (onRunning ? state.timeStyle.rawValue : "word \(Int(state.labelOpacity * 100))%")
         }
 
         private var title: String {

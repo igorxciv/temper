@@ -13,6 +13,7 @@ struct ScreensProbeApp: App {
 
 struct RootView: View {
     @Bindable var state: ProbeState
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Group {
@@ -37,6 +38,9 @@ struct RootView: View {
         }
         .preferredColorScheme(.dark)
         .tint(state.theme.colors.accent)
+        .onChange(of: contrast, initial: true) { _, new in
+            state.systemIncreasedContrast = new == .increased
+        }
         .onChange(of: state.runner == nil, initial: true) { _, idle in
             UIApplication.shared.isIdleTimerDisabled = !idle
         }
