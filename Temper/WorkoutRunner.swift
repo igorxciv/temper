@@ -8,7 +8,8 @@ import UIKit
 final class WorkoutRunner {
     typealias Snapshot = WorkoutSnapshot<ContinuousClock.Instant>
 
-    let workout: Workout
+    /// The length of the Workout last started, not counting any Pause.
+    private(set) var total: Duration = .zero
 
     /// The latest snapshot, or `nil` when no Workout is running or complete.
     private(set) var snapshot: Snapshot? {
@@ -19,12 +20,9 @@ final class WorkoutRunner {
 
     @ObservationIgnored private var engine: WorkoutEngine<ContinuousClock>?
 
-    init(workout: Workout) {
-        self.workout = workout
-    }
-
-    func start() {
+    func start(_ workout: Workout) {
         guard engine == nil else { return }
+        total = workout.totalDuration
         let engine = WorkoutEngine(workout: workout, clock: ContinuousClock())
         self.engine = engine
         Task {
