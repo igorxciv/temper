@@ -57,17 +57,19 @@ private struct TimeRing: View {
             TimelineView(.animation(paused: snapshot.isPaused)) { _ in
                 let now = ContinuousClock.now
 
-                Circle()
-                    .trim(from: 0, to: snapshot.fractionLeft(at: now))
-                    .stroke(colors.ring, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                Text(snapshot.timeLeft(at: now).clockText)
-                    // Set above any phone's width, so the ring alone decides the size.
-                    .font(.system(size: 180, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(colors.text)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.4)
-                    .padding(.horizontal, 24)
+                ZStack {
+                    Circle()
+                        .trim(from: 0, to: snapshot.fractionLeft(at: now))
+                        .stroke(colors.ring, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Text(snapshot.timeLeft(at: now).clockText)
+                        // Set above any phone's width, so the ring alone decides the size.
+                        .font(.system(size: 180, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(colors.text)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.4)
+                        .padding(.horizontal, 24)
+                }
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -127,13 +129,15 @@ private struct RunningControls: View {
                 .buttonStyle(.glass)
                 .accessibilityShowsLargeContentViewer()
 
-                Button("Stop", systemImage: "stop.fill") {
+                Button {
                     isConfirmingStop = true
+                } label: {
+                    Image(systemName: "stop.fill")
+                        .font(.title.bold())
+                        .frame(width: 72, height: 72)
                 }
-                .labelStyle(.iconOnly)
-                .font(.title.bold())
-                .frame(width: 72, height: 72)
                 .buttonStyle(.glass)
+                .accessibilityLabel("Stop")
                 .confirmationDialog("End this Workout?", isPresented: $isConfirmingStop, titleVisibility: .visible) {
                     Button("End Workout", role: .destructive, action: stop)
                     Button("Keep Going", role: .cancel) {}
