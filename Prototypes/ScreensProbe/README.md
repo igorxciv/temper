@@ -4,7 +4,7 @@ Answers one question: what should the setup, running and Settings screens look l
 
 The timer is a stand-in. It has no audio, no background running and no accuracy claims, and nothing is saved.
 
-This is the third round. The layouts are chosen, and the open question is the app's dark design system. Earlier variants are in this branch's history: the first round at `d6cee05` and the second at `6c6edda`.
+This is the fourth round, with the layouts and the Ink design system chosen. Earlier variants are in this branch's history: the first round at `d6cee05`, the second at `6c6edda` and the third, with the Tide and Plum themes, at `b8542a3`.
 
 ## Run it
 
@@ -22,26 +22,30 @@ Colors are best judged on a real iPhone. For that, run `cp Config/Local.xcconfig
 
 The black and yellow bar is not part of any design.
 
-- **Arrows:** switch the theme for the whole app, on any screen.
 - **Skip button:** jumps to the next Phase. Skipping is not a v1 feature.
 - **Eye:** hides the bar. A small yellow dot in the bottom corner brings it back.
 
-## Themes
+## Ink
 
-The app is dark only. Each theme colors every screen, and each Phase has its own background and ring.
+The app is dark only, on a blue-black home background `#11151D` with a brass accent `#E6B566`.
 
-| Theme | Home background | Accent | Idea |
-|---|---|---|---|
-| Tide | Deep teal `#0F2A28` | Sea-glass `#8FE3D4` | Not being in a Workout is resting, so home is the Rest color and Work warms away from it |
-| Plum | Aubergine `#1C1424` | Apricot `#FFB38A` | A warm, unusual base with no green outside Rest |
-| Ink | Blue-black `#11151D` | Brass `#E6B566` | The quietest base, with a metallic accent |
+| Phase | Background | Ring and name | Track | Text |
+|---|---|---|---|---|
+| Prepare | `#0F2433` | `#8FCBEF` | `#274A60` | `#EFF8FD` |
+| Work | `#351C17` | `#FFAE8A` | `#59332A` | `#FFF5F0` |
+| Rest | `#0F2A2B` | `#86DCCB` | `#254A48` | `#F0FBF8` |
+| Cooldown | `#18223F` | `#AFC4FF` | `#2F3D66` | `#F3F6FF` |
+
+## Time format
+
+Every time reads `00:00`, for example `01:00`.
 
 ## Ranges
 
-Prepare, Rest and Cooldown run from Off to 30:00 in 5-second steps, and Off skips the Phase. Work runs from 0:05 to 30:00. Rounds run from 1 to 99.
+Prepare, Rest and Cooldown run from Off to 30:00 in 5-second steps, and Off skips the Phase. Work runs from 00:05 to 30:00. Rounds run from 1 to 99.
 
-Launch arguments open a state directly, for example `./run.sh -theme Plum -screen running -phase Rest -time 14`. Others are `-screen settings`, `-paused YES`, `-confirmStop YES`, `-edit work` and `-noBar YES`.
+Launch arguments open a state directly, for example `./run.sh -screen running -phase Rest -time 14`. Others are `-screen settings`, `-paused YES`, `-confirmStop YES`, `-edit work` and `-noBar YES`.
 
 ## Screenshots
 
-`screenshots/` has every theme on a Simulator iPhone 18 Pro, without the bar.
+`screenshots/` has every screen on a Simulator iPhone 18 Pro, without the bar.

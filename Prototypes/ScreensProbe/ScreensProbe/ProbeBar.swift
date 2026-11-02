@@ -36,13 +36,11 @@ extension View {
 
         var body: some View {
             HStack(spacing: 10) {
-                arrow("chevron.left", by: -1)
                 VStack(spacing: 2) {
                     Text(title).font(.caption.bold())
                     Text(detail).font(.caption2)
                 }
                 .frame(maxWidth: .infinity)
-                arrow("chevron.right", by: 1)
                 if let runner = state.runner, !runner.isDone {
                     barButton("forward.end.fill") { runner.skip() }
                 }
@@ -62,7 +60,7 @@ extension View {
 
         private var title: String {
             let screen = !state.path.isEmpty ? "SETTINGS" : onRunning ? "RUNNING" : "SETUP"
-            return "THEME \(state.theme.rawValue) · \(screen)"
+            return "PROTOTYPE · \(screen)"
         }
 
         private var detail: String {
@@ -74,14 +72,6 @@ extension View {
             let v = state.values
             return
                 "P\(clock(v.prepare)) R\(v.rounds) W\(clock(v.work)) r\(clock(v.rest)) C\(clock(v.cooldown)) dip:\(state.dip ? "on" : "off")"
-        }
-
-        private func arrow(_ symbol: String, by offset: Int) -> some View {
-            barButton(symbol) {
-                let all = Theme.allCases
-                let position = all.firstIndex(of: state.theme) ?? 0
-                state.theme = all[(position + offset + all.count) % all.count]
-            }
         }
 
         private func barButton(_ symbol: String, action: @escaping () -> Void) -> some View {

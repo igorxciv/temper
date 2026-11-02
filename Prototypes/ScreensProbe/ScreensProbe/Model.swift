@@ -1,5 +1,5 @@
-// PROTOTYPE, throw away. Third round: the chosen setup and running screens in three dark themes,
-// switchable from a floating bar. Earlier rounds are in this branch's history at d6cee05 and 6c6edda.
+// PROTOTYPE, throw away. Fourth round: the chosen setup and running screens in the Ink design
+// system. Earlier rounds are in this branch's history at d6cee05, 6c6edda and b8542a3.
 import Foundation
 import Observation
 
@@ -48,7 +48,7 @@ enum Field: String, CaseIterable, Identifiable {
 }
 
 func clock(_ seconds: Int) -> String {
-    String(format: "%d:%02d", seconds / 60, seconds % 60)
+    String(format: "%02d:%02d", seconds / 60, seconds % 60)
 }
 
 struct Values {
@@ -160,7 +160,7 @@ enum Route: Hashable { case settings }
 
 @Observable
 final class ProbeState {
-    var theme: Theme
+    let theme = Theme.ink
     var values = Values()
     var runner: Runner?
     var path: [Route] = []
@@ -172,7 +172,6 @@ final class ProbeState {
 
     init() {
         let args = UserDefaults.standard
-        theme = Theme(rawValue: args.string(forKey: "theme") ?? "") ?? .tide
         editing = Field(rawValue: args.string(forKey: "edit") ?? "")
         confirmStop = args.bool(forKey: "confirmStop")
         barVisible = !args.bool(forKey: "hideBar")

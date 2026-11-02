@@ -89,7 +89,8 @@ struct FieldEditor: View {
                     } set: {
                         value.wrappedValue = $0 * 60 + value.wrappedValue % 60
                     },
-                    label: "\(field.title) minutes"
+                    label: "\(field.title) minutes",
+                    format: { String(format: "%02d", $0) }
                 )
                 Text(":")
                     .font(.system(size: 54, weight: .semibold, design: .rounded))

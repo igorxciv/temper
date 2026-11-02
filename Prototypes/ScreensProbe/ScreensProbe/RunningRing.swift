@@ -26,8 +26,8 @@ struct RunningRing: View {
                 Text(runner.timeText)
                     .font(.system(size: 132, weight: .semibold, design: .rounded).monospacedDigit())
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .padding(.horizontal, 28)
+                    .minimumScaleFactor(0.6)
+                    .padding(.horizontal, 24)
             }
             .aspectRatio(1, contentMode: .fit)
             .padding(10)
