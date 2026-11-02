@@ -43,7 +43,3 @@ _Avoid_: Alert, notification, beep
 **Dip**:
 A brief lowering of other audio while a Cue speaks.
 _Avoid_: Interrupt, mute
-
-**Temper bar**:
-The bar on the running screen that shows progress through a Workout's Rounds, colored from straw to blue like tempering steel.
-_Avoid_: Progress bar, round indicator
