@@ -5,7 +5,7 @@ Temper is a personal training app. Its first feature runs a timed Workout that m
 ## Language
 
 **Workout**:
-One Prepare, followed by all its Rounds, followed by a Cooldown if one is configured.
+A Prepare if one is configured, followed by all its Rounds, followed by a Cooldown if one is configured.
 _Avoid_: Session, timer, routine
 
 **Phase**:
@@ -13,11 +13,11 @@ A single timed period within a Workout: a Prepare, Work, Rest, or Cooldown.
 _Avoid_: Stage, step, interval
 
 **Prepare**:
-The Phase before the first Round, used to get into position.
+The optional Phase before the first Round, used to get into position.
 _Avoid_: Countdown, warm-up
 
 **Round**:
-One Work, followed by a Rest unless it is the last Round of the Workout.
+One Work, followed by a Rest if one is configured, unless it is the last Round of the Workout.
 _Avoid_: Set, rep, cycle
 
 **Work**:
@@ -25,7 +25,7 @@ The Phase of a Round in which the exercise is performed.
 _Avoid_: Work round, active time
 
 **Rest**:
-The Phase between one Work and the next. The last Round has none.
+The optional Phase between one Work and the next. The last Round has none.
 _Avoid_: Break, pause
 
 **Cooldown**:
@@ -43,3 +43,7 @@ _Avoid_: Alert, notification, beep
 **Dip**:
 A brief lowering of other audio while a Cue speaks.
 _Avoid_: Interrupt, mute
+
+**Temper bar**:
+The bar on the running screen that shows progress through a Workout's Rounds, colored from straw to blue like tempering steel.
+_Avoid_: Progress bar, round indicator
