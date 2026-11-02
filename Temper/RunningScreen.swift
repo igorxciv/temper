@@ -34,7 +34,7 @@ struct RunningScreen: View {
 }
 
 extension Phase.Kind {
-    fileprivate var name: String {
+    var name: String {
         switch self {
         case .prepare: "Prepare"
         case .work: "Work"

@@ -3,14 +3,12 @@ import TemperCore
 
 @main
 struct TemperApp: App {
-    /// The Workout every run uses until setup arrives.
-    static let fixedWorkout = WorkoutSettings.firstLaunch.makeWorkout()
-
-    @State private var runner = WorkoutRunner(workout: Self.fixedWorkout)
+    @State private var runner = WorkoutRunner()
+    @State private var remembered = RememberedValues()
 
     var body: some Scene {
         WindowGroup {
-            RootView(runner: runner)
+            RootView(runner: runner, remembered: remembered)
         }
     }
 }
@@ -18,8 +16,10 @@ struct TemperApp: App {
 /// Shows the screen for where the Workout is, and catches up whenever Temper returns to the front.
 struct RootView: View {
     let runner: WorkoutRunner
+    let remembered: RememberedValues
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Group {
@@ -33,10 +33,13 @@ struct RootView: View {
                         stop: runner.stop
                     )
                 } else {
-                    CompleteScreen(total: runner.workout.totalDuration, done: runner.finish)
+                    CompleteScreen(total: runner.total, done: runner.finish)
                 }
             } else {
-                StartScreen(total: runner.workout.totalDuration, start: runner.start)
+                NavigationStack {
+                    SetupScreen(remembered: remembered, start: runner.start)
+                }
+                .tint(InkColors(contrast: contrast).accent)
             }
         }
         .fontDesign(.rounded)
