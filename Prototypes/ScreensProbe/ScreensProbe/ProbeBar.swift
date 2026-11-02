@@ -79,28 +79,34 @@ extension View {
 
         private var setupName: String {
             switch state.setup {
-            case .a: "Form & wheels"
-            case .b: "Big steppers"
-            case .c: "Sentence & presets"
+            case .d: "Preview & docked wheel"
+            case .e: "Hero & ruler"
+            case .f: "Big preview & sheet"
             }
         }
 
         private var runningName: String {
             switch state.running {
-            case .a: "Color flood"
-            case .b: "Ring & timeline"
-            case .c: "Whole-screen tap"
+            case .d: "Neutral ring, Rounded"
+            case .e: "Tinted ring, Rounded"
+            case .f: "Neutral ring, SF Pro"
             }
         }
 
         private func arrow(_ symbol: String, by offset: Int) -> some View {
             barButton(symbol) {
-                let all = Letter.allCases
-                let current = onRunning ? state.running : state.setup
-                let position = all.firstIndex(of: current) ?? 0
-                let target = all[(position + offset + all.count) % all.count]
-                if onRunning { state.running = target } else { state.setup = target }
+                if onRunning {
+                    state.running = cycled(state.running, by: offset)
+                } else {
+                    state.setup = cycled(state.setup, by: offset)
+                }
             }
+        }
+
+        private func cycled<V: CaseIterable & Equatable>(_ value: V, by offset: Int) -> V {
+            let all = Array(V.allCases)
+            let position = all.firstIndex(of: value) ?? 0
+            return all[(position + offset + all.count) % all.count]
         }
 
         private func barButton(_ symbol: String, action: @escaping () -> Void) -> some View {

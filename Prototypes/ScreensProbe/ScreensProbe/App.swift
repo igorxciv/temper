@@ -22,9 +22,9 @@ struct RootView: View {
                 NavigationStack(path: $state.path) {
                     Group {
                         switch state.setup {
-                        case .a: SetupA(state: state)
-                        case .b: SetupB(state: state)
-                        case .c: SetupC(state: state)
+                        case .d: SetupD(state: state)
+                        case .e: SetupE(state: state)
+                        case .f: SetupF(state: state)
                         }
                     }
                     .toolbar {
@@ -57,9 +57,12 @@ struct RunningHost: View {
                 CompleteScreen(state: state)
             } else {
                 switch state.running {
-                case .a: RunningA(state: state, runner: runner)
-                case .b: RunningB(state: state, runner: runner)
-                case .c: RunningC(state: state, runner: runner)
+                case .d:
+                    RunningRing(state: state, runner: runner, style: .neutral, design: .rounded)
+                case .e:
+                    RunningRing(state: state, runner: runner, style: .tinted, design: .rounded)
+                case .f:
+                    RunningRing(state: state, runner: runner, style: .neutral, design: .default)
                 }
             }
         }
@@ -100,25 +103,6 @@ extension View {
         ) {
             Button("End Workout", role: .destructive) { state.stop() }
             Button("Keep Going", role: .cancel) {}
-        }
-    }
-}
-
-extension PhaseKind {
-    /// High-contrast pairs. Each Phase also shows its name, so color is never the only signal.
-    var fill: Color {
-        switch self {
-        case .prepare: Color(red: 1.0, green: 0.8, blue: 0.0)
-        case .work: Color(red: 0.78, green: 0.07, blue: 0.09)
-        case .rest: Color(red: 0.2, green: 0.82, blue: 0.48)
-        case .cooldown: Color(red: 0.04, green: 0.28, blue: 0.72)
-        }
-    }
-
-    var onFill: Color {
-        switch self {
-        case .prepare, .rest: .black
-        case .work, .cooldown: .white
         }
     }
 }

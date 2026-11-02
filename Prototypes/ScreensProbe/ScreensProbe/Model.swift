@@ -1,8 +1,8 @@
-// PROTOTYPE, throw away. Three setup and three running variants, switchable from a floating bar.
+// PROTOTYPE, throw away. Second round: three setup and three running variants, switchable from a
+// floating bar. The first round is in this branch's history at d6cee05.
 import Foundation
 import Observation
 
-/// Proposed v1 ranges. The owner decides these on the ticket.
 enum Field: String, CaseIterable, Identifiable {
     case prepare, rounds, work, rest, cooldown
     var id: String { rawValue }
@@ -27,50 +27,23 @@ enum Field: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Every value the steppers land on. Times are in seconds.
+    /// Every time value shares one range in 5-second steps. Only Work can't be zero,
+    /// because a Round needs a Work. Zero on any other Phase means the Phase is skipped.
     var options: [Int] {
-        let steps =
-            Array(stride(from: 5, through: 60, by: 5))
-            + Array(stride(from: 75, through: 300, by: 15))
         switch self {
-        case .prepare: return steps
-        case .rounds: return Array(1...99)
-        case .work: return steps + Array(stride(from: 360, through: 1800, by: 60))
-        case .rest: return steps + Array(stride(from: 360, through: 600, by: 60))
-        case .cooldown: return [0] + steps + Array(stride(from: 360, through: 1800, by: 60))
-        }
-    }
-
-    var presets: [Int] {
-        switch self {
-        case .prepare: [5, 10, 15, 30]
-        case .rounds: [3, 5, 8, 10, 12, 20]
-        case .work: [20, 30, 40, 45, 60, 90, 120, 180]
-        case .rest: [10, 15, 20, 30, 45, 60, 90, 120]
-        case .cooldown: [0, 30, 60, 120, 180, 300]
+        case .rounds: Array(1...99)
+        case .work: Array(stride(from: 5, through: 1800, by: 5))
+        default: Array(stride(from: 0, through: 1800, by: 5))
         }
     }
 
     func text(_ value: Int) -> String {
-        switch self {
-        case .rounds: "\(value)"
-        case .cooldown where value == 0: "Off"
-        default: clock(value)
-        }
-    }
-
-    func stepped(_ value: Int, up: Bool) -> Int {
-        if up {
-            options.first { $0 > value } ?? value
-        } else {
-            options.last { $0 < value } ?? value
-        }
+        if self == .rounds { return "\(value)" }
+        return value == 0 ? "Off" : clock(value)
     }
 
     func clamped(_ value: Int) -> Int {
-        if self == .cooldown, value == 0 { return 0 }
-        let lowest = options.first { $0 > 0 } ?? 1
-        return min(max(value, lowest), options.last ?? value)
+        min(max(value, options.first ?? value), options.last ?? value)
     }
 }
 
@@ -86,10 +59,13 @@ struct Values {
     var cooldown = 60
 
     var phases: [PhaseItem] {
-        var list = [PhaseItem(kind: .prepare, seconds: prepare, round: nil)]
+        var list: [PhaseItem] = []
+        if prepare > 0 { list.append(PhaseItem(kind: .prepare, seconds: prepare, round: nil)) }
         for round in 1...rounds {
             list.append(PhaseItem(kind: .work, seconds: work, round: round))
-            if round < rounds { list.append(PhaseItem(kind: .rest, seconds: rest, round: round)) }
+            if round < rounds, rest > 0 {
+                list.append(PhaseItem(kind: .rest, seconds: rest, round: round))
+            }
         }
         if cooldown > 0 { list.append(PhaseItem(kind: .cooldown, seconds: cooldown, round: nil)) }
         return list
@@ -182,10 +158,11 @@ final class Runner {
 
 enum Route: Hashable { case settings }
 
+/// Second round of variants, after the owner's feedback on A, B and C.
 enum Letter: String, CaseIterable {
-    case a = "A"
-    case b = "B"
-    case c = "C"
+    case d = "D"
+    case e = "E"
+    case f = "F"
 }
 
 @Observable
@@ -203,8 +180,8 @@ final class ProbeState {
 
     init() {
         let args = UserDefaults.standard
-        setup = Letter(rawValue: args.string(forKey: "setup") ?? "") ?? .a
-        running = Letter(rawValue: args.string(forKey: "running") ?? "") ?? .a
+        setup = Letter(rawValue: args.string(forKey: "setup") ?? "") ?? .d
+        running = Letter(rawValue: args.string(forKey: "running") ?? "") ?? .d
         editing = Field(rawValue: args.string(forKey: "edit") ?? "")
         confirmStop = args.bool(forKey: "confirmStop")
         barVisible = !args.bool(forKey: "hideBar")
