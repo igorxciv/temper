@@ -41,8 +41,6 @@ extension View {
                     Text(detail).font(.caption2)
                 }
                 .frame(maxWidth: .infinity)
-                barButton("textformat") { state.labelStyle = state.labelStyle.next }
-                    .accessibilityLabel("Next label style")
                 if let runner = state.runner, !runner.isDone {
                     barButton("forward.end.fill") { runner.skip() }
                 }
@@ -62,7 +60,7 @@ extension View {
 
         private var title: String {
             let screen = !state.path.isEmpty ? "SETTINGS" : onRunning ? "RUNNING" : "SETUP"
-            return "PROTOTYPE · \(screen) · \(state.labelStyle.title)"
+            return "PROTOTYPE · \(screen)"
         }
 
         private var detail: String {

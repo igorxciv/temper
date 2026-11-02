@@ -1,6 +1,6 @@
 // PROTOTYPE, throw away. Final round: the chosen setup and running screens in the Ink design
-// system, with the Temper bar on the running screen. Earlier rounds are in this branch's history
-// at d6cee05, 6c6edda, b8542a3, 9fc9369 and 31084cb.
+// system. Earlier rounds are in this branch's history at d6cee05, 6c6edda, b8542a3, 9fc9369,
+// 31084cb, 11379f3 and 8617a1c.
 import Foundation
 import Observation
 
@@ -119,17 +119,6 @@ final class Runner {
     var timeText: String { clock(Int(remaining.rounded(.up))) }
     var phaseProgress: Double { 1 - remaining / Double(phase.seconds) }
 
-    /// Rounds finished so far, with the running Round as a fraction across its Work and Rest.
-    /// Zero during Prepare, and every Round during Cooldown.
-    var roundsFilled: Double {
-        guard let round = phase.round else { return phase.kind == .prepare ? 0 : Double(rounds) }
-        let parts = phases.filter { $0.round == round }
-        let total = parts.reduce(0) { $0 + $1.seconds }
-        let earlier = phase.kind == .rest ? parts.first?.seconds ?? 0 : 0
-        let elapsed = Double(earlier) + Double(phase.seconds) - remaining
-        return Double(round - 1) + elapsed / Double(total)
-    }
-
     func togglePause() {
         isPaused.toggle()
         if !isPaused { phaseEnd = .now + .milliseconds(Int(remaining * 1000)) }
@@ -187,11 +176,9 @@ final class ProbeState {
     let noBar = UserDefaults.standard.bool(forKey: "noBar")
     var editing: Field?
     var confirmStop = false
-    var labelStyle = LabelStyle.outline
 
     init() {
         let args = UserDefaults.standard
-        labelStyle = LabelStyle(rawValue: args.string(forKey: "labelStyle") ?? "") ?? .outline
         if args.object(forKey: "rest") != nil { values.rest = args.integer(forKey: "rest") }
         if args.integer(forKey: "rounds") > 0 {
             values.rounds = Field.rounds.clamped(args.integer(forKey: "rounds"))

@@ -1,5 +1,6 @@
 // PROTOTYPE, throw away. The chosen running screen: each Phase has a deep tinted background and a
-// lighter ring for the time left, with the Round number and Temper bar below.
+// lighter ring for the time left, with the Round number below. The Temper bar that once sat under
+// it is in this branch's history at 8617a1c.
 import SwiftUI
 
 struct RunningRing: View {
@@ -32,12 +33,6 @@ struct RunningRing: View {
             .aspectRatio(1, contentMode: .fit)
             .padding(10)
             RoundCount(runner: runner)
-            TemperBar(
-                count: runner.rounds, filled: runner.roundsFilled, track: palette.track,
-                cut: palette.background
-            )
-            .padding(.horizontal, 6)
-            .padding(.top, 4)
             Spacer(minLength: 0)
             HStack(spacing: 12) {
                 Button {
@@ -65,5 +60,46 @@ struct RunningRing: View {
         .padding(.horizontal)
         .foregroundStyle(palette.text)
         .background(palette.background.ignoresSafeArea())
+    }
+}
+
+/// The Round number, set large enough to read from across a room, with the total beside it.
+private struct RoundCount: View {
+    let runner: Runner
+    var size: CGFloat = 64
+
+    var body: some View {
+        Group {
+            if runner.isPaused {
+                Text("Paused").font(.system(size: size * 0.66, weight: .semibold, design: .rounded))
+            } else if runner.phase.kind == .prepare {
+                pair("\(runner.rounds)", runner.rounds == 1 ? "Round" : "Rounds")
+            } else {
+                pair("\(runner.phase.round ?? runner.rounds)", "of \(runner.rounds)")
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .frame(height: size * 1.15)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+    }
+
+    private func pair(_ big: String, _ small: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: size * 0.14) {
+            Text(big)
+                .font(.system(size: size, weight: .semibold, design: .rounded).monospacedDigit())
+            Text(small)
+                .font(
+                    .system(size: size * 0.5, weight: .medium, design: .rounded).monospacedDigit()
+                )
+                .opacity(0.72)
+        }
+    }
+
+    private var label: String {
+        if runner.isPaused { return "Paused" }
+        if let round = runner.phase.round { return "Round \(round) of \(runner.rounds)" }
+        return runner.rounds == 1 ? "1 Round" : "\(runner.rounds) Rounds"
     }
 }

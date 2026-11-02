@@ -1,26 +1,8 @@
 // PROTOTYPE, throw away. The chosen setup screen: the screen is only the preview, and tapping a
-// value opens a sheet with the custom wheel. Each row carries its label as a large secondary word
-// in its Phase's color, behind the value, and this round compares three ways to make it recede.
-// Rounds has no Phase, so it wears brass. Thread, Italic and Edge labels are in this branch's
-// history at 11379f3.
+// value opens a sheet with the custom wheel. Each row carries its label as a large, dim, hollow
+// word in its Phase's color, with the value on the right. Rounds has no Phase, so it wears brass.
+// Other label treatments are in this branch's history at 11379f3 and 8617a1c.
 import SwiftUI
-
-enum LabelStyle: String, CaseIterable {
-    case stamped, outline, fade
-
-    var title: String {
-        switch self {
-        case .stamped: "Stamped"
-        case .outline: "Outline"
-        case .fade: "Fade"
-        }
-    }
-
-    var next: LabelStyle {
-        let all = Self.allCases
-        return all[((all.firstIndex(of: self) ?? 0) + 1) % all.count]
-    }
-}
 
 struct SetupF: View {
     @Bindable var state: ProbeState
@@ -89,38 +71,23 @@ struct SetupF: View {
         }
     }
 
-    @ViewBuilder
+    /// Opaque copies composited first, so the single opacity below is the color you actually see.
     private func word(_ field: Field) -> some View {
         let base = Text(field.title)
             .font(.system(size: 60, weight: .bold, design: .rounded))
             .lineLimit(1)
             .fixedSize()
-        switch state.labelStyle {
-        case .stamped:
-            base
-                .foregroundStyle(stampColor(field))
-                .shadow(color: .white.opacity(0.14), radius: 0, y: 0.75)
-                .shadow(color: .black.opacity(0.7), radius: 0, y: -0.75)
-        case .outline:
-            ZStack {
-                ForEach(0..<12, id: \.self) { step in
-                    let angle = Double(step) / 12 * 2 * .pi
-                    base
-                        .foregroundStyle(titleColor(field).opacity(0.6))
-                        .offset(x: cos(angle) * 1, y: sin(angle) * 1)
-                }
-                base.foregroundStyle(colors.background)
+        return ZStack {
+            ForEach(0..<12, id: \.self) { step in
+                let angle = Double(step) / 12 * 2 * .pi
+                base
+                    .foregroundStyle(titleColor(field))
+                    .offset(x: cos(angle) * 1, y: sin(angle) * 1)
             }
-        case .fade:
-            base.foregroundStyle(titleColor(field).opacity(0.5))
+            base.foregroundStyle(colors.background)
         }
-    }
-
-    /// The dark tone a Phase already uses for its ring's track. Rounds has no Phase, so it gets the
-    /// same treatment from brass.
-    private func stampColor(_ field: Field) -> Color {
-        field.phaseKind.map { state.theme.phase($0).track }
-            ?? colors.accent.mix(with: colors.background, by: 0.72)
+        .compositingGroup()
+        .opacity(0.32)
     }
 
     private func titleColor(_ field: Field) -> Color {
