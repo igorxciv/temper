@@ -3,8 +3,11 @@ import TemperCore
 
 @main
 struct TemperApp: App {
-    /// Placeholder until the screens are designed in #11.
-    static let placeholderWorkout = Workout(prepare: .seconds(10), rounds: 1, work: .seconds(30), rest: .zero)
+    /// Placeholder until the running screen arrives.
+    static let placeholderWorkout = Workout(phases: [
+        Phase(kind: .prepare, duration: .seconds(10)),
+        Phase(kind: .work, duration: .seconds(30), round: 1),
+    ])
 
     var body: some Scene {
         WindowGroup {
