@@ -14,7 +14,7 @@ The probe bar's third line shows what the app sees: Increase Contrast from the s
 - **Ruler, on the running screen:** cycles the ring style through `current`, `thin` and `edge`. Launch with `-timeStyle thin`.
 - **Text icon, on setup:** cycles the word strength through 32%, 45% and 60%. Launch with `-label 0.45`. Increase Contrast always uses 60%.
 
-The owner's choices are now the defaults: the `edge` ring and 45% words. The ring redraws every display frame. The value sheet has a Confirm button, and swiping the sheet away discards the change.
+The owner's choices are now the defaults: the `current` ring and 45% words. The ring redraws every display frame. The value sheet has a Confirm button, and swiping the sheet away discards the change.
 
 This probe has no audio, so it never speaks Cues. Those are in Timing Probe.
 

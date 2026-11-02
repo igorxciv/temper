@@ -212,7 +212,7 @@ final class ProbeState {
     var forceIncreasedContrast = UserDefaults.standard.bool(forKey: "ic")
     var theme: Theme { systemIncreasedContrast || forceIncreasedContrast ? .inkIncreased : .ink }
     var timeStyle =
-        TimeStyle(rawValue: UserDefaults.standard.string(forKey: "timeStyle") ?? "") ?? .edge
+        TimeStyle(rawValue: UserDefaults.standard.string(forKey: "timeStyle") ?? "") ?? .current
     /// The setup words' opacity at normal contrast. Increase Contrast always uses 0.6, which clears 3:1.
     var labelStrength =
         UserDefaults.standard.object(forKey: "label") == nil
