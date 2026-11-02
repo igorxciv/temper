@@ -65,14 +65,14 @@ struct DigitWheel: View {
 
 /// One wheel for Rounds, or minutes and seconds wheels for a time.
 struct FieldEditor: View {
-    @Bindable var state: ProbeState
+    @Binding var draft: Int
     let field: Field
 
     private var value: Binding<Int> {
         Binding {
-            state.values[keyPath: field.keyPath]
+            draft
         } set: {
-            state.values[keyPath: field.keyPath] = field.clamped($0)
+            draft = field.clamped($0)
         }
     }
 

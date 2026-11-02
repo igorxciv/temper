@@ -14,6 +14,10 @@ The probe bar's third line shows what the app sees: Increase Contrast from the s
 - **Ruler, on the running screen:** cycles the ring style through `current`, `thin` and `edge`. Launch with `-timeStyle thin`.
 - **Text icon, on setup:** cycles the word strength through 32%, 45% and 60%. Launch with `-label 0.45`. Increase Contrast always uses 60%.
 
+The owner's choices are now the defaults: the `edge` ring and 45% words. The ring redraws every display frame. The value sheet has a Confirm button, and swiping the sheet away discards the change.
+
+This probe has no audio, so it never speaks Cues. Those are in Timing Probe.
+
 `python3 -I palette.py` prints the contrast, color-blindness and distance figures. `screenshots/holdup/` has the evidence.
 
 This is the final round, with the layouts, the Ink design system and the outlined setup labels chosen. Earlier variants are in this branch's history: the first round at `d6cee05`, the second at `6c6edda`, the third, with the Tide and Plum themes, at `b8542a3`, the fourth, with "Round 3 of 8" as text, at `9fc9369`, the fifth, with the Chalk and Bezel styles, at `31084cb`, the Temper bar at `825ef26`, the Thread, Italic and Edge labels at `11379f3`, and the Stamped and Fade labels at `8617a1c`.
@@ -54,7 +58,7 @@ The running screen shows the Round number at 64 pt with "of 8" smaller beside it
 
 ## Setup labels
 
-Each row's label is a 60 pt bold hollow word on the left, in the Phase's color at 32%, with its value on the right. A long word dissolves just before the digits begin. Rounds has no Phase, so it uses brass.
+Each row's label is a 60 pt bold hollow word on the left, in the Phase's color at 45%, with its value on the right. A long word dissolves just before the digits begin. Rounds has no Phase, so it uses brass.
 
 ## Time format
 

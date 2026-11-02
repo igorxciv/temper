@@ -21,13 +21,17 @@ struct RunningRing: View {
             Spacer(minLength: 0)
             ZStack {
                 Circle().stroke(palette.track, lineWidth: style.ringWidth)
-                Circle()
-                    .trim(from: 0, to: max(0, 1 - runner.phaseProgress))
-                    .stroke(
-                        palette.ring,
-                        style: StrokeStyle(lineWidth: style.ringWidth, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
+                // Redrawn every display frame from the clock. A short Phase moves too far between
+                // timer ticks for the ring to look smooth.
+                TimelineView(.animation(paused: runner.isPaused)) { _ in
+                    Circle()
+                        .trim(from: 0, to: runner.fractionLeft(at: .now))
+                        .stroke(
+                            palette.ring,
+                            style: StrokeStyle(lineWidth: style.ringWidth, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                }
                 Text(runner.timeText)
                     // Set above any phone's width, so the ring alone decides the size.
                     .font(.system(size: 180, weight: .semibold, design: .rounded).monospacedDigit())

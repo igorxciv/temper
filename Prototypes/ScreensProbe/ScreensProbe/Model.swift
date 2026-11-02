@@ -117,7 +117,12 @@ final class Runner {
     var phase: PhaseItem { phases[index] }
     var next: PhaseItem? { index + 1 < phases.count ? phases[index + 1] : nil }
     var timeText: String { clock(Int(remaining.rounded(.up))) }
-    var phaseProgress: Double { 1 - remaining / Double(phase.seconds) }
+
+    /// The share of this Phase still to run, worked out from the clock rather than the last tick.
+    func fractionLeft(at now: ContinuousClock.Instant) -> Double {
+        let left = isPaused ? remaining : now.duration(to: phaseEnd) / .seconds(1)
+        return min(1, max(0, left / Double(phase.seconds)))
+    }
 
     func togglePause() {
         isPaused.toggle()
@@ -207,11 +212,11 @@ final class ProbeState {
     var forceIncreasedContrast = UserDefaults.standard.bool(forKey: "ic")
     var theme: Theme { systemIncreasedContrast || forceIncreasedContrast ? .inkIncreased : .ink }
     var timeStyle =
-        TimeStyle(rawValue: UserDefaults.standard.string(forKey: "timeStyle") ?? "") ?? .current
+        TimeStyle(rawValue: UserDefaults.standard.string(forKey: "timeStyle") ?? "") ?? .edge
     /// The setup words' opacity at normal contrast. Increase Contrast always uses 0.6, which clears 3:1.
     var labelStrength =
         UserDefaults.standard.object(forKey: "label") == nil
-        ? 0.32 : UserDefaults.standard.double(forKey: "label")
+        ? 0.45 : UserDefaults.standard.double(forKey: "label")
     var labelOpacity: Double { theme == .inkIncreased ? 0.6 : labelStrength }
     var values = Values()
     var runner: Runner?

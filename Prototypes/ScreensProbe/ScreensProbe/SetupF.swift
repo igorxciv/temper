@@ -4,6 +4,48 @@
 // Other label treatments are in this branch's history at 11379f3 and 8617a1c.
 import SwiftUI
 
+/// Edits a draft. Confirm saves it, and swiping the sheet away leaves the value as it was.
+private struct FieldSheet: View {
+    let state: ProbeState
+    let field: Field
+    let sheet: (background: Color, title: Color, text: Color)
+
+    @State private var draft: Int
+
+    init(
+        state: ProbeState, field: Field, sheet: (background: Color, title: Color, text: Color)
+    ) {
+        self.state = state
+        self.field = field
+        self.sheet = sheet
+        _draft = State(initialValue: state.values[keyPath: field.keyPath])
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(field.title).font(.headline).foregroundStyle(sheet.title).padding(.top, 20)
+            FieldEditor(draft: $draft, field: field)
+                .foregroundStyle(sheet.text)
+            Button {
+                state.values[keyPath: field.keyPath] = draft
+                state.editing = nil
+            } label: {
+                Text("Confirm")
+                    .font(.title2.bold())
+                    .foregroundStyle(state.theme.colors.onAccent)
+                    .frame(maxWidth: .infinity, minHeight: 52)
+            }
+            .buttonStyle(.glassProminent)
+            .padding(.bottom, 6)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .accessibilityShowsLargeContentViewer()
+        }
+        .padding(.horizontal)
+        .presentationDetents([.medium])
+        .presentationBackground(sheet.background)
+    }
+}
+
 struct SetupF: View {
     @Bindable var state: ProbeState
 
@@ -34,15 +76,7 @@ struct SetupF: View {
         .navigationTitle("Temper")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $state.editing) { field in
-            let sheet = sheetColors(field)
-            VStack(spacing: 8) {
-                Text(field.title).font(.headline).foregroundStyle(sheet.title).padding(.top, 20)
-                FieldEditor(state: state, field: field)
-                    .foregroundStyle(sheet.text)
-            }
-            .padding(.horizontal)
-            .presentationDetents([.medium])
-            .presentationBackground(sheet.background)
+            FieldSheet(state: state, field: field, sheet: sheetColors(field))
         }
     }
 
