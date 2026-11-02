@@ -23,13 +23,16 @@ When sources disagree, trust them in this order:
 
 - `toolbarMinimizationBehavior(_:for:)` is the real API. Apple's `swiftui-whats-new-27` skill calls it `toolbarMinimizeBehavior`.
 - `scrollExtensionMode` and `navigationZoomTransition` are not in the iOS 27.2 SDK.
-- `.serialized` on a suite serializes every test and sub-suite in it. Swift Concurrency Pro's `references/testing.md` says otherwise.
+- `.serialized` on a suite serializes every test and sub-suite in it. Swift Concurrency Pro's `references/testing.md` and Swift Testing Pro's `references/async-tests.md` line 12 say otherwise.
+- Exit tests (`#expect(processExitsWith:)`) do not compile for iOS, so they belong only in `Packages/TemperCore`, which runs on macOS under `swift test`.
+- Under main-actor default isolation, test functions run on the main actor. Mark a suite `nonisolated` to exercise off-main code, and keep timing assertions out of the Thread Sanitizer configuration.
 
 ## Overrides
 
 - **GCD:** the timer and Cue engine design may use it for real-time audio, despite SwiftUI Pro's "never".
 - **SwiftUI Pro:** skip iPhone Duo work unless the owner asks. `AsyncImage`, SwiftData, and networking guidance have no use here.
 - **Swift Concurrency Pro:** it targets Swift 6.2 and the toolchain is newer, so check language claims against the compiler. Its `URLSession` examples are illustrations only.
+- **Swift Testing Pro:** it also targets Swift 6.2. Its `.networking` tag and `URLSession` mock guidance has no use here.
 
 ## Performance
 

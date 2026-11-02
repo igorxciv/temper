@@ -1,10 +1,16 @@
-.PHONY: check lint identifiers
+.PHONY: check lint identifiers test test-app
 
 # Prototypes are throwaway, so style checks skip them. `identifiers` still covers them.
 SWIFT := $(shell git ls-files -co --exclude-standard -- '*.swift' ':!:Prototypes/*' 2>/dev/null)
 OLD_APIS := \b(NavigationView|ObservableObject|StateObject|ObservedObject|EnvironmentObject)\b|\.(navigationBarTitle|navigationBarItems|navigationBarHidden|foregroundColor|cornerRadius|edgesIgnoringSafeArea|actionSheet|tabItem|autocapitalization)\b|\.accentColor\(|@Published|Timer\.publish|@State (var|let)\b
 
-check: identifiers lint
+check: identifiers lint test
+
+test:
+	swift test --package-path Packages/TemperCore -Xswiftc -warnings-as-errors
+
+test-app:
+	xcodebuild -scheme Temper -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -quiet -only-test-configuration Default test
 
 lint:
 ifneq ($(strip $(SWIFT)),)
