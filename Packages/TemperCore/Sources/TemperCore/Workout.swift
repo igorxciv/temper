@@ -23,4 +23,14 @@ public nonisolated struct Workout: Equatable, Sendable {
     public init(phases: [Phase]) {
         self.phases = phases
     }
+
+    /// The length of all its Phases, not counting any Pause.
+    public var totalDuration: Duration {
+        phases.reduce(.zero) { $0 + $1.duration }
+    }
+
+    /// How many Rounds it has.
+    public var rounds: Int {
+        phases.compactMap(\.round).max() ?? 0
+    }
 }
