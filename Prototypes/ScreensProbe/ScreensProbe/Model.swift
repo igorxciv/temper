@@ -187,11 +187,11 @@ final class ProbeState {
     let noBar = UserDefaults.standard.bool(forKey: "noBar")
     var editing: Field?
     var confirmStop = false
-    var labelStyle = LabelStyle.thread
+    var labelStyle = LabelStyle.outline
 
     init() {
         let args = UserDefaults.standard
-        labelStyle = LabelStyle(rawValue: args.string(forKey: "labelStyle") ?? "") ?? .thread
+        labelStyle = LabelStyle(rawValue: args.string(forKey: "labelStyle") ?? "") ?? .outline
         if args.object(forKey: "rest") != nil { values.rest = args.integer(forKey: "rest") }
         if args.integer(forKey: "rounds") > 0 {
             values.rounds = Field.rounds.clamped(args.integer(forKey: "rounds"))

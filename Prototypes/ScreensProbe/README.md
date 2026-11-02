@@ -4,7 +4,7 @@ Answers one question: what should the setup, running and Settings screens look l
 
 The timer is a stand-in. It has no audio, no background running and no accuracy claims, and nothing is saved.
 
-This round compares three treatments of the setup labels, with the layouts, the Ink design system and the Temper bar chosen. Earlier variants are in this branch's history: the first round at `d6cee05`, the second at `6c6edda`, the third, with the Tide and Plum themes, at `b8542a3`, the fourth, with "Round 3 of 8" as text, at `9fc9369` and the fifth, with the Chalk and Bezel styles, at `31084cb`.
+This round compares three ways to show the setup labels as large secondary words, with the layouts, the Ink design system and the Temper bar chosen. Earlier variants are in this branch's history: the first round at `d6cee05`, the second at `6c6edda`, the third, with the Tide and Plum themes, at `b8542a3`, the fourth, with "Round 3 of 8" as text, at `9fc9369` the fifth, with the Chalk and Bezel styles, at `31084cb`, and the Thread, Italic and Edge labels at `11379f3`.
 
 ## Run it
 
@@ -22,7 +22,7 @@ Colors are best judged on a real iPhone. For that, run `cp Config/Local.xcconfig
 
 The black and yellow bar is not part of any design.
 
-- **Text button:** switches between the three label styles on setup. The bar names the current one.
+- **Text button:** switches the setup labels between Stamped, Outline and Fade. The bar names the current one.
 - **Skip button:** jumps to the next Phase. Skipping is not a v1 feature.
 - **Eye:** hides the bar. A small yellow dot in the bottom corner brings it back.
 
@@ -45,9 +45,11 @@ Setup and the complete screen don't show the bar.
 
 ## Setup labels
 
-- **Thread:** the Workout drawn as one line, with a colored node for each value and Work and Rest on a loop. An empty node means the Phase is Off. Labels sit left and values right.
-- **Italic:** the labels in the system's serif italic, above centered values.
-- **Edge:** the labels turned sideways along each row's edge, beside a short colored rule.
+Each row's label is a 60 pt bold word on the left with its value on the right. A long word dissolves just before the digits begin. Rounds has no Phase, so it uses brass.
+
+- **Stamped:** the Phase's dark track color with a fine highlight and shade, like a mark pressed into steel.
+- **Outline:** hollow letters in the Phase's color at 60%.
+- **Fade:** solid letters in the Phase's color at 50%.
 
 ## Time format
 
@@ -57,7 +59,7 @@ Every time reads `00:00`, for example `01:00`.
 
 Prepare, Rest and Cooldown run from Off to 30:00 in 5-second steps, and Off skips the Phase. Work runs from 00:05 to 30:00. Rounds run from 1 to 99.
 
-Launch arguments open a state directly, for example `./run.sh -screen running -phase Rest -time 14`. Others are `-screen settings`, `-screen complete`, `-paused YES`, `-confirmStop YES`, `-edit work`, `-noBar YES`, `-rounds 99`, `-rest 0` and `-labelStyle serif`.
+Launch arguments open a state directly, for example `./run.sh -screen running -phase Rest -time 14`. Others are `-screen settings`, `-screen complete`, `-paused YES`, `-confirmStop YES`, `-edit work`, `-noBar YES`, `-rounds 99`, `-rest 0` and `-labelStyle outline`.
 
 ## Screenshots
 
