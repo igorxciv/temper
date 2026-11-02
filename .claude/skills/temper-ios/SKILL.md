@@ -10,7 +10,6 @@ iOS 27 minimum, Swift 6 language mode, the latest SwiftUI. Availability checks a
 ## Standing rules
 
 - Temper has no third-party runtime dependencies, network access, analytics, accounts, or backend. Data stays on the device.
-- Personal identifiers (Apple Team ID, device identifier, personal bundle ID, personal email) stay in the git-ignored local config.
 
 ## Source order
 
@@ -43,7 +42,7 @@ Keep timer ticks out of the environment, and narrow what the running screen obse
 ## Testing and style
 
 - New tests use Swift Testing and wait on events or confirmations, with no sleeps.
-- Run `xcrun swift-format lint --strict --recursive .` before committing.
+- `make lint` runs `swift-format` and a check for soft-deprecated APIs and non-private `@State`, which the compiler lets through.
 - Follow the [API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/).
 
 ## Safety
