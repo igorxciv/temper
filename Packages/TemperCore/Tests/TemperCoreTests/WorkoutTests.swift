@@ -3,31 +3,68 @@ import Testing
 @testable import TemperCore
 
 struct WorkoutTests {
-    private func workout(rounds: Int, cooldown: Duration = .zero) -> Workout {
-        Workout(prepare: .seconds(10), rounds: rounds, work: .seconds(30), rest: .seconds(15), cooldown: cooldown)
+    private func settings(
+        prepare: Duration = .seconds(10),
+        rounds: Int = 2,
+        rest: Duration = .seconds(15),
+        cooldown: Duration = .seconds(60)
+    ) -> WorkoutSettings {
+        WorkoutSettings(prepare: prepare, rounds: rounds, work: .seconds(30), rest: rest, cooldown: cooldown)
     }
 
-    @Test(arguments: [1, 2, 8])
-    func `N Rounds give N Works and one fewer Rests`(rounds: Int) {
-        let kinds = workout(rounds: rounds).phases.map(\.kind)
-
-        #expect(kinds.count(where: { $0 == .work }) == rounds)
-        #expect(kinds.count(where: { $0 == .rest }) == rounds - 1)
-    }
-
-    @Test func `Phases run in Workout order with their durations`() {
+    @Test func `Phases run in Workout order with their durations and Rounds`() {
         let expected = [
             Phase(kind: .prepare, duration: .seconds(10)),
-            Phase(kind: .work, duration: .seconds(30)),
-            Phase(kind: .rest, duration: .seconds(15)),
-            Phase(kind: .work, duration: .seconds(30)),
+            Phase(kind: .work, duration: .seconds(30), round: 1),
+            Phase(kind: .rest, duration: .seconds(15), round: 1),
+            Phase(kind: .work, duration: .seconds(30), round: 2),
             Phase(kind: .cooldown, duration: .seconds(60)),
         ]
 
-        #expect(workout(rounds: 2, cooldown: .seconds(60)).phases == expected)
+        #expect(settings().makeWorkout() == Workout(phases: expected))
+    }
+
+    @Test func `A zero Prepare is dropped, so the Workout opens on Work`() {
+        let kinds = settings(prepare: .zero).makeWorkout().phases.map(\.kind)
+
+        #expect(kinds == [.work, .rest, .work, .cooldown])
+    }
+
+    @Test func `A zero Rest is dropped, so Works run back to back with their Rounds`() {
+        let expected = [
+            Phase(kind: .work, duration: .seconds(30), round: 1),
+            Phase(kind: .work, duration: .seconds(30), round: 2),
+        ]
+
+        #expect(settings(prepare: .zero, rest: .zero, cooldown: .zero).makeWorkout().phases == expected)
     }
 
     @Test func `A zero Cooldown leaves the last Work as the final Phase`() {
-        #expect(workout(rounds: 2).phases.last?.kind == .work)
+        #expect(settings(cooldown: .zero).makeWorkout().phases.last?.kind == .work)
+    }
+
+    @Test func `A single Round has one Work and no Rest`() {
+        let kinds = settings(rounds: 1).makeWorkout().phases.map(\.kind)
+
+        #expect(kinds == [.prepare, .work, .cooldown])
+    }
+
+    @Test func `A single Round with every optional Phase off is one Work`() {
+        let workout = settings(prepare: .zero, rounds: 1, rest: .zero, cooldown: .zero).makeWorkout()
+
+        #expect(workout == Workout(phases: [Phase(kind: .work, duration: .seconds(30), round: 1)]))
+    }
+
+    @Test func `A Workout needs at least one Round`() async {
+        await #expect(processExitsWith: .failure) {
+            _ = WorkoutSettings(prepare: .zero, rounds: 0, work: .seconds(5), rest: .zero, cooldown: .zero)
+                .makeWorkout()
+        }
+    }
+
+    @Test func `A Round needs a Work`() async {
+        await #expect(processExitsWith: .failure) {
+            _ = WorkoutSettings(prepare: .zero, rounds: 1, work: .zero, rest: .zero, cooldown: .zero).makeWorkout()
+        }
     }
 }
