@@ -61,9 +61,8 @@ extension View {
         }
 
         private var title: String {
-            if !state.path.isEmpty { return "SETTINGS: one design" }
-            if onRunning { return "RUNNING \(state.running.rawValue): \(runningName)" }
-            return "SETUP \(state.setup.rawValue): \(setupName)"
+            let screen = !state.path.isEmpty ? "SETTINGS" : onRunning ? "RUNNING" : "SETUP"
+            return "THEME \(state.theme.rawValue) · \(screen)"
         }
 
         private var detail: String {
@@ -77,36 +76,12 @@ extension View {
                 "P\(clock(v.prepare)) R\(v.rounds) W\(clock(v.work)) r\(clock(v.rest)) C\(clock(v.cooldown)) dip:\(state.dip ? "on" : "off")"
         }
 
-        private var setupName: String {
-            switch state.setup {
-            case .d: "Preview & docked wheel"
-            case .e: "Hero & ruler"
-            case .f: "Big preview & sheet"
-            }
-        }
-
-        private var runningName: String {
-            switch state.running {
-            case .d: "Neutral ring, Rounded"
-            case .e: "Tinted ring, Rounded"
-            case .f: "Neutral ring, SF Pro"
-            }
-        }
-
         private func arrow(_ symbol: String, by offset: Int) -> some View {
             barButton(symbol) {
-                if onRunning {
-                    state.running = cycled(state.running, by: offset)
-                } else {
-                    state.setup = cycled(state.setup, by: offset)
-                }
+                let all = Theme.allCases
+                let position = all.firstIndex(of: state.theme) ?? 0
+                state.theme = all[(position + offset + all.count) % all.count]
             }
-        }
-
-        private func cycled<V: CaseIterable & Equatable>(_ value: V, by offset: Int) -> V {
-            let all = Array(V.allCases)
-            let position = all.firstIndex(of: value) ?? 0
-            return all[(position + offset + all.count) % all.count]
         }
 
         private func barButton(_ symbol: String, action: @escaping () -> Void) -> some View {

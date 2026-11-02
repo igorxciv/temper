@@ -20,27 +20,23 @@ struct RootView: View {
                 RunningHost(state: state, runner: runner)
             } else {
                 NavigationStack(path: $state.path) {
-                    Group {
-                        switch state.setup {
-                        case .d: SetupD(state: state)
-                        case .e: SetupE(state: state)
-                        case .f: SetupF(state: state)
-                        }
-                    }
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            NavigationLink(value: Route.settings) {
-                                Label("Settings", systemImage: "gearshape")
+                    SetupF(state: state)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                NavigationLink(value: Route.settings) {
+                                    Label("Settings", systemImage: "gearshape")
+                                }
                             }
                         }
-                    }
-                    .probeBar(state)
-                    .navigationDestination(for: Route.self) { _ in
-                        SettingsScreen(state: state).probeBar(state)
-                    }
+                        .probeBar(state)
+                        .navigationDestination(for: Route.self) { _ in
+                            SettingsScreen(state: state).probeBar(state)
+                        }
                 }
             }
         }
+        .preferredColorScheme(.dark)
+        .tint(state.theme.colors.accent)
         .onChange(of: state.runner == nil, initial: true) { _, idle in
             UIApplication.shared.isIdleTimerDisabled = !idle
         }
@@ -56,14 +52,7 @@ struct RunningHost: View {
             if runner.isDone {
                 CompleteScreen(state: state)
             } else {
-                switch state.running {
-                case .d:
-                    RunningRing(state: state, runner: runner, style: .neutral, design: .rounded)
-                case .e:
-                    RunningRing(state: state, runner: runner, style: .tinted, design: .rounded)
-                case .f:
-                    RunningRing(state: state, runner: runner, style: .neutral, design: .default)
-                }
+                RunningRing(state: state, runner: runner)
             }
         }
         .probeBar(state)
@@ -73,24 +62,34 @@ struct RunningHost: View {
 struct CompleteScreen: View {
     let state: ProbeState
 
+    private var colors: ThemeColors { state.theme.colors }
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 96))
-                .foregroundStyle(.green)
-            Text("Workout complete").font(.largeTitle.bold())
-            Text(clock(state.values.total)).font(.title2.monospacedDigit()).foregroundStyle(
-                .secondary)
+                .foregroundStyle(colors.accent)
+            Text("Workout complete")
+                .font(.system(.largeTitle, design: .rounded, weight: .semibold))
+                .foregroundStyle(colors.text)
+            Text(clock(state.values.total))
+                .font(.system(.title2, design: .rounded).monospacedDigit())
+                .foregroundStyle(colors.secondary)
             Spacer()
             Button {
                 state.stop()
             } label: {
-                Text("Done").font(.title2.bold()).frame(maxWidth: .infinity, minHeight: 56)
+                Text("Done")
+                    .font(.title2.bold())
+                    .foregroundStyle(colors.onAccent)
+                    .frame(maxWidth: .infinity, minHeight: 56)
             }
             .buttonStyle(.glassProminent)
             .padding()
         }
+        .frame(maxWidth: .infinity)
+        .background(colors.background.ignoresSafeArea())
     }
 }
 

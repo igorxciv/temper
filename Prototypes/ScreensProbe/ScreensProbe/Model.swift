@@ -1,5 +1,5 @@
-// PROTOTYPE, throw away. Second round: three setup and three running variants, switchable from a
-// floating bar. The first round is in this branch's history at d6cee05.
+// PROTOTYPE, throw away. Third round: the chosen setup and running screens in three dark themes,
+// switchable from a floating bar. Earlier rounds are in this branch's history at d6cee05 and 6c6edda.
 import Foundation
 import Observation
 
@@ -158,17 +158,9 @@ final class Runner {
 
 enum Route: Hashable { case settings }
 
-/// Second round of variants, after the owner's feedback on A, B and C.
-enum Letter: String, CaseIterable {
-    case d = "D"
-    case e = "E"
-    case f = "F"
-}
-
 @Observable
 final class ProbeState {
-    var setup: Letter
-    var running: Letter
+    var theme: Theme
     var values = Values()
     var runner: Runner?
     var path: [Route] = []
@@ -180,8 +172,7 @@ final class ProbeState {
 
     init() {
         let args = UserDefaults.standard
-        setup = Letter(rawValue: args.string(forKey: "setup") ?? "") ?? .d
-        running = Letter(rawValue: args.string(forKey: "running") ?? "") ?? .d
+        theme = Theme(rawValue: args.string(forKey: "theme") ?? "") ?? .tide
         editing = Field(rawValue: args.string(forKey: "edit") ?? "")
         confirmStop = args.bool(forKey: "confirmStop")
         barVisible = !args.bool(forKey: "hideBar")

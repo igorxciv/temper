@@ -119,6 +119,7 @@ struct StartButton: View {
         } label: {
             Text("Start · \(clock(state.values.total))")
                 .font(.title2.bold().monospacedDigit())
+                .foregroundStyle(state.theme.colors.onAccent)
                 .frame(maxWidth: .infinity, minHeight: 52)
         }
         .buttonStyle(.glassProminent)
