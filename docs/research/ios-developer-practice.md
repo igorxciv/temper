@@ -16,6 +16,16 @@ Three findings change the earlier picture:
 
 What people's repos contain is often less tidy than the advice around them. None of the eight apps turned on a sanitizer in any file I could find, only Firefox pins its GitHub Actions by SHA, and seven of the eight commit a Team ID to `project.pbxproj`. Temper should not copy those three habits.
 
+## Corrections after review
+
+Applying this note found these problems. The adopted files are in [PR #15](https://github.com/igorxciv/temper/pull/15), and the sections below are corrected or marked.
+
+- **`.swift-format`:** a partial `rules` map replaces the defaults instead of adding to them. The six-rule config first written here turned off most default rules, including naming, semicolons and block comments. List all 43 rules. [Run]
+- **False-positive check:** the first run of "Clean, no false positives" below used that weakened config. A clean SwiftUI and Swift Testing sample was re-run under all 37 enabled rules and passed. [Run]
+- **`make identifiers`:** every pattern now has a test against a real violation through `git grep`. PR #15 also checks for a Team ID in a tracked `.xcconfig` and for home paths in any tracked file. [Run]
+- **`make lint`:** skips `Prototypes/`, since prototypes are throwaway and the current one gives 103 lines of findings. The trailing-space `@State` pattern became `@State (var|let)\b`, which an editor cannot silently break. [Run]
+- **`AGENTS.md`:** the PR's version lists only what exists today. The version below is the target for when the app exists.
+
 ## How this was checked
 
 Labels: **[Repo owner/name@sha path]** is a file I read at that commit. **[Doc]** is official documentation. **[Author: link]** is the person's own post. **[Run]** is something I ran on this Mac in scratch space. **[Inferred]** is my reasoning.
@@ -296,23 +306,14 @@ Temper's runtime rule already excludes these. For test-only code, `swift-clocks`
 
 Paths are from the repo root. Nothing here contains a personal identifier.
 
-`.swift-format`, replacing the current one:
+`.swift-format`, replacing the current one: `lineLength` 120, 4 spaces, and the full `rules` map from `xcrun swift-format dump-configuration` with these six also set to `true`. Listing only the six turns every other rule off. See the file in PR #15.
 
-```json
-{
-  "version": 1,
-  "lineLength": 120,
-  "indentation": { "spaces": 4 },
-  "rules": {
-    "AlwaysUseLiteralForEmptyCollectionInit": true,
-    "NeverForceUnwrap": true,
-    "NeverUseForceTry": true,
-    "NeverUseImplicitlyUnwrappedOptionals": true,
-    "NoEmptyLinesOpeningClosingBraces": true,
-    "OmitExplicitReturns": true
-  }
-}
-```
+- `AlwaysUseLiteralForEmptyCollectionInit`
+- `NeverForceUnwrap`
+- `NeverUseForceTry`
+- `NeverUseImplicitlyUnwrappedOptionals`
+- `NoEmptyLinesOpeningClosingBraces`
+- `OmitExplicitReturns`
 
 The 120 width is a judgement call: 4-space SwiftUI chains run out of room at the default 100, and CodexBar uses the same pair. [Run: `dump-configuration` for the default; Repo steipete/CodexBar@897bff3 .swiftformat]
 
