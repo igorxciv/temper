@@ -55,6 +55,23 @@ struct WorkoutTests {
         #expect(workout == Workout(phases: [Phase(kind: .work, duration: .seconds(30), round: 1)]))
     }
 
+    @Test func `The first-launch Workout runs for 08:50 over 8 Rounds`() {
+        let workout = WorkoutSettings.firstLaunch.makeWorkout()
+
+        #expect(workout.totalDuration == .seconds(530))
+        #expect(workout.rounds == 8)
+    }
+
+    @Test func `The total length counts only the Phases that run`() {
+        let workout = settings(prepare: .zero, rest: .zero, cooldown: .zero).makeWorkout()
+
+        #expect(workout.totalDuration == .seconds(60))
+    }
+
+    @Test func `A Workout with no Rounds reports none`() {
+        #expect(Workout(phases: [Phase(kind: .prepare, duration: .seconds(10))]).rounds == 0)
+    }
+
     @Test func `A Workout needs at least one Round`() async {
         await #expect(processExitsWith: .failure) {
             _ = WorkoutSettings(prepare: .zero, rounds: 0, work: .seconds(5), rest: .zero, cooldown: .zero)

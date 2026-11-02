@@ -1,5 +1,14 @@
 /// The values a Workout is built from.
 public nonisolated struct WorkoutSettings: Equatable, Sendable {
+    /// The values before the owner has changed anything.
+    public static let firstLaunch = WorkoutSettings(
+        prepare: .seconds(10),
+        rounds: 8,
+        work: .seconds(40),
+        rest: .seconds(20),
+        cooldown: .seconds(60)
+    )
+
     public var prepare: Duration
     public var rounds: Int
     public var work: Duration

@@ -4,7 +4,7 @@ import Testing
 @testable import Temper
 
 struct TemperAppTests {
-    @Test func `The app reaches Workout through TemperCore`() {
-        #expect(TemperApp.placeholderWorkout.phases.count == 2)
+    @Test func `The app runs the first-launch Workout until setup arrives`() {
+        #expect(TemperApp.fixedWorkout == WorkoutSettings.firstLaunch.makeWorkout())
     }
 }
