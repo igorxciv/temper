@@ -21,6 +21,7 @@ endif
 identifiers:
 	@! git grep -nE '(DEVELOPMENT_TEAM|DevelopmentTeam|PRODUCT_BUNDLE_IDENTIFIER) = ' -- '*.pbxproj'
 	@! git grep -nE 'DEVELOPMENT_TEAM *= *[A-Z0-9]{10}' -- '*.xcconfig'
+	@! git grep -nE 'BUNDLE_ID_PREFIX *=' -- '*.xcconfig' | grep -vE 'BUNDLE_ID_PREFIX *= *org\.example *$$'
 	@! git grep -nE '/Users/[A-Za-z]' -- ':!:Makefile'
 	@! git grep -nE '^// +Created by ' -- '*.swift' '*.xcconfig'
 	@! git ls-files | grep -E 'xcuserdata/|\.mobileprovision$$|\.ipa$$|(^|/)Local\.xcconfig$$'
