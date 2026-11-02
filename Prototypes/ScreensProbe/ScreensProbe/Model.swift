@@ -1,6 +1,6 @@
-// PROTOTYPE, throw away. Fifth round: the chosen setup and running screens in the Ink design
-// system, comparing ways to show Rounds. Earlier rounds are in this branch's history at d6cee05,
-// 6c6edda, b8542a3 and 9fc9369.
+// PROTOTYPE, throw away. Final round: the chosen setup and running screens in the Ink design
+// system, with the Temper bar on the running screen. Earlier rounds are in this branch's history
+// at d6cee05, 6c6edda, b8542a3, 9fc9369 and 31084cb.
 import Foundation
 import Observation
 
@@ -187,11 +187,9 @@ final class ProbeState {
     let noBar = UserDefaults.standard.bool(forKey: "noBar")
     var editing: Field?
     var confirmStop = false
-    var roundStyle = RoundStyle.temper
 
     init() {
         let args = UserDefaults.standard
-        roundStyle = RoundStyle(rawValue: args.string(forKey: "roundStyle") ?? "") ?? .temper
         if args.integer(forKey: "rounds") > 0 {
             values.rounds = Field.rounds.clamped(args.integer(forKey: "rounds"))
         }

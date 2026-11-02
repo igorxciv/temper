@@ -1,6 +1,6 @@
 // PROTOTYPE, throw away. The chosen setup screen: the screen is only the preview, and tapping a
 // value opens a sheet with the custom wheel. Each value and sheet wears its Phase's colors, so
-// setup previews how the Workout will look.
+// setup previews how the Workout will look. Rounds has no Phase, so it wears brass.
 import SwiftUI
 
 struct SetupF: View {
@@ -14,19 +14,13 @@ struct SetupF: View {
                 Button {
                     state.editing = field
                 } label: {
-                    Group {
-                        if field == .rounds {
-                            RoundsPreview(state: state)
-                        } else {
-                            VStack(spacing: 0) {
-                                Text(field.title).font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(titleColor(field))
-                                Text(field.text(state.values[keyPath: field.keyPath]))
-                                    .font(.system(size: 52, weight: .semibold, design: .rounded))
-                                    .monospacedDigit()
-                                    .foregroundStyle(colors.text)
-                            }
-                        }
+                    VStack(spacing: 0) {
+                        Text(field.title).font(.subheadline.weight(.semibold))
+                            .foregroundStyle(titleColor(field))
+                        Text(field.text(state.values[keyPath: field.keyPath]))
+                            .font(.system(size: 52, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(colors.text)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(.rect)
@@ -47,46 +41,12 @@ struct SetupF: View {
             let sheet = sheetColors(field)
             VStack(spacing: 8) {
                 Text(field.title).font(.headline).foregroundStyle(sheet.title).padding(.top, 20)
-                if field == .rounds { roundsSheetMark }
                 FieldEditor(state: state, field: field)
                     .foregroundStyle(sheet.text)
-                    .overlay {
-                        if field == .rounds, state.roundStyle == .bezel {
-                            RoundDial(
-                                count: state.values.rounds, filled: Double(state.values.rounds),
-                                done: colors.accent, current: colors.accent,
-                                future: colors.separator, maxPip: 5
-                            )
-                            .frame(width: 216, height: 216)
-                            .allowsHitTesting(false)
-                        }
-                    }
             }
             .padding(.horizontal)
             .presentationDetents([.medium])
             .presentationBackground(sheet.background)
-        }
-    }
-
-    /// The mark above the Rounds wheel redraws as the wheel turns. Bezel wraps the wheel instead.
-    @ViewBuilder
-    private var roundsSheetMark: some View {
-        switch state.roundStyle {
-        case .temper:
-            TemperBar(
-                count: state.values.rounds, filled: Double(state.values.rounds),
-                track: colors.separator, cut: colors.raised, height: 20
-            )
-            .padding(.top, 8)
-        case .chalk:
-            ChalkTally(
-                count: state.values.rounds, filled: Double(state.values.rounds),
-                done: colors.text, current: colors.text, future: colors.separator,
-                surface: colors.raised, maxSpacing: 12
-            )
-            .frame(height: 52)
-        case .bezel:
-            EmptyView()
         }
     }
 
