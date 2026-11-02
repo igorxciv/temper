@@ -20,7 +20,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - run: make identifiers
+      - name: Fail on commit emails that aren't GitHub no-reply addresses
+        # Prints hashes only, because these logs are public.
+        run: >
+          git log --format='%h %ae %ce' |
+          awk '{ for (i = 2; i <= 3; i++) if ($i !~ /(@users\.noreply\.github\.com|^noreply@github\.com)$/) { print $1; bad = 1 } } END { exit bad }'
 
   app:
     runs-on: xcode-27
