@@ -7,7 +7,7 @@ udid=$(xcrun simctl list devices available | grep -E '^ +iPhone 18 Pro \(' | hea
 xcodebuild -quiet -project ScreensProbe.xcodeproj -scheme ScreensProbe -configuration Debug \
   -destination "id=$udid" -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
 xcrun simctl boot "$udid" 2>/dev/null || true
-open -a Simulator
+open -b com.apple.iphonesimulator 2>/dev/null || echo "Simulator app not found. Open ScreensProbe.xcodeproj in Xcode and press Run to see the window."
 xcrun simctl install "$udid" build/Build/Products/Debug-iphonesimulator/ScreensProbe.app
 xcrun simctl terminate "$udid" org.example.screensprobe 2>/dev/null || true
 xcrun simctl launch "$udid" org.example.screensprobe "$@"
