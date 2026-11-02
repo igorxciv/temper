@@ -114,6 +114,22 @@ nonisolated struct WorkoutEngineTests {
         )
     }
 
+    @Test func `A wake ahead of the Phase's end publishes nothing and sleeps again`() async {
+        let engine = makeEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        var sleeps = clock.sleepsStarted.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        _ = await sleeps.next()
+
+        clock.advance(by: .seconds(4))
+        clock.wakeSleepersEarly()
+        _ = await sleeps.next()
+        await engine.pause(at: clock.now)
+
+        #expect(await snapshots.next() == Snapshot(progress: .paused(phase: prepare, timeLeft: .seconds(6)), rounds: 2))
+    }
+
     @Test func `A late wake keeps later Phase ends on the fixed start point`() async {
         let engine = makeEngine()
         var snapshots = engine.snapshots.makeAsyncIterator()
