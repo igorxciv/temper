@@ -31,6 +31,8 @@ actor FakeAudioOutput: AudioOutput {
     private(set) var history: [Call] = []
     /// The token of every Cue scheduled so far.
     private(set) var tokens: [CueToken] = []
+    /// A phone call. Checking for one isn't an audio call, so it's left out of `history`.
+    private var hasCall = false
 
     init() {
         (events, eventSender) = AsyncStream.makeStream()
@@ -80,6 +82,15 @@ actor FakeAudioOutput: AudioOutput {
 
     func cancel() async throws {
         try await perform(.cancel)
+    }
+
+    func isOnCall() -> Bool {
+        hasCall
+    }
+
+    /// Starts or ends a phone call.
+    func setCall(_ isOn: Bool) {
+        hasCall = isOn
     }
 
     private func perform(_ call: Call) async throws {

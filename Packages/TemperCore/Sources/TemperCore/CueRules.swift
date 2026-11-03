@@ -39,6 +39,8 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
     private var earliestDue = Duration.zero
     private var token = CueToken(value: 0)
     private var armed: ArmedCue?
+    /// A Cue that an interruption cut before its deadline, waiting for recovery to schedule it again.
+    private var interruptedCue: ArmedCue?
     private var lead: Task<Void, Never>?
     private var liftRetry: Task<Void, Never>?
     private var listening: Task<Void, Never>?
@@ -140,6 +142,7 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         let deactivates = holdsAudio
         token = CueToken(value: token.value + 1)
         armed = nil
+        interruptedCue = nil
         origin = nil
         lead?.cancel()
         liftRetry?.cancel()
@@ -188,11 +191,24 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         token = CueToken(value: token.value + 1)
         let armed = ArmedCue(cue: cue, deadline: deadline, token: token)
         self.armed = armed
+        interruptedCue = nil
         Task { await handOver(armed) }
     }
 
     /// After every suspension, an old token means this Cue has been replaced, so nothing here applies any more.
+    /// Getting the session ready is the recovery that runs before each Cue. A call holds the Cue back the way
+    /// an interruption does, so it plays if the call ends and recovery comes in time.
     private func handOver(_ armed: ArmedCue) async {
+        let isOnCall = await audio.isOnCall()
+        guard armed.token == token else { return }
+        guard !isOnCall else {
+            if !isFinished, clock.now < armed.deadline {
+                interruptedCue = armed
+            }
+            session = .released
+            cueEnded()
+            return
+        }
         guard await prepareSession(for: armed) else { return }
         guard clock.now <= armed.deadline.advanced(by: lateLimit) else {
             cueEnded()
@@ -267,8 +283,64 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
             if finished == armed?.token {
                 cueEnded()
             }
-        case .interrupted, .resumeRecommended, .routeChanged, .mediaServicesReset:
-            break
+        case .interrupted, .mediaServicesReset:
+            interrupt()
+        case .resumeRecommended:
+            recover()
+        case .routeChanged:
+            restartOnNewRoute()
         }
+    }
+
+    // MARK: Interruptions and recovery
+
+    /// iOS has taken the session away, and the Workout carries on regardless. A Cue cut before its deadline waits
+    /// for recovery. One cut after its deadline has started speaking, so it's never restarted, because a
+    /// repeated word would be taken for a new Phase change.
+    private func interrupt() {
+        guard holdsAudio else { return }
+        token = CueToken(value: token.value + 1)
+        liftRetry?.cancel()
+        session = .released
+        guard let cut = armed else { return }
+        armed = nil
+        interruptedCue = clock.now < cut.deadline ? cut : nil
+        Task { try? await audio.cancel() }
+        if isFinished {
+            stop()
+        }
+    }
+
+    /// Runs when iOS recommends resuming, on returning to the front, and through `handOver` before each Cue. It
+    /// does nothing while audio is in use or a call is on. A Cue cut before its deadline is scheduled again if
+    /// this is no more than `lateLimit` after that deadline. A failure waits for the next trigger, so recovery
+    /// never loops. Triggers can overlap, but only the first to pass the call check finds audio still to recover.
+    func recover() {
+        guard isAwaitingRecovery else { return }
+        let recoveryToken = token
+        Task {
+            let isOnCall = await audio.isOnCall()
+            guard !isOnCall, recoveryToken == token, isAwaitingRecovery else { return }
+            if let cut = interruptedCue.take(), clock.now <= cut.deadline.advanced(by: lateLimit) {
+                arm(cut.cue, at: cut.deadline)
+                return
+            }
+            session = .active(ducked: false)
+            guard (try? await audio.activate(ducking: false)) == nil, recoveryToken == token else { return }
+            session = .released
+        }
+    }
+
+    /// A running Workout with no session and no Cue under way. A Cue under way gets its own session.
+    private var isAwaitingRecovery: Bool {
+        origin != nil && session == .released && armed == nil
+    }
+
+    /// The adapter has stopped the engine for the new route. Restarting it is an interruption and an immediate
+    /// recovery, so the armed Cue follows the same two rules.
+    private func restartOnNewRoute() {
+        guard holdsAudio, session != .released else { return }
+        interrupt()
+        recover()
     }
 }
