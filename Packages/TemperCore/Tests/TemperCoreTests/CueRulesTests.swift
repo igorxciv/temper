@@ -30,10 +30,13 @@ nonisolated struct CueRulesTests {
         ManualClock.Instant(offset: .seconds(seconds))
     }
 
-    /// A hop through the fake's actor, so a call it has just begun has finished and its result is on its way
-    /// back before the test does anything else.
-    private func audioCallsHaveReturned() async {
-        _ = await audio.history
+    /// Lets calls, returns and events already on their way land, with no real sleep. Correct code passes
+    /// however little this waits. It's what gets a wrong call made in time for a test to catch it.
+    private func letAudioSettle() async {
+        for _ in 0..<100 {
+            _ = await audio.history
+            await Task.yield()
+        }
     }
 
     /// Moves the clock to a time since the test began, as a single wake.
@@ -190,8 +193,24 @@ nonisolated struct CueRulesTests {
         _ = await calls.next()
 
         advance(to: 11.25)
+        await letAudioSettle()
         advance(to: 38.5)
 
+        #expect(await calls.next() == .schedule(.rest, at: at(40)))
+    }
+
+    @Test func `A Cue already too late at its lead causes no Dip`() async {
+        let engine = makeEngine(isDipOn: true)
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        _ = await calls.next()
+
+        advance(to: 11.25)
+        await letAudioSettle()
+        advance(to: 38.5)
+
+        // A Dip and lift for the skipped Cue would come ahead of these.
+        #expect(await calls.next() == .activate(ducking: true))
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
     }
 
@@ -218,7 +237,7 @@ nonisolated struct CueRulesTests {
         _ = await calls.next()
         advance(to: 8.5)
         #expect(await calls.next() == .schedule(.work, at: at(10)))
-        await audioCallsHaveReturned()
+        await letAudioSettle()
 
         advance(to: 38.5)
 
@@ -317,7 +336,7 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .activate(ducking: false))
         advance(to: 16)
         #expect(await calls.next() == .activate(ducking: false))
-        await audioCallsHaveReturned()
+        await letAudioSettle()
 
         // The Dip was never lifted, so the next Cue needs no new one, and a third try would arrive first.
         advance(to: 38.5)
@@ -333,17 +352,17 @@ nonisolated struct CueRulesTests {
         advance(to: 36)
         await audio.finishSpeaking()
         #expect(await calls.next() == .activate(ducking: false))
-        await audioCallsHaveReturned()
+        await letAudioSettle()
         // Reaching the next Cue through its own lead is what would cancel the retry due at 41 s.
         advance(to: 38.5)
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
 
         advance(to: 41)
-        await audio.finishSpeaking()
+        await letAudioSettle()
+        await engine.pause(at: clock.now)
 
-        #expect(await calls.next() == .activate(ducking: false))
-        advance(to: 53.5)
-        #expect(await calls.next() == .activate(ducking: true))
+        // A retry would have lifted the Dip ahead of this.
+        #expect(await calls.next() == .cancel)
     }
 
     @Test func `A finish reported for an earlier Cue lifts nothing`() async {
@@ -357,12 +376,11 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
 
         audio.send(.cueFinished(firstCue))
-        await audio.finishSpeaking()
+        await letAudioSettle()
+        await engine.pause(at: clock.now)
 
-        // One lift, for the current Cue. Then the next Cue's Dip follows it directly.
-        #expect(await calls.next() == .activate(ducking: false))
-        advance(to: 53.5)
-        #expect(await calls.next() == .activate(ducking: true))
+        // The current Cue is still armed and ducked. A lift would have come ahead of this.
+        #expect(await calls.next() == .cancel)
     }
 
     @Test func `Armed Cues each carry their own token`() async {
@@ -510,7 +528,7 @@ nonisolated struct CueRulesTests {
         await audio.onNext(.activate(ducking: false), .fail)
         await audio.finishSpeaking()
         #expect(await calls.next() == .activate(ducking: false))
-        await audioCallsHaveReturned()
+        await letAudioSettle()
         await engine.pause(at: clock.now)
         #expect(await calls.next() == .deactivate)
 
@@ -538,10 +556,13 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .cancel)
         #expect(await calls.next() == .deactivate)
         await audio.release()
+        await letAudioSettle()
 
+        // A Pause of 100 s gives the new Cue a different deadline, so the old one can't pass for it.
+        advance(to: 108.5)
         await engine.resume(at: clock.now)
         #expect(await calls.next() == .activate(ducking: true))
-        #expect(await calls.next() == .schedule(.work, at: at(10)))
+        #expect(await calls.next() == .schedule(.work, at: at(110)))
     }
 
     @Test func `An activate that fails after a Pause has no fallback`() async {
@@ -557,13 +578,13 @@ nonisolated struct CueRulesTests {
         _ = await calls.next()
         _ = await calls.next()
         await audio.release(failing: true)
-        await audioCallsHaveReturned()
+        await letAudioSettle()
 
         await engine.resume(at: clock.now)
         #expect(await calls.next() == .activate(ducking: true))
     }
 
-    @Test func `A schedule that fails after a Pause lifts nothing`() async {
+    @Test func `A schedule that fails after a Pause does nothing to the Cue armed since`() async {
         let engine = makeEngine(isDipOn: true)
         var calls = audio.calls.makeAsyncIterator()
         await engine.start()
@@ -572,15 +593,20 @@ nonisolated struct CueRulesTests {
         advance(to: 8.5)
         _ = await calls.next()
         _ = await calls.next()
-
         await engine.pause(at: clock.now)
         _ = await calls.next()
         _ = await calls.next()
-        await audio.release(failing: true)
-        await audioCallsHaveReturned()
-
+        advance(to: 108.5)
         await engine.resume(at: clock.now)
         #expect(await calls.next() == .activate(ducking: true))
+        #expect(await calls.next() == .schedule(.work, at: at(110)))
+
+        await audio.release(failing: true)
+        await letAudioSettle()
+        await engine.pause(at: clock.now)
+
+        // The new Cue is still armed and ducked. A lift would have come ahead of this.
+        #expect(await calls.next() == .cancel)
     }
 
     @Test func `A finish reported for a cut Cue doesn't count for the Cue armed after it`() async {
@@ -599,6 +625,7 @@ nonisolated struct CueRulesTests {
         _ = await calls.next()
 
         audio.send(.cueFinished(cutCue))
+        await letAudioSettle()
         await engine.pause(at: clock.now)
 
         // The current Cue is still armed, so it needs cutting.
@@ -632,7 +659,7 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .deactivate)
 
         advance(to: 1_000)
-        await audioCallsHaveReturned()
+        await letAudioSettle()
         #expect(await audio.history == [.activate(ducking: false), .deactivate])
     }
 
@@ -646,7 +673,7 @@ nonisolated struct CueRulesTests {
 
         await engine.stop()
 
-        await audioCallsHaveReturned()
+        await letAudioSettle()
         #expect(await audio.history == [.activate(ducking: false), .deactivate])
     }
 
@@ -689,7 +716,7 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .cancel)
         #expect(await calls.next() == .deactivate)
         await audio.release(failing: true)
-        await audioCallsHaveReturned()
+        await letAudioSettle()
 
         #expect(await audio.history.count == 4)
     }
@@ -729,7 +756,7 @@ nonisolated struct CueRulesTests {
         advance(to: 30)
         #expect(await snapshots.next()?.progress == .finished)
         #expect(await snapshots.next() == nil)
-        await audioCallsHaveReturned()
+        await letAudioSettle()
         #expect(await audio.history.contains(.deactivate) == false)
 
         await audio.finishSpeaking()
@@ -769,7 +796,7 @@ nonisolated struct CueRulesTests {
         let engine = makeEngine([firstWork])
         var calls = await startToCompleteLead(engine)
         await audio.finishSpeaking()
-        await audioCallsHaveReturned()
+        await letAudioSettle()
 
         advance(to: 30)
 
@@ -855,7 +882,7 @@ nonisolated struct CueRulesTests {
 
         await audio.finishSpeaking()
         await engine.stop()
-        await audioCallsHaveReturned()
+        await letAudioSettle()
 
         #expect(await audio.history.filter { $0 == .deactivate }.count == 1)
     }
