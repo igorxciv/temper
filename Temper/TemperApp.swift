@@ -16,7 +16,7 @@ struct TemperApp: App {
 /// Shows the screen for where the Workout is, and catches up whenever Temper returns to the front.
 struct RootView: View {
     let runner: WorkoutRunner
-    let remembered: RememberedValues
+    @Bindable var remembered: RememberedValues
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorSchemeContrast) private var contrast
@@ -40,11 +40,28 @@ struct RootView: View {
                     CompleteScreen(total: runner.workout.totalDuration, done: runner.finish)
                 }
             } else {
-                NavigationStack {
-                    SetupScreen(remembered: remembered) { workoutType, workout in
-                        runner.start(workout, of: workoutType, isDipOn: remembered.isDipOn)
+                // The system Liquid Glass tab bar, with no background of its own.
+                TabView(selection: $remembered.selectedTab) {
+                    ForEach(WorkoutType.allCases) { workoutType in
+                        Tab(
+                            workoutType.title, systemImage: workoutType.systemImage,
+                            value: RootTab.workoutType(workoutType)
+                        ) {
+                            NavigationStack {
+                                SetupScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
+                                    runner.start(workout, of: workoutType, isDipOn: remembered.isDipOn)
+                                }
+                            }
+                        }
+                    }
+                    Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
+                        NavigationStack {
+                            SettingsScreen(remembered: remembered)
+                        }
                     }
                 }
+                // Dragging the setup rows scrolls, and the tabs stay in view through it.
+                .tabBarMinimizeBehavior(.never)
                 .tint(InkColors(contrast: contrast).accent)
             }
         }
