@@ -1,10 +1,3 @@
-/// What the Round line under the ring shows.
-public nonisolated enum RoundLine: Equatable, Sendable {
-    /// A large number with a caption beside it, and what VoiceOver says for the two together.
-    case count(number: Int, caption: String, spoken: String)
-    case paused
-}
-
 /// The Workout engine's state at its latest event. Everything between events, such as the time left,
 /// is worked out from it, so no tick ever passes through the engine.
 public nonisolated struct WorkoutSnapshot<Instant: InstantProtocol>: Equatable, Sendable
@@ -51,25 +44,9 @@ where Instant.Duration == Duration {
         }
     }
 
-    /// How full the ring is at `now`, from 1 as a Phase starts to 0 as it ends.
+    /// How much of the current Phase is left at `now`, from 1 as it starts to 0 as it ends.
     public func fractionLeft(at now: Instant) -> Double {
         guard let phase, phase.duration > .zero else { return 0 }
         return min(1, timeLeft(at: now) / phase.duration)
-    }
-
-    /// The Round line, or `nil` once the Workout has ended.
-    public var roundLine: RoundLine? {
-        guard let phase else { return nil }
-        if isPaused { return .paused }
-        let total = rounds == 1 ? "1 Round" : "\(rounds) Rounds"
-        switch phase.kind {
-        case .prepare:
-            return .count(number: rounds, caption: rounds == 1 ? "Round" : "Rounds", spoken: total)
-        case .work, .rest:
-            let round = phase.round ?? rounds
-            return .count(number: round, caption: "of \(rounds)", spoken: "Round \(round) of \(rounds)")
-        case .cooldown:
-            return .count(number: rounds, caption: "of \(rounds)", spoken: total)
-        }
     }
 }

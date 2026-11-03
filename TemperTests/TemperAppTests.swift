@@ -41,7 +41,7 @@ struct RememberedValuesTests {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
 
-            #expect(remembered.settings == .firstLaunch)
+            #expect(remembered.settings == WorkoutType.intervals.firstLaunch)
             #expect(remembered.isDipOn)
         }
     }
@@ -74,7 +74,7 @@ struct RememberedValuesTests {
         try withThrowawayDefaults { defaults in
             RememberedValues(defaults: defaults).isDipOn = false
 
-            #expect(RememberedValues(defaults: defaults).settings == .firstLaunch)
+            #expect(RememberedValues(defaults: defaults).settings == WorkoutType.intervals.firstLaunch)
         }
     }
 
@@ -92,7 +92,7 @@ struct RememberedValuesTests {
             #expect(restored.rounds == 1)
             #expect(restored.work == .seconds(5))
             #expect(restored.cooldown == .seconds(1800))
-            _ = restored.makeWorkout()
+            _ = WorkoutType.intervals.makeWorkout(from: restored)
         }
     }
 }

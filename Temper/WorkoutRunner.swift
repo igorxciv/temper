@@ -10,9 +10,10 @@ private let renderingWaitLimit = Duration.seconds(5)
 @Observable
 final class WorkoutRunner {
     typealias Snapshot = WorkoutSnapshot<ContinuousClock.Instant>
+    typealias Display = RunningDisplay<ContinuousClock.Instant>
 
-    /// The length of the Workout last started, not counting any Pause.
-    private(set) var total: Duration = .zero
+    /// The Workout last started.
+    private(set) var workout = Workout(phases: [])
 
     /// The latest snapshot, or `nil` when no Workout is running or complete.
     private(set) var snapshot: Snapshot? {
@@ -35,7 +36,7 @@ final class WorkoutRunner {
 
     func start(_ workout: Workout, isDipOn: Bool) {
         guard engine == nil else { return }
-        total = workout.totalDuration
+        self.workout = workout
         let audio = AudioAdapter(cues: cues, application: .shared)
         let engine = WorkoutEngine(
             workout: workout,

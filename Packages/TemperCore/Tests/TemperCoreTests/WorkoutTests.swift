@@ -2,14 +2,17 @@ import Testing
 
 @testable import TemperCore
 
+/// How Intervals builds its Workout.
 struct WorkoutTests {
-    private func settings(
+    private func intervals(
         prepare: Duration = .seconds(10),
         rounds: Int = 2,
         rest: Duration = .seconds(15),
         cooldown: Duration = .seconds(60)
-    ) -> WorkoutSettings {
-        WorkoutSettings(prepare: prepare, rounds: rounds, work: .seconds(30), rest: rest, cooldown: cooldown)
+    ) -> Workout {
+        WorkoutType.intervals.makeWorkout(
+            from: WorkoutSettings(prepare: prepare, rounds: rounds, work: .seconds(30), rest: rest, cooldown: cooldown)
+        )
     }
 
     @Test func `Phases run in Workout order with their durations and Rounds`() {
@@ -21,11 +24,11 @@ struct WorkoutTests {
             Phase(kind: .cooldown, duration: .seconds(60)),
         ]
 
-        #expect(settings().makeWorkout() == Workout(phases: expected))
+        #expect(intervals() == Workout(phases: expected))
     }
 
     @Test func `A zero Prepare is dropped, so the Workout opens on Work`() {
-        let kinds = settings(prepare: .zero).makeWorkout().phases.map(\.kind)
+        let kinds = intervals(prepare: .zero).phases.map(\.kind)
 
         #expect(kinds == [.work, .rest, .work, .cooldown])
     }
@@ -36,34 +39,34 @@ struct WorkoutTests {
             Phase(kind: .work, duration: .seconds(30), round: 2),
         ]
 
-        #expect(settings(prepare: .zero, rest: .zero, cooldown: .zero).makeWorkout().phases == expected)
+        #expect(intervals(prepare: .zero, rest: .zero, cooldown: .zero).phases == expected)
     }
 
     @Test func `A zero Cooldown leaves the last Work as the final Phase`() {
-        #expect(settings(cooldown: .zero).makeWorkout().phases.last?.kind == .work)
+        #expect(intervals(cooldown: .zero).phases.last?.kind == .work)
     }
 
     @Test func `A single Round has one Work and no Rest`() {
-        let kinds = settings(rounds: 1).makeWorkout().phases.map(\.kind)
+        let kinds = intervals(rounds: 1).phases.map(\.kind)
 
         #expect(kinds == [.prepare, .work, .cooldown])
     }
 
     @Test func `A single Round with every optional Phase off is one Work`() {
-        let workout = settings(prepare: .zero, rounds: 1, rest: .zero, cooldown: .zero).makeWorkout()
+        let workout = intervals(prepare: .zero, rounds: 1, rest: .zero, cooldown: .zero)
 
         #expect(workout == Workout(phases: [Phase(kind: .work, duration: .seconds(30), round: 1)]))
     }
 
     @Test func `The first-launch Workout runs for 08:50 over 8 Rounds`() {
-        let workout = WorkoutSettings.firstLaunch.makeWorkout()
+        let workout = WorkoutType.intervals.makeWorkout(from: WorkoutType.intervals.firstLaunch)
 
         #expect(workout.totalDuration == .seconds(530))
         #expect(workout.rounds == 8)
     }
 
     @Test func `The total length counts only the Phases that run`() {
-        let workout = settings(prepare: .zero, rest: .zero, cooldown: .zero).makeWorkout()
+        let workout = intervals(prepare: .zero, rest: .zero, cooldown: .zero)
 
         #expect(workout.totalDuration == .seconds(60))
     }
@@ -74,14 +77,17 @@ struct WorkoutTests {
 
     @Test func `A Workout needs at least one Round`() async {
         await #expect(processExitsWith: .failure) {
-            _ = WorkoutSettings(prepare: .zero, rounds: 0, work: .seconds(5), rest: .zero, cooldown: .zero)
-                .makeWorkout()
+            _ = WorkoutType.intervals.makeWorkout(
+                from: WorkoutSettings(prepare: .zero, rounds: 0, work: .seconds(5), rest: .zero, cooldown: .zero)
+            )
         }
     }
 
     @Test func `A Round needs a Work`() async {
         await #expect(processExitsWith: .failure) {
-            _ = WorkoutSettings(prepare: .zero, rounds: 1, work: .zero, rest: .zero, cooldown: .zero).makeWorkout()
+            _ = WorkoutType.intervals.makeWorkout(
+                from: WorkoutSettings(prepare: .zero, rounds: 1, work: .zero, rest: .zero, cooldown: .zero)
+            )
         }
     }
 }
