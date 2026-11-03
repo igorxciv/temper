@@ -26,7 +26,11 @@ struct RootView: View {
             if let snapshot = runner.snapshot {
                 if let phase = snapshot.phase {
                     RunningScreen(
-                        display: RunningDisplay(workoutType: .intervals, workout: runner.workout, snapshot: snapshot),
+                        display: RunningDisplay(
+                            workoutType: runner.workoutType,
+                            workout: runner.workout,
+                            snapshot: snapshot
+                        ),
                         phase: phase,
                         pause: runner.pause,
                         resume: runner.resume,
@@ -37,7 +41,9 @@ struct RootView: View {
                 }
             } else {
                 NavigationStack {
-                    SetupScreen(remembered: remembered, start: { runner.start($0, isDipOn: remembered.isDipOn) })
+                    SetupScreen(remembered: remembered) { workoutType, workout in
+                        runner.start(workout, of: workoutType, isDipOn: remembered.isDipOn)
+                    }
                 }
                 .tint(InkColors(contrast: contrast).accent)
             }
