@@ -1,0 +1,4 @@
+// The widget extension's settings, on top of Base.xcconfig at the project level.
+
+// An extension's bundle ID has to start with its app's, which Base.xcconfig makes $(BUNDLE_ID_PREFIX).temper.
+PRODUCT_BUNDLE_IDENTIFIER = $(BUNDLE_ID_PREFIX).temper.widgets

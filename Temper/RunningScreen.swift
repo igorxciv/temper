@@ -36,17 +36,6 @@ struct RunningScreen: View {
     }
 }
 
-extension Phase.Kind {
-    var name: String {
-        switch self {
-        case .prepare: "Prepare"
-        case .work: "Work"
-        case .rest: "Rest"
-        case .cooldown: "Cooldown"
-        }
-    }
-}
-
 /// The ring and its time. Both read the engine's clock on every display frame.
 private struct TimeRing: View {
     let display: WorkoutRunner.Display
