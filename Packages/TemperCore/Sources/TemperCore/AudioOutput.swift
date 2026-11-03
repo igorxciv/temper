@@ -5,9 +5,15 @@ public nonisolated struct CueToken: Hashable, Sendable {
 
 /// What the audio side reports on its own, outside any call.
 public nonisolated enum AudioEvent: Equatable, Sendable {
+    /// iOS has taken the session away, for a call, Siri, an alarm or another app's audio. Any Cue scheduled
+    /// is lost.
     case interrupted
+    /// iOS recommends resuming after an interruption.
     case resumeRecommended
+    /// The output route has changed, and the engine has stopped so that it can be restarted on the new route.
     case routeChanged
+    /// iOS has reset its media services. The session and engine are gone, and the next activate builds new
+    /// ones.
     case mediaServicesReset
     /// The Cue armed with this token has finished speaking.
     case cueFinished(CueToken)
@@ -31,4 +37,6 @@ public nonisolated protocol AudioOutput<Instant>: Sendable {
     func schedule(_ cue: Cue, at deadline: Instant, token: CueToken) async throws
     /// Cuts any Cue that's speaking or waiting to speak.
     func cancel() async throws
+    /// Whether a phone call is ringing, connected or on hold. It isn't an audio call, so it never fails.
+    func isOnCall() async -> Bool
 }

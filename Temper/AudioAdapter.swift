@@ -1,4 +1,5 @@
 import AVFAudio
+import CallKit
 import TemperCore
 import UIKit
 
@@ -9,13 +10,21 @@ nonisolated enum AudioAdapterError: Error {
 }
 
 /// Carries out what the Cue rules ask for, using a `.playback` session and an engine that renders zeros
-/// between Cues. It decides nothing.
+/// between Cues. It decides nothing. It reports what iOS does to the session, and makes only the changes
+/// that report describes: an engine stopped for a new route, or a new engine after a media-services reset.
 ///
 /// One adapter serves one Workout. All adapters share one queue and never suspend inside a call, so calls run
 /// strictly in the order they arrive, even a new Workout's activate right after the last one's deactivate.
 /// Session calls block for hundreds of milliseconds, so the queue also keeps them off the shared thread pool.
+/// Notifications are handled on the same queue, in the order iOS posts them.
 actor AudioAdapter: AudioOutput {
     private static let queue = DispatchSerialQueue(label: "Temper.audio", qos: .userInteractive)
+
+    /// Route changes that can move output to another device. A category change is the adapter's own Dip.
+    private static let newRouteReasons: Set<AVAudioSession.RouteChangeReason> = [
+        .newDeviceAvailable, .oldDeviceUnavailable, .override, .wakeFromSleep, .noSuitableRouteForCategory,
+        .routeConfigurationChange,
+    ]
 
     nonisolated var unownedExecutor: UnownedSerialExecutor {
         Self.queue.asUnownedSerialExecutor()
@@ -28,11 +37,14 @@ actor AudioAdapter: AudioOutput {
     private let application: UIApplication
     private let clock = ContinuousClock()
     private let session = AVAudioSession.sharedInstance()
-    private let engine = AVAudioEngine()
-    private let player = AVAudioPlayerNode()
+    private let calls = CXCallObserver()
+    /// Replaced after a media-services reset, because the old one belongs to services that have gone.
+    private var engine = AVAudioEngine()
+    private var player = AVAudioPlayerNode()
     private var isGraphBuilt = false
     /// Whether the active session lowers other audio, or `nil` when the session isn't active.
     private var activeDucking: Bool?
+    private var sessionObservers: [any NSObjectProtocol] = []
 
     #if DEBUG
         nonisolated let timingLog = TimingLog()
@@ -45,17 +57,22 @@ actor AudioAdapter: AudioOutput {
         (events, eventSender) = AsyncStream.makeStream()
     }
 
-    #if DEBUG
-        isolated deinit {
+    isolated deinit {
+        for observer in sessionObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        #if DEBUG
             for observer in logObservers {
                 NotificationCenter.default.removeObserver(observer)
             }
-        }
-    #endif
+        #endif
+    }
 
     // MARK: AudioOutput
 
     func activate(ducking: Bool) throws {
+        observeSessionIfNeeded()
+        log("activate", ["duck": ducking, "was_active": activeDucking != nil])
         switch activeDucking {
         case ducking:
             try startAudio()
@@ -127,6 +144,89 @@ actor AudioAdapter: AudioOutput {
         }
     }
 
+    /// A call that hasn't ended is ringing, connected or on hold.
+    func isOnCall() -> Bool {
+        calls.calls.contains { !$0.hasEnded }
+    }
+
+    // MARK: What iOS does to the session
+
+    private func observeSessionIfNeeded() {
+        guard sessionObservers.isEmpty else { return }
+        let center = NotificationCenter.default
+        sessionObservers = [
+            center.addObserver(forName: AVAudioSession.didBecomeInactiveNotification, object: nil, queue: nil) {
+                [weak self] note in
+                let context =
+                    note.userInfo?[AVAudioSession.deactivationContextKey] as? AVAudioSession.DeactivationContext
+                guard context?.source == .system else { return }
+                self?.onQueue { $0.sessionWasTaken() }
+            },
+            center.addObserver(
+                forName: AVAudioSession.resumptionRecommendationNotification,
+                object: nil,
+                queue: nil
+            ) { [weak self] note in
+                let context = note.userInfo?[AVAudioSession.resumptionContextKey] as? AVAudioSession.ResumptionContext
+                guard context?.recommendation == .shouldResume else { return }
+                self?.onQueue { $0.send(.resumeRecommended) }
+            },
+            center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: nil) {
+                [weak self] note in
+                let reason = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt)
+                    .flatMap(AVAudioSession.RouteChangeReason.init(rawValue:))
+                guard let reason, Self.newRouteReasons.contains(reason) else { return }
+                self?.onQueue { $0.routeChanged() }
+            },
+            center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: nil) {
+                [weak self] _ in
+                self?.onQueue { $0.rebuildAfterReset() }
+            },
+        ]
+    }
+
+    /// Runs a notification's work on the adapter's queue, after any call already on it.
+    private nonisolated func onQueue(_ work: @escaping @Sendable (isolated AudioAdapter) -> Void) {
+        Self.queue.async {
+            self.assumeIsolated(work)
+        }
+    }
+
+    /// Only an active session can be taken. iOS has already stopped the engine.
+    private func sessionWasTaken() {
+        guard activeDucking != nil else { return }
+        stopAudio()
+        activeDucking = nil
+        send(.interrupted)
+    }
+
+    /// The engine stops here, and the next activate starts it on the new route. An engine that stops itself
+    /// for a configuration change isn't reported, because every schedule starts a stopped engine anyway, and
+    /// reporting it could loop if a restart caused another change.
+    private func routeChanged() {
+        guard activeDucking != nil else { return }
+        stopAudio()
+        #if DEBUG
+            logRoute("restart")
+        #endif
+        send(.routeChanged)
+    }
+
+    /// The session's category and the engine went with the old media services. The rendered Cues are plain
+    /// memory in the Cue bank, so they stay.
+    private func rebuildAfterReset() {
+        engine = AVAudioEngine()
+        player = AVAudioPlayerNode()
+        isGraphBuilt = false
+        activeDucking = nil
+        send(.mediaServicesReset)
+    }
+
+    private func send(_ event: AudioEvent) {
+        log("audio_event", ["event": "\(event)"])
+        eventSender.yield(event)
+    }
+
     // MARK: Session and engine
 
     private func setCategory(ducking: Bool) throws {
@@ -160,6 +260,9 @@ actor AudioAdapter: AudioOutput {
         engine.prepare()
         isGraphBuilt = true
         #if DEBUG
+            for observer in logObservers {
+                NotificationCenter.default.removeObserver(observer)
+            }
             logRunStart()
             logRoute("start")
             // The iOS 27.2 SDK has only this underscored form of the call that replaces the deprecated

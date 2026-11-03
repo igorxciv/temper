@@ -19,6 +19,13 @@ struct TemperAppTests {
         #expect(info["UIFileSharingEnabled"] == nil)
         #expect(info["LSSupportsOpeningDocumentsInPlace"] == nil)
     }
+
+    /// Force-quitting, or iOS ending the app, ends the Workout, because nothing about it is saved.
+    @Test func `A launch opens setup, with no Workout to bring back`() {
+        let runner = WorkoutRunner()
+
+        #expect(runner.snapshot == nil)
+    }
 }
 
 struct RememberedValuesTests {

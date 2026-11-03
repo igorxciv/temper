@@ -78,13 +78,14 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     }
 
     /// For returning to the front: works out where the Workout is and always publishes it, because a
-    /// suspended app isn't woken by its own timer.
+    /// suspended app isn't woken by its own timer. A running Workout also gets its audio back, if iOS took it.
     public func refresh() async {
         guard let snapshot = latest else { return }
         switch state {
         case .running:
             latest = nil
             await recalculate()
+            await cueRules.recover()
         case .paused:
             continuation.yield(snapshot)
         case .ready, .starting, .ended:
