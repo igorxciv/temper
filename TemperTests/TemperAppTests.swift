@@ -20,6 +20,16 @@ struct TemperAppTests {
         #expect(info["LSSupportsOpeningDocumentsInPlace"] == nil)
     }
 
+    @Test func `The app offers Live Activities and carries the extension that draws them`() throws {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let plugIns = try #require(Bundle.main.builtInPlugInsURL)
+        let widgets = try #require(Bundle(url: plugIns.appending(path: "TemperWidgets.appex")))
+        let appID = try #require(Bundle.main.bundleIdentifier)
+
+        #expect(info["NSSupportsLiveActivities"] as? Bool == true)
+        #expect(widgets.bundleIdentifier == "\(appID).widgets")
+    }
+
     /// Force-quitting, or iOS ending the app, ends the Workout, because nothing about it is saved.
     @Test func `A launch opens setup, with no Workout to bring back`() {
         let runner = WorkoutRunner()

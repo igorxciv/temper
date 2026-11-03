@@ -1,7 +1,18 @@
 /// A single timed period within a Workout.
 public nonisolated struct Phase: Equatable, Sendable {
-    public enum Kind: Equatable, Sendable {
+    /// The raw value is what a Live Activity stores, so renaming a case breaks one that's showing.
+    public enum Kind: String, Codable, Equatable, Sendable {
         case prepare, work, rest, cooldown
+
+        /// The name the running screen and the Live Activity show.
+        public var name: String {
+            switch self {
+            case .prepare: "Prepare"
+            case .work: "Work"
+            case .rest: "Rest"
+            case .cooldown: "Cooldown"
+            }
+        }
     }
 
     public let kind: Kind

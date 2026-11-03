@@ -26,6 +26,7 @@ final class WorkoutRunner {
 
     @ObservationIgnored private var engine: WorkoutEngine<ContinuousClock>?
     @ObservationIgnored private let cues = CueBank()
+    @ObservationIgnored private var liveActivity: LiveActivityAdapter?
 
     #if DEBUG
         @ObservationIgnored private var timingLog: TimingLog?
@@ -34,6 +35,7 @@ final class WorkoutRunner {
     /// Rendering begins here, at launch, so the Cues are usually ready before the first Start.
     init() {
         cues.render()
+        Task { await LiveActivityAdapter.endLeftovers() }
     }
 
     func start(_ workout: Workout, of workoutType: WorkoutType, isDipOn: Bool) {
@@ -48,6 +50,7 @@ final class WorkoutRunner {
             isDipOn: isDipOn
         )
         self.engine = engine
+        liveActivity = LiveActivityAdapter()
         #if DEBUG
             timingLog = audio.timingLog
             timingLog?.write("dip", ["dip": isDipOn])
@@ -84,6 +87,8 @@ final class WorkoutRunner {
     func finish() {
         engine = nil
         snapshot = nil
+        liveActivity?.show(nil)
+        liveActivity = nil
     }
 
     private func show(_ snapshot: Snapshot) {
@@ -94,6 +99,8 @@ final class WorkoutRunner {
             finish()
         } else {
             self.snapshot = snapshot
+            let display = Display(workoutType: workoutType, workout: workout, snapshot: snapshot)
+            liveActivity?.show(display.liveActivityState(at: .now, date: .now))
         }
     }
 
