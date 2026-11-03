@@ -4,7 +4,7 @@ import TemperCore
 /// Where a Workout gets its values, and where End Workout and Done return to.
 struct SetupScreen: View {
     @Bindable var remembered: RememberedValues
-    let start: (Workout) -> Void
+    let start: (WorkoutType, Workout) -> Void
 
     @State private var editing: WorkoutValue?
 
@@ -12,7 +12,8 @@ struct SetupScreen: View {
 
     var body: some View {
         let colors = InkColors(contrast: contrast)
-        let workout = WorkoutType.intervals.makeWorkout(from: remembered.settings)
+        let workoutType = WorkoutType.intervals
+        let workout = workoutType.makeWorkout(from: remembered.settings)
 
         // The rows fill the screen and don't need to scroll. The scroll view is there so a drag stretches them
         // and they spring back.
@@ -45,7 +46,7 @@ struct SetupScreen: View {
         // In a bar, so Start stays put while the rows stretch under it.
         .safeAreaBar(edge: .bottom) {
             Button {
-                start(workout)
+                start(workoutType, workout)
             } label: {
                 Text("Start · \(workout.totalDuration.clockText)")
                     .font(.title2.bold().monospacedDigit())

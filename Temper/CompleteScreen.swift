@@ -23,6 +23,7 @@ struct CompleteScreen: View {
             Text(total.clockText)
                 .font(.title2.monospacedDigit())
                 .foregroundStyle(colors.secondary)
+                .accessibilityLabel(total.spokenText(rounding: .up))
             Spacer()
             Button(action: done) {
                 Text("Done")

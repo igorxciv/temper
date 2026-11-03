@@ -23,7 +23,7 @@ struct RunningScreen: View {
                 .minimumScaleFactor(0.6)
                 .padding(.top, 8)
             Spacer(minLength: 0)
-            TimeRing(snapshot: snapshot, colors: colors)
+            TimeRing(display: display, colors: colors)
                 // A stroke straddles its path, so half the line's width keeps the ring inside its frame.
                 .padding(10)
             RingLineView(line: display.line, colors: colors)
@@ -47,9 +47,9 @@ extension Phase.Kind {
     }
 }
 
-/// The ring and the time left. Both read the engine's clock on every display frame.
+/// The ring and its time. Both read the engine's clock on every display frame.
 private struct TimeRing: View {
-    let snapshot: WorkoutRunner.Snapshot
+    let display: WorkoutRunner.Display
     let colors: PhaseColors
 
     private let lineWidth: CGFloat = 20
@@ -57,16 +57,16 @@ private struct TimeRing: View {
     var body: some View {
         ZStack {
             Circle().stroke(colors.track, lineWidth: lineWidth)
-            TimelineView(.animation(paused: snapshot.isPaused)) { _ in
-                let now = ContinuousClock.now
+            TimelineView(.animation(paused: display.snapshot.isPaused)) { _ in
+                let ring = display.ring(at: .now)
 
                 ZStack {
                     Circle()
-                        .trim(from: 0, to: snapshot.fractionLeft(at: now))
+                        .trim(from: 0, to: ring.fill)
                         .stroke(colors.ring, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                     // No `.numericText()` transition, because it blurred the digits.
-                    Text(snapshot.timeLeft(at: now).clockText)
+                    Text(ring.time)
                         // Set above any phone's width, so the ring alone decides the size. From 3 m that's about
                         // 12.6 arcmin on an iPhone SE to 16.3 on the largest phone, under the 20 to 22 usually
                         // cited for reading at a distance. The owner accepted that to keep the ring's size.
@@ -75,6 +75,9 @@ private struct TimeRing: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.4)
                         .padding(.horizontal, 24)
+                        // Read only when focus lands on it. The `updatesFrequently` trait would announce it as it
+                        // changes, and the Cues already speak every Phase change.
+                        .accessibilityLabel(ring.spokenTime)
                 }
             }
         }

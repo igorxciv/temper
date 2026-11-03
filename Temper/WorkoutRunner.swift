@@ -14,6 +14,8 @@ final class WorkoutRunner {
 
     /// The Workout last started.
     private(set) var workout = Workout(phases: [])
+    /// The Workout Type of the Workout last started, which decides how the running screen shows it.
+    private(set) var workoutType = WorkoutType.intervals
 
     /// The latest snapshot, or `nil` when no Workout is running or complete.
     private(set) var snapshot: Snapshot? {
@@ -34,9 +36,10 @@ final class WorkoutRunner {
         cues.render()
     }
 
-    func start(_ workout: Workout, isDipOn: Bool) {
+    func start(_ workout: Workout, of workoutType: WorkoutType, isDipOn: Bool) {
         guard engine == nil else { return }
         self.workout = workout
+        self.workoutType = workoutType
         let audio = AudioAdapter(cues: cues, application: .shared)
         let engine = WorkoutEngine(
             workout: workout,
