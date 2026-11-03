@@ -27,7 +27,7 @@ final class RememberedValues {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
-        var settings = WorkoutSettings.firstLaunch
+        var settings = WorkoutType.intervals.firstLaunch
         for value in WorkoutValue.allCases {
             if let stored = defaults.object(forKey: value.defaultsKey) as? Int {
                 settings[value] = value.clamped(stored)

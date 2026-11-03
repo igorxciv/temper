@@ -12,7 +12,7 @@ struct SetupScreen: View {
 
     var body: some View {
         let colors = InkColors(contrast: contrast)
-        let workout = remembered.settings.makeWorkout()
+        let workout = WorkoutType.intervals.makeWorkout(from: remembered.settings)
 
         // The rows fill the screen and don't need to scroll. The scroll view is there so a drag stretches them
         // and they spring back.

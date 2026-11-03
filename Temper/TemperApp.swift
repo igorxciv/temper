@@ -26,14 +26,14 @@ struct RootView: View {
             if let snapshot = runner.snapshot {
                 if let phase = snapshot.phase {
                     RunningScreen(
-                        snapshot: snapshot,
+                        display: RunningDisplay(workoutType: .intervals, workout: runner.workout, snapshot: snapshot),
                         phase: phase,
                         pause: runner.pause,
                         resume: runner.resume,
                         stop: runner.stop
                     )
                 } else {
-                    CompleteScreen(total: runner.total, done: runner.finish)
+                    CompleteScreen(total: runner.workout.totalDuration, done: runner.finish)
                 }
             } else {
                 NavigationStack {

@@ -68,7 +68,7 @@ struct WorkoutValueTests {
     }
 
     @Test func `Settings read and write each value by its amount`() {
-        var settings = WorkoutSettings.firstLaunch
+        var settings = WorkoutType.intervals.firstLaunch
 
         settings[.prepare] = 0
         settings[.rounds] = 3
@@ -88,19 +88,19 @@ struct WorkoutValueTests {
     }
 
     @Test func `Turning a Phase off skips it in the Workout and in the total`() {
-        var settings = WorkoutSettings.firstLaunch
+        var settings = WorkoutType.intervals.firstLaunch
 
         settings[.prepare] = WorkoutValue.prepare.amount(minutes: 0, seconds: 0)
         settings[.rest] = WorkoutValue.rest.amount(minutes: 0, seconds: 0)
         settings[.cooldown] = WorkoutValue.cooldown.amount(minutes: 0, seconds: 0)
 
-        let workout = settings.makeWorkout()
+        let workout = WorkoutType.intervals.makeWorkout(from: settings)
         #expect(workout.phases.allSatisfy { $0.kind == .work })
         #expect(workout.totalDuration == .seconds(320))
     }
 
     @Test func `The widest total keeps counting in minutes`() {
-        var settings = WorkoutSettings.firstLaunch
+        var settings = WorkoutType.intervals.firstLaunch
 
         settings[.rounds] = 4
         settings[.work] = 1800
@@ -108,6 +108,6 @@ struct WorkoutValueTests {
         settings[.rest] = 0
         settings[.cooldown] = 0
 
-        #expect(settings.makeWorkout().totalDuration.clockText == "120:00")
+        #expect(WorkoutType.intervals.makeWorkout(from: settings).totalDuration.clockText == "120:00")
     }
 }

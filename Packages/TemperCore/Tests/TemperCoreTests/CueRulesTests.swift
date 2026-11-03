@@ -88,6 +88,36 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .schedule(.work, at: at(30)))
     }
 
+    @Test func `A Stopwatch says Work as its Work starts and Workout complete at its length, and nothing else`() async {
+        let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
+        let engine = WorkoutEngine(workout: workout, clock: clock, audio: audio, isDipOn: false)
+        var calls = audio.calls.makeAsyncIterator()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate(ducking: false))
+        _ = await snapshots.next()
+
+        advance(to: 8.5)
+        #expect(await calls.next() == .schedule(.work, at: at(10)))
+        await audio.finishSpeaking()
+        advance(to: 608.5)
+        #expect(await calls.next() == .schedule(.workoutComplete, at: at(610)))
+        advance(to: 610)
+        #expect(await snapshots.next()?.phase?.kind == .work)
+        #expect(await snapshots.next()?.progress == .finished)
+        await audio.finishSpeaking()
+        #expect(await calls.next() == .deactivate)
+        await letAudioSettle()
+
+        let expected: [Call] = [
+            .activate(ducking: false),
+            .schedule(.work, at: at(10)),
+            .schedule(.workoutComplete, at: at(610)),
+            .deactivate,
+        ]
+        #expect(await audio.history == expected)
+    }
+
     // MARK: Start
 
     @Test func `A Workout with Dip on that opens on Prepare activates undipped`() async {

@@ -3,7 +3,7 @@ import TemperCore
 
 /// Has to hold together on the iPhone SE, 375 by 667 pt and the smallest iPhone on iOS 27, at every text size.
 struct RunningScreen: View {
-    let snapshot: WorkoutRunner.Snapshot
+    let display: WorkoutRunner.Display
     let phase: Phase
     let pause: () -> Void
     let resume: () -> Void
@@ -13,6 +13,7 @@ struct RunningScreen: View {
 
     var body: some View {
         let colors = PhaseColors(kind: phase.kind, contrast: contrast)
+        let snapshot = display.snapshot
 
         VStack(spacing: 8) {
             Text(phase.kind.name)
@@ -25,7 +26,7 @@ struct RunningScreen: View {
             TimeRing(snapshot: snapshot, colors: colors)
                 // A stroke straddles its path, so half the line's width keeps the ring inside its frame.
                 .padding(10)
-            RoundLineView(line: snapshot.roundLine, colors: colors)
+            RingLineView(line: display.line, colors: colors)
             Spacer(minLength: 0)
             RunningControls(isPaused: snapshot.isPaused, pause: pause, resume: resume, stop: stop)
                 .padding(.bottom, 8)
@@ -81,8 +82,8 @@ private struct TimeRing: View {
     }
 }
 
-private struct RoundLineView: View {
-    let line: RoundLine?
+private struct RingLineView: View {
+    let line: RingLine?
     let colors: PhaseColors
 
     private let numberSize: CGFloat = 64
@@ -90,13 +91,16 @@ private struct RoundLineView: View {
     var body: some View {
         Group {
             switch line {
-            case .count(let number, let caption, let spoken):
+            case .value(let value, let caption, let spoken):
                 HStack(alignment: .firstTextBaseline, spacing: 9) {
-                    Text("\(number)")
+                    if case .before(let text) = caption {
+                        CaptionText(text: text)
+                    }
+                    Text(value)
                         .font(.system(size: numberSize, weight: .semibold).monospacedDigit())
-                    Text(caption)
-                        .font(.system(size: 32, weight: .medium).monospacedDigit())
-                        .opacity(0.72)
+                    if case .after(let text) = caption {
+                        CaptionText(text: text)
+                    }
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(spoken)
@@ -112,6 +116,16 @@ private struct RoundLineView: View {
         .minimumScaleFactor(0.6)
         // Paused is shorter than a count, and swapping them mustn't move the ring.
         .frame(height: numberSize * 1.15)
+    }
+}
+
+private struct CaptionText: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 32, weight: .medium).monospacedDigit())
+            .opacity(0.72)
     }
 }
 

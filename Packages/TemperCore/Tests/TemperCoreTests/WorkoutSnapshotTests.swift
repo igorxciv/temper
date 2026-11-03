@@ -5,10 +5,7 @@ import Testing
 nonisolated struct WorkoutSnapshotTests {
     private typealias Snapshot = WorkoutSnapshot<ManualClock.Instant>
 
-    private let prepare = Phase(kind: .prepare, duration: .seconds(10))
     private let work = Phase(kind: .work, duration: .seconds(40), round: 3)
-    private let rest = Phase(kind: .rest, duration: .seconds(20), round: 3)
-    private let cooldown = Phase(kind: .cooldown, duration: .seconds(60))
 
     private func at(_ seconds: Double) -> ManualClock.Instant {
         ManualClock.Instant(offset: .seconds(seconds))
@@ -67,55 +64,6 @@ nonisolated struct WorkoutSnapshotTests {
 
     @Test func `An ended Workout's ring is empty`() {
         #expect(Snapshot(progress: .finished, rounds: 8).fractionLeft(at: at(1)) == 0)
-    }
-
-    // MARK: The Round line
-
-    @Test func `Prepare shows the Rounds ahead`() {
-        #expect(
-            running(prepare, endsAt: 10).roundLine
-                == .count(number: 8, caption: "Rounds", spoken: "8 Rounds")
-        )
-    }
-
-    @Test func `Prepare before a single Round uses the singular`() {
-        #expect(
-            running(prepare, endsAt: 10, rounds: 1).roundLine
-                == .count(number: 1, caption: "Round", spoken: "1 Round")
-        )
-    }
-
-    @Test func `Work and Rest show their Round and the total`() {
-        let expected = RoundLine.count(number: 3, caption: "of 8", spoken: "Round 3 of 8")
-
-        #expect(running(work, endsAt: 100).roundLine == expected)
-        #expect(running(rest, endsAt: 100).roundLine == expected)
-    }
-
-    @Test func `Cooldown shows the last Round and speaks the total`() {
-        #expect(
-            running(cooldown, endsAt: 100).roundLine
-                == .count(number: 8, caption: "of 8", spoken: "8 Rounds")
-        )
-    }
-
-    @Test func `Cooldown after a single Round speaks the singular`() {
-        #expect(
-            running(cooldown, endsAt: 100, rounds: 1).roundLine
-                == .count(number: 1, caption: "of 1", spoken: "1 Round")
-        )
-    }
-
-    @Test(arguments: [Phase.Kind.prepare, .work, .rest, .cooldown])
-    func `A Pause in any Phase shows Paused`(kind: Phase.Kind) {
-        let phase = Phase(kind: kind, duration: .seconds(10), round: kind == .work ? 1 : nil)
-        let snapshot = Snapshot(progress: .paused(phase: phase, timeLeft: .seconds(1)), rounds: 8)
-
-        #expect(snapshot.roundLine == .paused)
-    }
-
-    @Test func `An ended Workout has no Round line`() {
-        #expect(Snapshot(progress: .finished, rounds: 8).roundLine == nil)
     }
 
     // MARK: Staying awake
