@@ -14,24 +14,36 @@ struct SetupScreen: View {
         let colors = InkColors(contrast: contrast)
         let workout = remembered.settings.makeWorkout()
 
-        VStack(spacing: 0) {
-            ForEach(WorkoutValue.allCases) { value in
-                let text = value.text(for: remembered.settings[value])
+        // The rows fill the screen and don't need to scroll. The scroll view is there so a drag stretches them
+        // and they spring back.
+        ScrollView(.vertical) {
+            VStack(spacing: 0) {
+                ForEach(WorkoutValue.allCases) { value in
+                    let text = value.text(for: remembered.settings[value])
 
-                Button {
-                    editing = value
-                } label: {
-                    ValueRow(value: value, text: text)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(value.title), \(text)")
+                    Button {
+                        editing = value
+                    } label: {
+                        ValueRow(value: value, text: text)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(value.title), \(text)")
 
-                if value != .cooldown {
-                    Rectangle().fill(colors.separator).frame(height: 1)
+                    if value != .cooldown {
+                        Rectangle().fill(colors.separator).frame(height: 1)
+                    }
                 }
             }
+            // The visible height, inside the bars, so the rows share it as they did before they could scroll.
+            .containerRelativeFrame(.vertical)
+            .padding(.horizontal)
+        }
+        .scrollBounceBehavior(.always)
+        .scrollIndicators(.hidden)
+        // In a bar, so Start stays put while the rows stretch under it.
+        .safeAreaBar(edge: .bottom) {
             Button {
                 start(workout)
             } label: {
@@ -48,8 +60,8 @@ struct SetupScreen: View {
             .accessibilityShowsLargeContentViewer()
             .padding(.top, 8)
             .padding(.bottom, 6)
+            .padding(.horizontal)
         }
-        .padding(.horizontal)
         .background(colors.background.ignoresSafeArea())
         .navigationTitle("Temper")
         .navigationBarTitleDisplayMode(.inline)
