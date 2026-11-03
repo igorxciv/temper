@@ -7,6 +7,7 @@ nonisolated enum AudioAdapterError: Error {
     case noCueFormat
     case cueNotRendered
     case noRenderTime
+    case tooLate
 }
 
 /// Carries out what the Cue rules ask for, using a `.playback` session and an engine that renders zeros
@@ -95,7 +96,12 @@ actor AudioAdapter: AudioOutput {
         try session.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    func schedule(_ cue: Cue, at deadline: ContinuousClock.Instant, token: CueToken) throws {
+    func schedule(
+        _ cue: Cue,
+        at deadline: ContinuousClock.Instant,
+        startingBy latest: ContinuousClock.Instant,
+        token: CueToken
+    ) throws {
         guard let buffer = cues.buffer(for: cue) else {
             log("cue_skipped", ["reason": "not_rendered"])
             throw AudioAdapterError.cueNotRendered
@@ -106,11 +112,19 @@ actor AudioAdapter: AudioOutput {
         let rate = playerTime.sampleRate
         // The deadline is when the Cue leaves the player. Output latency is logged but never subtracted, so when
         // a Cue is heard over Bluetooth is best effort, and AirPlay is unsupported for timing.
-        let remaining = Self.seconds(clock.now.duration(to: deadline))
-        let target = AVAudioTime.seconds(forHostTime: mach_absolute_time()) + remaining
+        let now = clock.now
+        let hostNow = AVAudioTime.seconds(forHostTime: mach_absolute_time())
+        let remaining = Self.seconds(now.duration(to: deadline))
+        let target = hostNow + remaining
         let renderHost = AVAudioTime.seconds(forHostTime: nodeTime.hostTime)
         let soonest = playerTime.sampleTime + AVAudioFramePosition(0.02 * rate)
         let sample = max(soonest, playerTime.sampleTime + AVAudioFramePosition((target - renderHost) * rate))
+
+        let start = renderHost + Double(sample - playerTime.sampleTime) / rate
+        guard start <= hostNow + Self.seconds(now.duration(to: latest)) else {
+            log("cue_skipped", ["reason": "too_late"])
+            throw AudioAdapterError.tooLate
+        }
 
         player.scheduleBuffer(
             buffer,

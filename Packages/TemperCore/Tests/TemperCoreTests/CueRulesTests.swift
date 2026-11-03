@@ -64,6 +64,19 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .schedule(.workoutComplete, at: at(145)))
     }
 
+    /// The Cue rules check lateness before handing a Cue over, but audio can take a while to start after that,
+    /// so audio is told the latest start too.
+    @Test func `A Cue is handed over with its latest start, 1s after its deadline`() async {
+        let engine = makeEngine()
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate(ducking: false))
+
+        advance(to: 8.5)
+        #expect(await calls.next() == .schedule(.work, at: at(10)))
+        #expect(await audio.latestStarts == [at(11)])
+    }
+
     @Test func `Every Work says Work, even directly after another Work`() async {
         let engine = makeEngine([firstWork, secondWork])
         var calls = audio.calls.makeAsyncIterator()
@@ -326,7 +339,7 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .activate(ducking: false))
     }
 
-    @Test func `A failed lift retries only once, then waits for the next Cue`() async {
+    @Test func `A failed lift retries only once, then waits for a recovery trigger or the next Cue`() async {
         let engine = makeEngine(isDipOn: true)
         var calls = await startWithDipSpeaking(engine)
         await audio.onNext(.activate(ducking: false), .fail)

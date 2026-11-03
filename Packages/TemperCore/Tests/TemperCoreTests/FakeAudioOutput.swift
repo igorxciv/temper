@@ -31,6 +31,8 @@ actor FakeAudioOutput: AudioOutput {
     private(set) var history: [Call] = []
     /// The token of every Cue scheduled so far.
     private(set) var tokens: [CueToken] = []
+    /// The latest start allowed for every Cue scheduled so far.
+    private(set) var latestStarts: [ManualClock.Instant] = []
     /// A phone call. Checking for one isn't an audio call, so it's left out of `history`.
     private var hasCall = false
 
@@ -75,8 +77,14 @@ actor FakeAudioOutput: AudioOutput {
         try await perform(.deactivate)
     }
 
-    func schedule(_ cue: Cue, at deadline: ManualClock.Instant, token: CueToken) async throws {
+    func schedule(
+        _ cue: Cue,
+        at deadline: ManualClock.Instant,
+        startingBy latest: ManualClock.Instant,
+        token: CueToken
+    ) async throws {
         tokens.append(token)
+        latestStarts.append(latest)
         try await perform(.schedule(cue, at: deadline))
     }
 
