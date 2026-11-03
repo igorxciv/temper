@@ -89,6 +89,8 @@ private struct ValueRow: View {
                         word: value.title,
                         color: value.phaseKind.map { PhaseColors(kind: $0, contrast: contrast).ring } ?? colors.accent,
                         fill: colors.background,
+                        // 45% keeps the word a backdrop, at about 3:1 against the background. 60% reaches about
+                        // 5:1 under Increase Contrast. A prototype's 32% read too faint.
                         opacity: contrast == .increased ? 0.6 : 0.45
                     )
                     .padding(.leading, 1)

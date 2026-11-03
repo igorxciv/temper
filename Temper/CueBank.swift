@@ -6,7 +6,8 @@ import TemperCore
 /// A class with a lock, because the audio adapter has to read it without suspending. Buffers are never written
 /// to after rendering.
 nonisolated final class CueBank: @unchecked Sendable {
-    /// The format every Cue is converted to, and the one the audio adapter's player is connected with.
+    /// The format every Cue is converted to, and the one the audio adapter's player is connected with. 22,050 Hz
+    /// mono is what the speech synthesizer produced on a device, so converting only joins its chunks.
     static var format: AVAudioFormat? {
         AVAudioFormat(standardFormatWithSampleRate: 22_050, channels: 1)
     }

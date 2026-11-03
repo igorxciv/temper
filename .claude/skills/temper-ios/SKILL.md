@@ -30,13 +30,14 @@ When sources disagree, trust them in this order:
 ## Overrides
 
 - **GCD:** the timer and Cue engine design may use it for real-time audio, despite SwiftUI Pro's "never".
-- **SwiftUI Pro:** skip iPhone Duo work unless the owner asks. `AsyncImage`, SwiftData, and networking guidance have no use here.
+- **SwiftUI Pro:** skip iPhone Duo work unless the owner asks. `AsyncImage`, SwiftData, and networking guidance have no use here. The time, Phase name, Round number, setup words and values use fixed sizes on purpose, despite its "don't force font sizes": they're sized to fill the screen and be read at a distance.
+- **Liquid Glass:** Temper is dark only. Skip the light color variants and the light-appearance check.
 - **Swift Concurrency Pro:** it targets Swift 6.2 and the toolchain is newer, so check language claims against the compiler. Its `URLSession` examples are illustrations only.
 - **Swift Testing Pro:** it also targets Swift 6.2. Its `.networking` tag and `URLSession` mock guidance has no use here.
 
 ## Performance
 
-Keep timer ticks out of the environment, and narrow what the running screen observes. Measure before optimizing, on a real device, against the accuracy target on the map. Apple's `xctrace` skill ships with Xcode.
+Keep timer ticks out of the environment, and narrow what the running screen observes. Measure before optimizing, on a real device, against the targets in `Tools/analyze_timing_log.py`. Apple's `xctrace` skill ships with Xcode.
 
 ## Apple's skills
 

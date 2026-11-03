@@ -2,7 +2,7 @@ import Testing
 
 @testable import TemperCore
 
-/// The spec's interruptions table, row by row, through the engine's public interface. `nonisolated` because the
+/// Each interruption iOS can cause, through the engine's public interface. `nonisolated` because the
 /// engine runs off the main actor. Every wait is on an audio call or a snapshot, and the time limit only turns
 /// one that never arrives into a failure.
 @Suite(.timeLimit(.minutes(1)))

@@ -1,3 +1,6 @@
+/// Each Cue goes to audio this far ahead, even with Dip off. On a device the audio clock drifted about 530 ms
+/// from `ContinuousClock` over 51 minutes, but at most 3.1 ms across one lead. A full Dip cycle took about 3.2s,
+/// so it fits inside the shortest Phase, 00:05, and short Phases need no special case.
 private nonisolated let cueLead = Duration.milliseconds(1_500)
 private nonisolated let startLimit = Duration.seconds(1)
 private nonisolated let lateLimit = Duration.seconds(1)

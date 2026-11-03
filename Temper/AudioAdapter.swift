@@ -17,6 +17,9 @@ nonisolated enum AudioAdapterError: Error {
 /// strictly in the order they arrive, even a new Workout's activate right after the last one's deactivate.
 /// Session calls block for hundreds of milliseconds, so the queue also keeps them off the shared thread pool.
 /// Notifications are handled on the same queue, in the order iOS posts them.
+///
+/// Running while locked rests only on this session and the `audio` background mode, so it's best effort. There
+/// is no notification fallback, because notification sounds obey Silent mode and Cues must not.
 actor AudioAdapter: AudioOutput {
     private static let queue = DispatchSerialQueue(label: "Temper.audio", qos: .userInteractive)
 
@@ -101,6 +104,8 @@ actor AudioAdapter: AudioOutput {
         let (nodeTime, playerTime) = try waitForRenderTime()
 
         let rate = playerTime.sampleRate
+        // The deadline is when the Cue leaves the player. Output latency is logged but never subtracted, so when
+        // a Cue is heard over Bluetooth is best effort, and AirPlay is unsupported for timing.
         let remaining = Self.seconds(clock.now.duration(to: deadline))
         let target = AVAudioTime.seconds(forHostTime: mach_absolute_time()) + remaining
         let renderHost = AVAudioTime.seconds(forHostTime: nodeTime.hostTime)

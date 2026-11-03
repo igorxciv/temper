@@ -28,6 +28,8 @@ jobs:
           git log --format='%h %ae %ce' |
           awk '{ for (i = 2; i <= 3; i++) if ($i !~ /(@users\.noreply\.github\.com|^noreply@github\.com)$/) { print $1; bad = 1 } } END { exit bad }'
 
+  # Not a required check while the xcode-27 runner image is in preview. Require it in the main ruleset once it
+  # isn't.
   app:
     runs-on: xcode-27
     timeout-minutes: 30

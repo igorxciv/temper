@@ -53,7 +53,7 @@ struct ValueSheet: View {
         if value.isTime {
             HStack(spacing: 0) {
                 DigitWheel(
-                    values: Array(0...30),
+                    values: WorkoutValue.minuteChoices,
                     selection: minutes,
                     label: "\(value.title) minutes",
                     digits: twoDigits
@@ -62,7 +62,7 @@ struct ValueSheet: View {
                     .font(.system(size: 54, weight: .semibold))
                     .accessibilityHidden(true)
                 DigitWheel(
-                    values: Array(stride(from: 0, to: 60, by: 5)),
+                    values: WorkoutValue.secondChoices,
                     selection: seconds,
                     label: "\(value.title) seconds",
                     digits: twoDigits
@@ -70,7 +70,7 @@ struct ValueSheet: View {
             }
         } else {
             DigitWheel(
-                values: Array(1...99),
+                values: WorkoutValue.roundChoices,
                 selection: Binding {
                     draft
                 } set: {

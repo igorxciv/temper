@@ -17,6 +17,8 @@ public nonisolated struct Phase: Equatable, Sendable {
 }
 
 /// A Prepare if one is configured, followed by all its Rounds, followed by a Cooldown if one is configured.
+///
+/// The Phases are a flat list rather than Rounds, so later training with several stages can reuse the timer.
 public nonisolated struct Workout: Equatable, Sendable {
     public let phases: [Phase]
 
