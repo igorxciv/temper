@@ -1,4 +1,5 @@
 import ActivityKit
+import AppIntents
 import SwiftUI
 import TemperCore
 import WidgetKit
@@ -32,10 +33,13 @@ struct WorkoutLiveActivity: Widget {
                         .phaseColor(phase.kind, \.text)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        PhaseLine(phase: phase)
-                            .font(.headline)
-                        PhaseBar(phase: phase)
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            PhaseLine(phase: phase)
+                                .font(.headline)
+                            PhaseBar(phase: phase)
+                        }
+                        PauseResumeButton(phase: phase)
                     }
                 }
             } compactLeading: {
@@ -119,7 +123,10 @@ private struct MediumPhaseView: View {
                     .font(.system(size: 48, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
             }
-            PhaseBar(phase: phase)
+            HStack(spacing: 12) {
+                PhaseBar(phase: phase)
+                PauseResumeButton(phase: phase)
+            }
         }
         .padding(16)
     }
@@ -138,10 +145,41 @@ private struct SmallPhaseView: View {
                 PhaseLine(phase: phase)
                     .font(.caption.weight(.semibold))
             }
-            PhaseTime(phase: phase)
-                .font(.system(size: 36, weight: .semibold).monospacedDigit())
+            HStack {
+                PhaseTime(phase: phase)
+                    .font(.system(size: 36, weight: .semibold).monospacedDigit())
+                Spacer(minLength: 4)
+                PauseResumeButton(phase: phase)
+            }
             PhaseBar(phase: phase)
         }
+    }
+}
+
+/// Pause while the Phase runs, and Resume while it's Paused. The tap runs in the app, which reads the clock as
+/// the tap arrives, the same as a tap on the running screen.
+private struct PauseResumeButton: View {
+    let phase: LivePhase
+
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Group {
+            if phase.isPaused {
+                Button(intent: ResumeWorkoutIntent()) {
+                    Label("Resume", systemImage: "play.fill")
+                }
+            } else {
+                Button(intent: PauseWorkoutIntent()) {
+                    Label("Pause", systemImage: "pause.fill")
+                }
+            }
+        }
+        .labelStyle(.iconOnly)
+        .font(.title3.bold())
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.circle)
+        .tint(PhaseColors(kind: phase.kind, contrast: contrast).ring)
     }
 }
 

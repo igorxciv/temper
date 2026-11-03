@@ -38,6 +38,44 @@ struct TemperAppTests {
     }
 }
 
+/// One test swaps the app's runner for a fake, so none of these may overlap.
+@Suite(.serialized)
+struct LiveActivityButtonTests {
+    private final class FakeControls: WorkoutControls {
+        private(set) var taps: [String] = []
+
+        func pause() { taps.append("pause") }
+        func resume() { taps.append("resume") }
+    }
+
+    /// The system may launch the app to run a button, so the runner is set at launch.
+    @Test func `The buttons reach the app's Workout runner`() {
+        #expect(LiveActivityControls.workout is WorkoutRunner)
+    }
+
+    @Test func `Pause and Resume reach the Workout`() async throws {
+        let app = LiveActivityControls.workout
+        defer { LiveActivityControls.workout = app }
+        let fake = FakeControls()
+        LiveActivityControls.workout = fake
+
+        _ = try await PauseWorkoutIntent().perform()
+        _ = try await ResumeWorkoutIntent().perform()
+
+        #expect(fake.taps == ["pause", "resume"])
+    }
+
+    /// As in the widget extension, where nothing sets the Workout.
+    @Test func `With no Workout to reach, a button does nothing`() async throws {
+        let app = LiveActivityControls.workout
+        defer { LiveActivityControls.workout = app }
+        LiveActivityControls.workout = nil
+
+        _ = try await PauseWorkoutIntent().perform()
+        _ = try await ResumeWorkoutIntent().perform()
+    }
+}
+
 struct RememberedValuesTests {
     /// A `UserDefaults` suite no other test or launch can see, emptied when the test ends.
     private func withThrowawayDefaults(_ body: (UserDefaults) -> Void) throws {
