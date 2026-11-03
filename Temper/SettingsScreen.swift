@@ -31,6 +31,9 @@ struct SettingsScreen: View {
             } header: {
                 Text("About").foregroundStyle(colors.secondary)
             }
+            #if DEBUG
+                TimingLogsSection(colors: colors)
+            #endif
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
