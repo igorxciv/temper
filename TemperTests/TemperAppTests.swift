@@ -11,6 +11,14 @@ struct TemperAppTests {
 
         #expect(scenes.contains { !$0.windows.isEmpty })
     }
+
+    @Test func `The app may play audio in the background and has no file sharing keys`() {
+        let info = Bundle.main.infoDictionary ?? [:]
+
+        #expect(info["UIBackgroundModes"] as? [String] == ["audio"])
+        #expect(info["UIFileSharingEnabled"] == nil)
+        #expect(info["LSSupportsOpeningDocumentsInPlace"] == nil)
+    }
 }
 
 struct RememberedValuesTests {

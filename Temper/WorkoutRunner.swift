@@ -2,6 +2,9 @@ import Observation
 import TemperCore
 import UIKit
 
+/// How long Start waits for Cues still rendering. Rendering took under 2s on a real iPhone.
+private let renderingWaitLimit = Duration.seconds(5)
+
 /// Connects the screens to the Workout engine: it reads the clock at each tap and holds the latest
 /// snapshot. It makes no timing decisions of its own.
 @Observable
@@ -19,18 +22,34 @@ final class WorkoutRunner {
     }
 
     @ObservationIgnored private var engine: WorkoutEngine<ContinuousClock>?
+    @ObservationIgnored private let cues = CueBank()
+
+    #if DEBUG
+        @ObservationIgnored private var timingLog: TimingLog?
+    #endif
+
+    /// Rendering begins here, at launch, so the Cues are usually ready before the first Start.
+    init() {
+        cues.render()
+    }
 
     func start(_ workout: Workout, isDipOn: Bool) {
         guard engine == nil else { return }
         total = workout.totalDuration
+        let audio = AudioAdapter(cues: cues, application: .shared)
         let engine = WorkoutEngine(
             workout: workout,
             clock: ContinuousClock(),
-            audio: SilentAudioOutput(),
+            audio: audio,
             isDipOn: isDipOn
         )
         self.engine = engine
-        Task {
+        #if DEBUG
+            timingLog = audio.timingLog
+            timingLog?.write("dip", ["dip": isDipOn])
+        #endif
+        Task { [cues] in
+            await cues.waitForRendering(atMost: renderingWaitLimit)
             await engine.start()
             for await snapshot in engine.snapshots {
                 show(snapshot)
@@ -64,10 +83,36 @@ final class WorkoutRunner {
     }
 
     private func show(_ snapshot: Snapshot) {
+        #if DEBUG
+            logTiming(of: snapshot)
+        #endif
         if case .stopped = snapshot.progress {
             finish()
         } else {
             self.snapshot = snapshot
         }
     }
+
+    #if DEBUG
+        /// A Phase's end is timed where the screen learns of it, so the figure covers everything before the screen.
+        private func logTiming(of next: Snapshot) {
+            switch next.progress {
+            case .paused:
+                return
+            case .stopped:
+                timingLog?.write("run_end", ["completed": false])
+                return
+            case .running, .finished:
+                break
+            }
+            if case .running(let phase, let endsAt) = snapshot?.progress, phase != next.phase {
+                let late = endsAt.duration(to: .now) / .milliseconds(1)
+                let nextPhase = next.phase.map { "\($0.kind)" } ?? "finished"
+                timingLog?.write("phase_end", ["late_ms": late, "next": nextPhase])
+            }
+            if case .finished = next.progress {
+                timingLog?.write("run_end", ["completed": true])
+            }
+        }
+    #endif
 }
