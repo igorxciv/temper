@@ -2,8 +2,10 @@ import SwiftUI
 import TemperCore
 
 /// Where a Workout gets its values, and where End Workout and Done return to.
+/// PROTOTYPE: takes one Workout Type's values and rows. The title and toolbar belong to the picker around it.
 struct SetupScreen: View {
-    @Bindable var remembered: RememberedValues
+    @Binding var settings: WorkoutSettings
+    let values: [WorkoutValue]
     let start: (Workout) -> Void
 
     @State private var editing: WorkoutValue?
@@ -12,14 +14,14 @@ struct SetupScreen: View {
 
     var body: some View {
         let colors = InkColors(contrast: contrast)
-        let workout = remembered.settings.makeWorkout()
+        let workout = settings.makeWorkout()
 
         // The rows fill the screen and don't need to scroll. The scroll view is there so a drag stretches them
         // and they spring back.
         ScrollView(.vertical) {
             VStack(spacing: 0) {
-                ForEach(WorkoutValue.allCases) { value in
-                    let text = value.text(for: remembered.settings[value])
+                ForEach(values) { value in
+                    let text = value.text(for: settings[value])
 
                     Button {
                         editing = value
@@ -31,7 +33,7 @@ struct SetupScreen: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(value.title), \(text)")
 
-                    if value != .cooldown {
+                    if value != values.last {
                         Rectangle().fill(colors.separator).frame(height: 1)
                     }
                 }
@@ -63,20 +65,9 @@ struct SetupScreen: View {
             .padding(.horizontal)
         }
         .background(colors.background.ignoresSafeArea())
-        .navigationTitle("Temper")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    SettingsScreen(remembered: remembered)
-                } label: {
-                    Label("Settings", systemImage: "gearshape")
-                }
-            }
-        }
         .sheet(item: $editing) { value in
-            ValueSheet(value: value, amount: remembered.settings[value]) { draft in
-                remembered.settings[value] = draft
+            ValueSheet(value: value, amount: settings[value]) { draft in
+                settings[value] = draft
             }
         }
     }

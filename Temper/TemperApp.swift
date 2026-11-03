@@ -5,10 +5,11 @@ import TemperCore
 struct TemperApp: App {
     @State private var runner = WorkoutRunner()
     @State private var remembered = RememberedValues()
+    @State private var probe = ProbeState()
 
     var body: some Scene {
         WindowGroup {
-            RootView(runner: runner, remembered: remembered)
+            RootView(runner: runner, remembered: remembered, probe: probe)
         }
     }
 }
@@ -17,6 +18,7 @@ struct TemperApp: App {
 struct RootView: View {
     let runner: WorkoutRunner
     let remembered: RememberedValues
+    let probe: ProbeState
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorSchemeContrast) private var contrast
@@ -28,16 +30,23 @@ struct RootView: View {
                     RunningScreen(
                         snapshot: snapshot,
                         phase: phase,
+                        type: probe.runningType,
+                        stopwatchLength: probe.stopwatch.work,
+                        stopwatchLine: probe.line,
                         pause: runner.pause,
                         resume: runner.resume,
                         stop: runner.stop
                     )
+                    .probeBar(probe)
                 } else {
                     CompleteScreen(total: runner.total, done: runner.finish)
+                        .probeBar(probe)
                 }
             } else {
-                NavigationStack {
-                    SetupScreen(remembered: remembered, start: { runner.start($0, isDipOn: remembered.isDipOn) })
+                ProbeHome(probe: probe, remembered: remembered) { type, workout in
+                    probe.type = type
+                    probe.runningType = type
+                    runner.start(workout, isDipOn: remembered.isDipOn)
                 }
                 .tint(InkColors(contrast: contrast).accent)
             }
