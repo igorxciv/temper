@@ -1,0 +1,40 @@
+import AppIntents
+
+/// The running Workout's Pause and Resume, as the Live Activity's buttons reach them.
+protocol WorkoutControls: AnyObject {
+    func pause()
+    func resume()
+}
+
+/// Where the Live Activity's buttons find the Workout.
+enum LiveActivityControls {
+    /// The app sets this at launch, before any button can run. It stays `nil` in the widget extension, where the
+    /// buttons never run, so a button that somehow ran there would do nothing rather than crash.
+    static var workout: (any WorkoutControls)?
+}
+
+/// The Live Activity's Pause button. The system runs it in the app, waking the app if it must, and never in the
+/// widget extension. The extension compiles it only so its button can name it.
+///
+/// A Pause with no Workout running does nothing, so a tap on a Live Activity that outlived its Workout is safe.
+struct PauseWorkoutIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Pause Workout"
+    /// For the Live Activity only, so it stays out of Shortcuts and Spotlight.
+    static let isDiscoverable = false
+
+    @MainActor func perform() async throws -> some IntentResult {
+        LiveActivityControls.workout?.pause()
+        return .result()
+    }
+}
+
+/// The Live Activity's Resume button, which runs the same way as its Pause button.
+struct ResumeWorkoutIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Resume Workout"
+    static let isDiscoverable = false
+
+    @MainActor func perform() async throws -> some IntentResult {
+        LiveActivityControls.workout?.resume()
+        return .result()
+    }
+}

@@ -127,3 +127,5 @@ final class WorkoutRunner {
         }
     #endif
 }
+
+extension WorkoutRunner: WorkoutControls {}

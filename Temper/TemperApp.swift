@@ -3,8 +3,16 @@ import TemperCore
 
 @main
 struct TemperApp: App {
-    @State private var runner = WorkoutRunner()
+    @State private var runner: WorkoutRunner
     @State private var remembered = RememberedValues()
+
+    init() {
+        let runner = WorkoutRunner()
+        _runner = State(initialValue: runner)
+        // The Live Activity's Pause and Resume run in this process, and may be what launched it, so the runner
+        // is set before any of them can run.
+        LiveActivityControls.workout = runner
+    }
 
     var body: some Scene {
         WindowGroup {
