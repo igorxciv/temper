@@ -37,7 +37,7 @@ struct RootView: View {
                 }
             } else {
                 NavigationStack {
-                    SetupScreen(remembered: remembered, start: runner.start)
+                    SetupScreen(remembered: remembered, start: { runner.start($0, isDipOn: remembered.isDipOn) })
                 }
                 .tint(InkColors(contrast: contrast).accent)
             }
