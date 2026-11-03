@@ -2,7 +2,7 @@ import Testing
 
 @testable import TemperCore
 
-/// The spec's interruptions table, row by row, through the engine's public interface. `nonisolated` because the
+/// Each interruption iOS can cause, through the engine's public interface. `nonisolated` because the
 /// engine runs off the main actor. Every wait is on an audio call or a snapshot, and the time limit only turns
 /// one that never arrives into a failure.
 @Suite(.timeLimit(.minutes(1)))
@@ -500,6 +500,48 @@ nonisolated struct InterruptionTests {
         await letAudioSettle()
 
         #expect(await audio.history == [.activate(ducking: false)])
+    }
+
+    @Test(arguments: Trigger.allCases)
+    func `A Dip whose lift failed twice lifts on the next recovery trigger`(trigger: Trigger) async {
+        let engine = makeEngine(isDipOn: true)
+        var calls = await startToFirstCue(engine, isDipOn: true)
+        await audio.onNext(.activate(ducking: false), .fail)
+        await audio.onNext(.activate(ducking: false), .fail)
+        advance(to: 11)
+        await audio.finishSpeaking()
+        #expect(await calls.next() == .activate(ducking: false))
+        advance(to: 16)
+        #expect(await calls.next() == .activate(ducking: false))
+        await letAudioSettle()
+
+        advance(to: 20)
+        await recover(engine, by: trigger)
+
+        #expect(await calls.next() == .activate(ducking: false))
+    }
+
+    @Test func `A lift that fails on recovery doesn't loop, and the next trigger tries again`() async {
+        let engine = makeEngine(isDipOn: true)
+        var calls = await startToFirstCue(engine, isDipOn: true)
+        for _ in 0..<3 {
+            await audio.onNext(.activate(ducking: false), .fail)
+        }
+        advance(to: 11)
+        await audio.finishSpeaking()
+        _ = await calls.next()
+        advance(to: 16)
+        _ = await calls.next()
+        await letAudioSettle()
+
+        audio.send(.resumeRecommended)
+        #expect(await calls.next() == .activate(ducking: false))
+        await letAudioSettle()
+        // Start, the Dip, the Cue, two failed lifts and the failed one on recovery, with no retry after it.
+        #expect(await audio.history.count == 6)
+
+        await engine.refresh()
+        #expect(await calls.next() == .activate(ducking: false))
     }
 
     @Test func `Opening Temper brings back audio that failed at Start, ahead of the next Cue`() async {

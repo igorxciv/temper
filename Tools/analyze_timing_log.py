@@ -6,6 +6,9 @@ Share a log from Settings > Logs on a DEBUG build, then:
     python3 Tools/analyze_timing_log.py run-*.jsonl
 
 Logs hold the iOS version and audio port types, never port names. Keep them out of the repo.
+
+CI can't catch a real accuracy regression, and the screens and audio adapter have no automated tests, so rerun
+this on a real iPhone after changing timing or audio code.
 """
 import json
 import statistics

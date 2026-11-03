@@ -1,6 +1,7 @@
 import SwiftUI
 import TemperCore
 
+/// Has to hold together on the iPhone SE, 375 by 667 pt and the smallest iPhone on iOS 27, at every text size.
 struct RunningScreen: View {
     let snapshot: WorkoutRunner.Snapshot
     let phase: Phase
@@ -22,6 +23,7 @@ struct RunningScreen: View {
                 .padding(.top, 8)
             Spacer(minLength: 0)
             TimeRing(snapshot: snapshot, colors: colors)
+                // A stroke straddles its path, so half the line's width keeps the ring inside its frame.
                 .padding(10)
             RoundLineView(line: snapshot.roundLine, colors: colors)
             Spacer(minLength: 0)
@@ -62,8 +64,11 @@ private struct TimeRing: View {
                         .trim(from: 0, to: snapshot.fractionLeft(at: now))
                         .stroke(colors.ring, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                         .rotationEffect(.degrees(-90))
+                    // No `.numericText()` transition, because it blurred the digits.
                     Text(snapshot.timeLeft(at: now).clockText)
-                        // Set above any phone's width, so the ring alone decides the size.
+                        // Set above any phone's width, so the ring alone decides the size. From 3 m that's about
+                        // 12.6 arcmin on an iPhone SE to 16.3 on the largest phone, under the 20 to 22 usually
+                        // cited for reading at a distance. The owner accepted that to keep the ring's size.
                         .font(.system(size: 180, weight: .semibold).monospacedDigit())
                         .foregroundStyle(colors.text)
                         .lineLimit(1)
@@ -138,6 +143,8 @@ private struct RunningControls: View {
                 }
                 .buttonStyle(.glass)
                 .accessibilityLabel("Stop")
+                // Asking doesn't Pause: the timer and Cues carry on while the dialog is open. If the Workout
+                // finishes, the complete screen replaces this one and the dialog goes with it.
                 .confirmationDialog("End this Workout?", isPresented: $isConfirmingStop, titleVisibility: .visible) {
                     Button("End Workout", role: .destructive, action: stop)
                     Button("Keep Going", role: .cancel) {}

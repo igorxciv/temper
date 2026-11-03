@@ -19,7 +19,13 @@ public nonisolated enum WorkoutValue: CaseIterable, Hashable, Identifiable, Send
         self != .rounds
     }
 
-    /// The nearest amount this value allows.
+    /// What the value sheet's wheels offer: one wheel of Rounds, or two wheels of minutes and seconds for a time.
+    public static let roundChoices = Array(1...99)
+    public static let minuteChoices = Array(0...30)
+    public static let secondChoices = Array(stride(from: 0, to: 60, by: 5))
+
+    /// The nearest amount this value allows. A time stops at 30:00 because a locked iPhone has been seen to stay
+    /// alive through 30 minutes of silence between Cues, and no longer.
     public func clamped(_ amount: Int) -> Int {
         switch self {
         case .rounds: min(max(amount, 1), 99)

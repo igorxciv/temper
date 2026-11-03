@@ -7,6 +7,7 @@ nonisolated enum AudioAdapterError: Error {
     case noCueFormat
     case cueNotRendered
     case noRenderTime
+    case tooLate
 }
 
 /// Carries out what the Cue rules ask for, using a `.playback` session and an engine that renders zeros
@@ -17,6 +18,9 @@ nonisolated enum AudioAdapterError: Error {
 /// strictly in the order they arrive, even a new Workout's activate right after the last one's deactivate.
 /// Session calls block for hundreds of milliseconds, so the queue also keeps them off the shared thread pool.
 /// Notifications are handled on the same queue, in the order iOS posts them.
+///
+/// Running while locked rests only on this session and the `audio` background mode, so it's best effort. There
+/// is no notification fallback, because notification sounds obey Silent mode and Cues must not.
 actor AudioAdapter: AudioOutput {
     private static let queue = DispatchSerialQueue(label: "Temper.audio", qos: .userInteractive)
 
@@ -92,7 +96,12 @@ actor AudioAdapter: AudioOutput {
         try session.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    func schedule(_ cue: Cue, at deadline: ContinuousClock.Instant, token: CueToken) throws {
+    func schedule(
+        _ cue: Cue,
+        at deadline: ContinuousClock.Instant,
+        startingBy latest: ContinuousClock.Instant,
+        token: CueToken
+    ) throws {
         guard let buffer = cues.buffer(for: cue) else {
             log("cue_skipped", ["reason": "not_rendered"])
             throw AudioAdapterError.cueNotRendered
@@ -101,11 +110,21 @@ actor AudioAdapter: AudioOutput {
         let (nodeTime, playerTime) = try waitForRenderTime()
 
         let rate = playerTime.sampleRate
-        let remaining = Self.seconds(clock.now.duration(to: deadline))
-        let target = AVAudioTime.seconds(forHostTime: mach_absolute_time()) + remaining
+        // The deadline is when the Cue leaves the player. Output latency is logged but never subtracted, so when
+        // a Cue is heard over Bluetooth is best effort, and AirPlay is unsupported for timing.
+        let now = clock.now
+        let hostNow = AVAudioTime.seconds(forHostTime: mach_absolute_time())
+        let remaining = Self.seconds(now.duration(to: deadline))
+        let target = hostNow + remaining
         let renderHost = AVAudioTime.seconds(forHostTime: nodeTime.hostTime)
         let soonest = playerTime.sampleTime + AVAudioFramePosition(0.02 * rate)
         let sample = max(soonest, playerTime.sampleTime + AVAudioFramePosition((target - renderHost) * rate))
+
+        let start = renderHost + Double(sample - playerTime.sampleTime) / rate
+        guard start <= hostNow + Self.seconds(now.duration(to: latest)) else {
+            log("cue_skipped", ["reason": "too_late"])
+            throw AudioAdapterError.tooLate
+        }
 
         player.scheduleBuffer(
             buffer,

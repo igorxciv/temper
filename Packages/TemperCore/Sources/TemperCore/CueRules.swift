@@ -1,3 +1,6 @@
+/// Each Cue goes to audio this far ahead, even with Dip off. On a device the audio clock drifted about 530 ms
+/// from `ContinuousClock` over 51 minutes, but at most 3.1 ms across one lead. A full Dip cycle took about 3.2s,
+/// so it fits inside the shortest Phase, 00:05, and short Phases need no special case.
 private nonisolated let cueLead = Duration.milliseconds(1_500)
 private nonisolated let startLimit = Duration.seconds(1)
 private nonisolated let lateLimit = Duration.seconds(1)
@@ -210,12 +213,14 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
             return
         }
         guard await prepareSession(for: armed) else { return }
-        guard clock.now <= armed.deadline.advanced(by: lateLimit) else {
+        let latest = armed.deadline.advanced(by: lateLimit)
+        guard clock.now <= latest else {
             cueEnded()
             return
         }
         do {
-            try await audio.schedule(armed.cue, at: armed.deadline, token: armed.token)
+            // Audio can take a while to start after this check, so it's told the latest start as well.
+            try await audio.schedule(armed.cue, at: armed.deadline, startingBy: latest, token: armed.token)
         } catch {
             guard armed.token == token else { return }
             if session == .active(ducked: false) {
@@ -313,14 +318,21 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
 
     /// Runs when iOS recommends resuming, on returning to the front, and through `handOver` before each Cue. It
     /// does nothing while audio is in use or a call is on. A Cue cut before its deadline is scheduled again if
-    /// this is no more than `lateLimit` after that deadline. A failure waits for the next trigger, so recovery
-    /// never loops. Triggers can overlap, but only the first to pass the call check finds audio still to recover.
+    /// this is no more than `lateLimit` after that deadline. A Dip still down after its lift failed is lifted.
+    /// A failure waits for the next trigger, so recovery never loops. Triggers can overlap, but only the first
+    /// to pass the call check finds audio still to recover.
     func recover() {
-        guard isAwaitingRecovery else { return }
+        guard isAwaitingRecovery || isDipLeftDown else { return }
         let recoveryToken = token
         Task {
             let isOnCall = await audio.isOnCall()
-            guard !isOnCall, recoveryToken == token, isAwaitingRecovery else { return }
+            guard !isOnCall, recoveryToken == token else { return }
+            if isDipLeftDown {
+                liftRetry?.cancel()
+                lift(retryingAfterFailure: false)
+                return
+            }
+            guard isAwaitingRecovery else { return }
             if let cut = interruptedCue.take(), clock.now <= cut.deadline.advanced(by: lateLimit) {
                 arm(cut.cue, at: cut.deadline)
                 return
@@ -334,6 +346,11 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
     /// A running Workout with no session and no Cue under way. A Cue under way gets its own session.
     private var isAwaitingRecovery: Bool {
         origin != nil && session == .released && armed == nil
+    }
+
+    /// A running Workout whose music is still dipped with no Cue under way, because lifting the Dip failed.
+    private var isDipLeftDown: Bool {
+        origin != nil && session == .active(ducked: true) && armed == nil
     }
 
     /// The adapter has stopped the engine for the new route. Restarting it is an interruption and an immediate

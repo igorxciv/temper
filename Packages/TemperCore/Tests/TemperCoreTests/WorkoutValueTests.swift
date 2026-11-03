@@ -21,6 +21,25 @@ struct WorkoutValueTests {
         #expect(WorkoutValue.rest.amount(minutes: 2, seconds: 15) == 135)
     }
 
+    @Test func `The wheels offer 1 to 99 Rounds, 00 to 30 minutes and seconds in steps of 5`() {
+        #expect(WorkoutValue.roundChoices == Array(1...99))
+        #expect(WorkoutValue.minuteChoices == Array(0...30))
+        #expect(WorkoutValue.secondChoices == [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55])
+    }
+
+    @Test(arguments: WorkoutValue.allCases)
+    func `Every wheel choice below the limits is kept as it is`(value: WorkoutValue) {
+        if value.isTime {
+            for minutes in WorkoutValue.minuteChoices.dropLast() {
+                for seconds in WorkoutValue.secondChoices where value != .work || minutes * 60 + seconds >= 5 {
+                    #expect(value.amount(minutes: minutes, seconds: seconds) == minutes * 60 + seconds)
+                }
+            }
+        } else {
+            #expect(WorkoutValue.roundChoices.allSatisfy { value.clamped($0) == $0 })
+        }
+    }
+
     @Test func `Rounds stay between 1 and 99`() {
         #expect(WorkoutValue.rounds.clamped(0) == 1)
         #expect(WorkoutValue.rounds.clamped(100) == 99)
