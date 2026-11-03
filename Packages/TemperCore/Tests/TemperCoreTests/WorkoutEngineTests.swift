@@ -16,9 +16,13 @@ nonisolated struct WorkoutEngineTests {
 
     private let clock = ManualClock()
 
+    private func makeEngine(_ phases: [Phase]) -> WorkoutEngine<ManualClock> {
+        WorkoutEngine(workout: Workout(phases: phases), clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+    }
+
     /// Phases start at 0, 10, 40, 55 and 85 s, and the Workout finishes at 145 s.
     private func makeEngine() -> WorkoutEngine<ManualClock> {
-        WorkoutEngine(workout: Workout(phases: [prepare, firstWork, rest, secondWork, cooldown]), clock: clock)
+        makeEngine([prepare, firstWork, rest, secondWork, cooldown])
     }
 
     private func at(_ seconds: Double) -> ManualClock.Instant {
@@ -72,7 +76,7 @@ nonisolated struct WorkoutEngineTests {
     }
 
     @Test func `The Workout finishes at its total length and the snapshots end`() async {
-        let engine = WorkoutEngine(workout: Workout(phases: [firstWork]), clock: clock)
+        let engine = makeEngine([firstWork])
         var snapshots = engine.snapshots.makeAsyncIterator()
         await engine.start()
         _ = await snapshots.next()
@@ -338,7 +342,7 @@ nonisolated struct WorkoutEngineTests {
     }
 
     @Test func `Pause and Stop after the finish do nothing`() async {
-        let engine = WorkoutEngine(workout: Workout(phases: [firstWork]), clock: clock)
+        let engine = makeEngine([firstWork])
         var snapshots = engine.snapshots.makeAsyncIterator()
         await engine.start()
         _ = await snapshots.next()

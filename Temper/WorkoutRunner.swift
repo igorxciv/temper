@@ -20,10 +20,15 @@ final class WorkoutRunner {
 
     @ObservationIgnored private var engine: WorkoutEngine<ContinuousClock>?
 
-    func start(_ workout: Workout) {
+    func start(_ workout: Workout, isDipOn: Bool) {
         guard engine == nil else { return }
         total = workout.totalDuration
-        let engine = WorkoutEngine(workout: workout, clock: ContinuousClock())
+        let engine = WorkoutEngine(
+            workout: workout,
+            clock: ContinuousClock(),
+            audio: SilentAudioOutput(),
+            isDipOn: isDipOn
+        )
         self.engine = engine
         Task {
             await engine.start()
