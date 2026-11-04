@@ -12,6 +12,7 @@ struct SetupScreen: View {
 
     @State private var editing: WorkoutValue?
     @State private var isNamingPreset = false
+    @State private var isManagingPresets = false
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -83,6 +84,8 @@ struct SetupScreen: View {
                 isNamingPreset = true
             } update: {
                 remembered.updatePickedPreset(of: workoutType)
+            } manage: {
+                isManagingPresets = true
             }
         }
         .sheet(item: $editing) { value in
@@ -98,6 +101,9 @@ struct SetupScreen: View {
                 try? remembered.saveAsNewPreset(named: name, of: workoutType)
             }
         }
+        .sheet(isPresented: $isManagingPresets) {
+            ManagePresetsSheet(workoutType: workoutType, remembered: remembered)
+        }
     }
 }
 
@@ -108,6 +114,7 @@ private struct PresetMenu: View {
     let pick: (Preset.ID) -> Void
     let saveAsNew: () -> Void
     let update: () -> Void
+    let manage: () -> Void
 
     var body: some View {
         // Plain buttons rather than a Picker, so choosing the picked Preset again still reaches pick.
@@ -132,6 +139,9 @@ private struct PresetMenu: View {
         // No confirmation, because the label names the Preset it overwrites.
         if isModified, let picked = presets.picked {
             Button("Update “\(picked.name)”", systemImage: "arrow.triangle.2.circlepath", action: update)
+        }
+        if !presets.presets.isEmpty {
+            Button("Manage Presets…", systemImage: "list.bullet", action: manage)
         }
     }
 }

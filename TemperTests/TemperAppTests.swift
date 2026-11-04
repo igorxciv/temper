@@ -354,6 +354,41 @@ struct RememberedPresetsTests {
         }
     }
 
+    @Test func `A rename and a delete restore on the next launch, and the pick survives the rename`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            remembered[.intervals] = tabata
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+            try remembered.saveAsNewPreset(named: "Long", of: .intervals)
+            try remembered.saveAsNewPreset(named: "Short", of: .intervals)
+            let ids = remembered.presets(of: .intervals).presets.map(\.id)
+            remembered.pickPreset(ids[0], of: .intervals)
+
+            try remembered.renamePreset(ids[0], to: "Sprints", of: .intervals)
+            remembered.deletePreset(ids[1], of: .intervals)
+
+            let restored = RememberedValues(defaults: defaults).presets(of: .intervals)
+            #expect(restored.presets.map(\.name) == ["Sprints", "Short"])
+            #expect(restored.pickedID == ids[0])
+        }
+    }
+
+    @Test func `Deleting the picked Preset restores as nothing picked and leaves the values on setup`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            remembered[.intervals] = tabata
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+
+            remembered.deletePreset(try #require(remembered.presets(of: .intervals).pickedID), of: .intervals)
+
+            let restored = RememberedValues(defaults: defaults)
+            #expect(restored.presets(of: .intervals).presets.isEmpty)
+            #expect(restored.presets(of: .intervals).pickedID == nil)
+            #expect(defaults.object(forKey: "pickedPreset.intervals") == nil)
+            #expect(restored[.intervals] == tabata)
+        }
+    }
+
     @Test func `Presets save under presets and pickedPreset keys, with only the type's own values`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)

@@ -161,6 +161,68 @@ struct PresetListTests {
         #expect(list.subtitle(for: edited) == "Tabata · Modified")
     }
 
+    @Test func `Renaming a Preset trims the new name and keeps the pick`() throws {
+        var list = PresetList(workoutType: .intervals)
+        try list.saveAsNew(named: "Tabata", settings: tabata)
+        try list.saveAsNew(named: "Long", settings: WorkoutType.intervals.firstLaunch)
+        let tabataID = list.presets[0].id
+        _ = list.pick(tabataID)
+
+        try list.rename(tabataID, to: " Sprints ")
+
+        #expect(list.presets.map(\.name) == ["Sprints", "Long"])
+        #expect(list.picked?.id == tabataID)
+        #expect(list.picked?.settings == tabata)
+        #expect(list.subtitle(for: tabata) == "Sprints")
+    }
+
+    @Test func `Renaming a Preset to a case-only change of its own name is allowed`() throws {
+        var list = PresetList(workoutType: .intervals)
+        try list.saveAsNew(named: "Tabata", settings: tabata)
+        let tabataID = list.presets[0].id
+
+        #expect(list.nameProblem("tabata", excluding: tabataID) == nil)
+        try list.rename(tabataID, to: "tabata")
+
+        #expect(list.presets.map(\.name) == ["tabata"])
+    }
+
+    @Test func `Renaming a Preset to another Preset's name throws and changes nothing`() throws {
+        var list = PresetList(workoutType: .intervals)
+        try list.saveAsNew(named: "Tabata", settings: tabata)
+        try list.saveAsNew(named: "Long", settings: WorkoutType.intervals.firstLaunch)
+        let before = list
+
+        #expect(throws: PresetNameProblem.taken(existingName: "Tabata", workoutType: .intervals)) {
+            try list.rename(before.presets[1].id, to: "TABATA")
+        }
+        #expect(list == before)
+    }
+
+    @Test func `Deleting the picked Preset removes it and leaves nothing picked`() throws {
+        var list = PresetList(workoutType: .intervals)
+        try list.saveAsNew(named: "Tabata", settings: tabata)
+        try list.saveAsNew(named: "Long", settings: WorkoutType.intervals.firstLaunch)
+
+        list.delete(list.presets[1].id)
+
+        #expect(list.presets.map(\.name) == ["Tabata"])
+        #expect(list.pickedID == nil)
+        #expect(list.subtitle(for: WorkoutType.intervals.firstLaunch) == nil)
+    }
+
+    @Test func `Deleting another Preset keeps the pick`() throws {
+        var list = PresetList(workoutType: .intervals)
+        try list.saveAsNew(named: "Tabata", settings: tabata)
+        try list.saveAsNew(named: "Long", settings: WorkoutType.intervals.firstLaunch)
+        let longID = list.presets[1].id
+
+        list.delete(list.presets[0].id)
+
+        #expect(list.presets.map(\.name) == ["Long"])
+        #expect(list.pickedID == longID)
+    }
+
     @Test func `A restored list keeps its order and its pick`() {
         let tabataPreset = Preset(name: "Tabata", settings: tabata)
         let long = Preset(name: "Long", settings: WorkoutType.intervals.firstLaunch)
