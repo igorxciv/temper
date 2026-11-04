@@ -414,6 +414,31 @@ struct RememberedPresetsTests {
         }
     }
 
+    /// The name sheet's Save and Return both reach these, so a name with a problem must save nothing.
+    @Test func `Saving or renaming under a name with a problem throws it and saves nothing`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+            try remembered.saveAsNewPreset(named: "Long", of: .intervals)
+            let longID = try #require(remembered.presets(of: .intervals).pickedID)
+            let taken = PresetNameProblem.taken(existingName: "Tabata", workoutType: .intervals)
+
+            #expect(throws: taken) {
+                try remembered.saveAsNewPreset(named: "tabata", of: .intervals)
+            }
+            #expect(throws: PresetNameProblem.empty) {
+                try remembered.saveAsNewPreset(named: " ", of: .intervals)
+            }
+            #expect(throws: taken) {
+                try remembered.renamePreset(longID, to: "TABATA", of: .intervals)
+            }
+
+            let restored = RememberedValues(defaults: defaults).presets(of: .intervals)
+            #expect(restored.presets.map(\.name) == ["Tabata", "Long"])
+            #expect(restored.pickedID == longID)
+        }
+    }
+
     @Test func `A picked id that matches no Preset restores as nothing picked`() throws {
         try withThrowawayDefaults { defaults in
             try RememberedValues(defaults: defaults).saveAsNewPreset(named: "Tabata", of: .intervals)
