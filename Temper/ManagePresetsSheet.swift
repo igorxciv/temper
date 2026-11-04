@@ -102,9 +102,8 @@ struct ManagePresetsSheet: View {
         .sheet(item: $renaming) { preset in
             PresetNameSheet(title: "Rename Preset", name: preset.name) { name in
                 remembered.presets(of: workoutType).nameProblem(name, excluding: preset.id)
-            } save: { name in
-                // Save is enabled only once the name check passes, so this can't throw.
-                try? remembered.renamePreset(preset.id, to: name, of: workoutType)
+            } save: { name throws(PresetNameProblem) in
+                try remembered.renamePreset(preset.id, to: name, of: workoutType)
             }
         }
         .presentationDetents([.large])

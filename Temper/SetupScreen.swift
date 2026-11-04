@@ -96,9 +96,8 @@ struct SetupScreen: View {
         .sheet(isPresented: $isNamingPreset) {
             PresetNameSheet(title: "New Preset") { name in
                 remembered.presets(of: workoutType).nameProblem(name)
-            } save: { name in
-                // Save is enabled only once the name check passes, so this can't throw.
-                try? remembered.saveAsNewPreset(named: name, of: workoutType)
+            } save: { name throws(PresetNameProblem) in
+                try remembered.saveAsNewPreset(named: name, of: workoutType)
             }
         }
         .sheet(isPresented: $isManagingPresets) {
