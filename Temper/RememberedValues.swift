@@ -115,6 +115,11 @@ final class RememberedValues {
         changePresets(of: workoutType) { $0.delete(id) }
     }
 
+    /// Reorders the type's Presets by the offsets `onMove` reports. The picked Preset stays picked.
+    func movePresets(fromOffsets offsets: IndexSet, toOffset destination: Int, of workoutType: WorkoutType) {
+        changePresets(of: workoutType) { $0.move(fromOffsets: offsets, toOffset: destination) }
+    }
+
     /// The tab showing. Selecting a Workout Type's tab makes it the last-used Workout Type, and selecting
     /// Settings doesn't, so leaving a Workout always comes back to the tab it started from.
     var selectedTab: RootTab {

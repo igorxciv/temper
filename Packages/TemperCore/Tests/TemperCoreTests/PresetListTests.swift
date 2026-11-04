@@ -223,6 +223,30 @@ struct PresetListTests {
         #expect(list.pickedID == longID)
     }
 
+    @Test(arguments: [
+        (IndexSet(integer: 0), 3, ["Long", "Short", "Tabata"]),
+        (IndexSet(integer: 2), 0, ["Short", "Tabata", "Long"]),
+        (IndexSet([0, 2]), 2, ["Long", "Tabata", "Short"]),
+        (IndexSet(integer: 1), 1, ["Tabata", "Long", "Short"]),
+    ])
+    func `Moving Presets reorders them as onMove's offsets say and keeps the pick`(
+        offsets: IndexSet,
+        destination: Int,
+        order: [String]
+    ) throws {
+        var list = PresetList(workoutType: .intervals)
+        try list.saveAsNew(named: "Tabata", settings: tabata)
+        try list.saveAsNew(named: "Long", settings: WorkoutType.intervals.firstLaunch)
+        try list.saveAsNew(named: "Short", settings: tabata)
+        let longID = list.presets[1].id
+        _ = list.pick(longID)
+
+        list.move(fromOffsets: offsets, toOffset: destination)
+
+        #expect(list.presets.map(\.name) == order)
+        #expect(list.pickedID == longID)
+    }
+
     @Test func `A restored list keeps its order and its pick`() {
         let tabataPreset = Preset(name: "Tabata", settings: tabata)
         let long = Preset(name: "Long", settings: WorkoutType.intervals.firstLaunch)

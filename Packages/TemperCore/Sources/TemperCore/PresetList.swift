@@ -109,6 +109,16 @@ public nonisolated struct PresetList: Equatable, Sendable {
         }
     }
 
+    /// Reorders Presets the way SwiftUI's `onMove` reports a drag: the Presets at these offsets go before the
+    /// one at `destination`, counted in the order before the move. The pick is kept.
+    public mutating func move(fromOffsets offsets: IndexSet, toOffset destination: Int) {
+        // SwiftUI's own `move(fromOffsets:toOffset:)` isn't in Foundation, and TemperCore doesn't import SwiftUI.
+        let moved = offsets.map { presets[$0] }
+        let before = presets.indices.filter { $0 < destination && !offsets.contains($0) }.map { presets[$0] }
+        let after = presets.indices.filter { $0 >= destination && !offsets.contains($0) }.map { presets[$0] }
+        presets = before + moved + after
+    }
+
     private static func trimmed(_ name: String) -> String {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
