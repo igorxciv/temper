@@ -2,6 +2,9 @@ SDKROOT = iphoneos
 SUPPORTED_PLATFORMS = iphoneos iphonesimulator
 ALWAYS_SEARCH_USER_PATHS = NO
 ENABLE_USER_SCRIPT_SANDBOXING = YES
+// Embedding the signed widget extension can't strip it, so skip the strip and its warning.
+// Archives still strip through STRIP_INSTALLED_PRODUCT.
+COPY_PHASE_STRIP = NO
 
 IPHONEOS_DEPLOYMENT_TARGET = 27.0
 SWIFT_VERSION = 6.0
