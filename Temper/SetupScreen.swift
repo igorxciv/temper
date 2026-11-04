@@ -75,8 +75,10 @@ struct SetupScreen: View {
         .background(colors.background.ignoresSafeArea())
         .navigationTitle(workoutType.title)
         // An empty subtitle draws nothing, which keeps the screen's identity when a Preset is first picked.
+        // VoiceOver reads it after the title, and its text already spells out the state, so it needs no label.
         .navigationSubtitle(presets.subtitle(for: settings) ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        // In the title, so a Preset is two taps away between sets.
         .toolbarTitleMenu {
             PresetMenu(list: presets, isModified: presets.isModified(settings)) { id in
                 remembered.pickPreset(id, of: workoutType)
