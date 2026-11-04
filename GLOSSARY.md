@@ -21,7 +21,7 @@ The Workout Type made of a Prepare if one is configured, followed by a single Wo
 _Avoid_: Timer, count-up
 
 **Open Rounds**:
-The Workout Type made of Rounds of open Work, each followed by a Rest of a set length, repeated until the Workout is Stopped.
+The Workout Type made of Rounds of open Work, each followed by a Rest of a set length if one is configured, repeated until the Workout is Stopped.
 _Avoid_: Sets, Strength, Lifting, rest timer
 
 **Preset**:
