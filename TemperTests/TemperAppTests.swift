@@ -302,7 +302,7 @@ struct RememberedPresetsTests {
             #expect(restored.presets(of: .intervals).picked?.settings == tabata)
             #expect(restored.presets(of: .stopwatch) == remembered.presets(of: .stopwatch))
             #expect(restored.presets(of: .stopwatch).presets.map(\.name) == ["Tabata"])
-            #expect(restored.presets(of: .stopwatch).subtitle == "Tabata")
+            #expect(restored.presets(of: .stopwatch).subtitle(for: restored[.stopwatch]) == "Tabata")
         }
     }
 
@@ -319,6 +319,38 @@ struct RememberedPresetsTests {
             #expect(remembered[.intervals] == tabata)
             #expect(RememberedValues(defaults: defaults)[.intervals] == tabata)
             #expect(remembered[.stopwatch] == WorkoutType.stopwatch.firstLaunch)
+        }
+    }
+
+    @Test func `A relaunch recomputes modified exactly as before, from the restored values`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            remembered[.intervals] = tabata
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+            remembered[.intervals].work = .seconds(30)
+            try remembered.saveAsNewPreset(named: "Run", of: .stopwatch)
+
+            let restored = RememberedValues(defaults: defaults)
+
+            #expect(restored.presets(of: .intervals).subtitle(for: restored[.intervals]) == "Tabata · Modified")
+            #expect(restored.presets(of: .stopwatch).subtitle(for: restored[.stopwatch]) == "Run")
+            restored[.intervals].work = tabata.work
+            #expect(restored.presets(of: .intervals).subtitle(for: restored[.intervals]) == "Tabata")
+        }
+    }
+
+    @Test func `Updating the picked Preset saves setup's values over it, and they restore`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+            remembered[.intervals] = tabata
+
+            remembered.updatePickedPreset(of: .intervals)
+
+            #expect(remembered.presets(of: .intervals).picked?.settings == tabata)
+            let restored = RememberedValues(defaults: defaults)
+            #expect(restored.presets(of: .intervals).picked?.settings == tabata)
+            #expect(restored.presets(of: .intervals).subtitle(for: restored[.intervals]) == "Tabata")
         }
     }
 

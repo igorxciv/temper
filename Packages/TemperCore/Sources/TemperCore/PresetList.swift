@@ -33,9 +33,18 @@ public nonisolated struct PresetList: Equatable, Sendable {
         presets.first { $0.id == pickedID }
     }
 
-    /// What setup shows under its title: the picked Preset's name, or nothing with nothing picked.
-    public var subtitle: String? {
-        picked?.name
+    /// Whether setup's settings differ from the picked Preset's in any value the type's setup shows. With
+    /// nothing picked, nothing is modified.
+    public func isModified(_ settings: WorkoutSettings) -> Bool {
+        guard let picked else { return false }
+        return workoutType.values.contains { settings[$0] != picked.settings[$0] }
+    }
+
+    /// What setup shows under its title: nothing with nothing picked, the picked Preset's name, or the name
+    /// and "Modified" once setup's settings differ from it.
+    public func subtitle(for settings: WorkoutSettings) -> String? {
+        guard let picked else { return nil }
+        return isModified(settings) ? "\(picked.name) · Modified" : picked.name
     }
 
     /// The first problem with a name, or `nil` if a Preset can take it. The name is trimmed first. The Preset
@@ -73,6 +82,13 @@ public nonisolated struct PresetList: Equatable, Sendable {
         guard let preset = presets.first(where: { $0.id == id }) else { return nil }
         pickedID = id
         return preset.settings
+    }
+
+    /// Replaces the picked Preset's settings with setup's, so it's no longer modified. With nothing picked it
+    /// does nothing.
+    public mutating func updatePicked(with settings: WorkoutSettings) {
+        guard let index = presets.firstIndex(where: { $0.id == pickedID }) else { return }
+        presets[index].settings = workoutType.ownValues(of: settings)
     }
 
     /// Gives a Preset the trimmed name and keeps the pick. A name with a problem throws it and changes nothing,

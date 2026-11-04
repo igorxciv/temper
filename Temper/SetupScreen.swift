@@ -75,13 +75,15 @@ struct SetupScreen: View {
         .background(colors.background.ignoresSafeArea())
         .navigationTitle(workoutType.title)
         // An empty subtitle draws nothing, which keeps the screen's identity when a Preset is first picked.
-        .navigationSubtitle(presets.subtitle ?? "")
+        .navigationSubtitle(presets.subtitle(for: settings) ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarTitleMenu {
-            PresetMenu(presets: presets) { id in
+            PresetMenu(presets: presets, isModified: presets.isModified(settings)) { id in
                 remembered.pickPreset(id, of: workoutType)
             } saveAsNew: {
                 isNamingPreset = true
+            } update: {
+                remembered.updatePickedPreset(of: workoutType)
             } manage: {
                 isManagingPresets = true
             }
@@ -108,8 +110,10 @@ struct SetupScreen: View {
 /// The title menu: the type's Presets in order, then what can be done with them.
 private struct PresetMenu: View {
     let presets: PresetList
+    let isModified: Bool
     let pick: (Preset.ID) -> Void
     let saveAsNew: () -> Void
+    let update: () -> Void
     let manage: () -> Void
 
     var body: some View {
@@ -132,6 +136,10 @@ private struct PresetMenu: View {
             Divider()
         }
         Button("Save as New Preset…", systemImage: "plus", action: saveAsNew)
+        // No confirmation, because the label names the Preset it overwrites.
+        if isModified, let picked = presets.picked {
+            Button("Update “\(picked.name)”", systemImage: "arrow.triangle.2.circlepath", action: update)
+        }
         if !presets.presets.isEmpty {
             Button("Manage Presets…", systemImage: "list.bullet", action: manage)
         }

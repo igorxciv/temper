@@ -97,6 +97,12 @@ final class RememberedValues {
         }
     }
 
+    /// Saves the values on the type's setup over its picked Preset. With nothing picked it does nothing.
+    func updatePickedPreset(of workoutType: WorkoutType) {
+        let settings = self[workoutType]
+        changePresets(of: workoutType) { $0.updatePicked(with: settings) }
+    }
+
     /// Renames one of the type's Presets. A picked Preset stays picked.
     func renamePreset(_ id: Preset.ID, to name: String, of workoutType: WorkoutType) throws(PresetNameProblem) {
         try changePresets(of: workoutType) { list throws(PresetNameProblem) in
