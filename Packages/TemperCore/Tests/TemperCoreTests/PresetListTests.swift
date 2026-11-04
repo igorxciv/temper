@@ -66,7 +66,7 @@ struct PresetListTests {
     @Test func `With nothing picked nothing is modified`() throws {
         let list = PresetList(workoutType: .intervals)
 
-        #expect(!list.isModified(tabata))
+        #expect(list.isModified(tabata) == false)
     }
 
     @Test func `The picked Preset is modified once a value on setup differs from it`() throws {
@@ -74,7 +74,7 @@ struct PresetListTests {
         try list.saveAsNew(named: "Tabata", settings: tabata)
         var edited = tabata
 
-        #expect(!list.isModified(edited))
+        #expect(list.isModified(edited) == false)
         edited.rest = .seconds(15)
         #expect(list.isModified(edited))
     }
@@ -86,7 +86,7 @@ struct PresetListTests {
         edited.rounds = 12
         edited.rounds = 8
 
-        #expect(!list.isModified(edited))
+        #expect(list.isModified(edited) == false)
     }
 
     @Test func `A Stopwatch Preset ignores Rounds, Rest and Cooldown`() throws {
@@ -97,7 +97,7 @@ struct PresetListTests {
         edited.rest = .seconds(30)
         edited.cooldown = .seconds(60)
 
-        #expect(!list.isModified(edited))
+        #expect(list.isModified(edited) == false)
         edited.prepare = .seconds(15)
         #expect(list.isModified(edited))
     }
@@ -112,7 +112,7 @@ struct PresetListTests {
         list.updatePicked(with: edited)
 
         #expect(list.presets.map(\.settings) == [tabata, edited])
-        #expect(!list.isModified(edited))
+        #expect(list.isModified(edited) == false)
         #expect(list.subtitle(for: edited) == "Long")
     }
 
