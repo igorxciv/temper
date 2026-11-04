@@ -97,6 +97,18 @@ final class RememberedValues {
         }
     }
 
+    /// Renames one of the type's Presets. A picked Preset stays picked.
+    func renamePreset(_ id: Preset.ID, to name: String, of workoutType: WorkoutType) throws(PresetNameProblem) {
+        try changePresets(of: workoutType) { list throws(PresetNameProblem) in
+            try list.rename(id, to: name)
+        }
+    }
+
+    /// Deletes one of the type's Presets. Setup's values stay as they are, even when it was the picked one.
+    func deletePreset(_ id: Preset.ID, of workoutType: WorkoutType) {
+        changePresets(of: workoutType) { $0.delete(id) }
+    }
+
     /// The tab showing. Selecting a Workout Type's tab makes it the last-used Workout Type, and selecting
     /// Settings doesn't, so leaving a Workout always comes back to the tab it started from.
     var selectedTab: RootTab {
