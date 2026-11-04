@@ -76,15 +76,15 @@ struct LiveActivityButtonTests {
     }
 }
 
-struct RememberedValuesTests {
-    /// A `UserDefaults` suite no other test or launch can see, emptied when the test ends.
-    private func withThrowawayDefaults(_ body: (UserDefaults) -> Void) throws {
-        let suite = "RememberedValuesTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        body(defaults)
-    }
+/// Runs the body with a `UserDefaults` suite no other test or launch can see, emptied when it ends.
+private func withThrowawayDefaults(_ body: (UserDefaults) throws -> Void) throws {
+    let suite = "TemperTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    try body(defaults)
+}
 
+struct RememberedValuesTests {
     @Test func `A first launch opens on Intervals, with every type's first-launch values and Dip on`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
@@ -255,14 +255,6 @@ struct RememberedPresetsTests {
         rest: .seconds(10),
         cooldown: .seconds(10)
     )
-
-    /// A `UserDefaults` suite no other test or launch can see, emptied when the test ends.
-    private func withThrowawayDefaults(_ body: (UserDefaults) throws -> Void) throws {
-        let suite = "RememberedPresetsTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        try body(defaults)
-    }
 
     private func store(_ json: String, forKey key: String, in defaults: UserDefaults) {
         defaults.set(Data(json.utf8), forKey: key)
