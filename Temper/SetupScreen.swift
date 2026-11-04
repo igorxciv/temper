@@ -78,7 +78,7 @@ struct SetupScreen: View {
         .navigationSubtitle(presets.subtitle(for: settings) ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarTitleMenu {
-            PresetMenu(presets: presets, isModified: presets.isModified(settings)) { id in
+            PresetMenu(list: presets, isModified: presets.isModified(settings)) { id in
                 remembered.pickPreset(id, of: workoutType)
             } saveAsNew: {
                 isNamingPreset = true

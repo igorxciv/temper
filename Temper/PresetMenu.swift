@@ -3,7 +3,7 @@ import TemperCore
 
 /// The title menu: the type's Presets in order, then what can be done with them.
 struct PresetMenu: View {
-    let presets: PresetList
+    let list: PresetList
     let isModified: Bool
     let pick: (Preset.ID) -> Void
     let saveAsNew: () -> Void
@@ -12,8 +12,8 @@ struct PresetMenu: View {
 
     var body: some View {
         // Plain buttons rather than a Picker, so choosing the picked Preset again still reaches pick.
-        ForEach(presets.presets) { preset in
-            let isPicked = preset.id == presets.pickedID
+        ForEach(list.presets) { preset in
+            let isPicked = preset.id == list.pickedID
 
             Button {
                 pick(preset.id)
@@ -26,15 +26,15 @@ struct PresetMenu: View {
             }
             .accessibilityAddTraits(isPicked ? .isSelected : [])
         }
-        if !presets.presets.isEmpty {
+        if !list.presets.isEmpty {
             Divider()
         }
         Button("Save as New Preset…", systemImage: "plus", action: saveAsNew)
         // No confirmation, because the label names the Preset it overwrites.
-        if isModified, let picked = presets.picked {
+        if isModified, let picked = list.picked {
             Button("Update “\(picked.name)”", systemImage: "arrow.triangle.2.circlepath", action: update)
         }
-        if !presets.presets.isEmpty {
+        if !list.presets.isEmpty {
             Button("Manage Presets…", systemImage: "list.bullet", action: manage)
         }
     }
