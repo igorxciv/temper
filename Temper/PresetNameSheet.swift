@@ -6,7 +6,7 @@ import TemperCore
 struct PresetNameSheet: View {
     let title: String
     let check: (String) -> PresetNameProblem?
-    let save: (String) -> Void
+    let save: (String) throws(PresetNameProblem) -> Void
 
     @State private var name: String
     @FocusState private var isFocused: Bool
@@ -18,7 +18,7 @@ struct PresetNameSheet: View {
         title: String,
         name: String = "",
         check: @escaping (String) -> PresetNameProblem?,
-        save: @escaping (String) -> Void
+        save: @escaping (String) throws(PresetNameProblem) -> Void
     ) {
         self.title = title
         self.check = check
@@ -36,11 +36,7 @@ struct PresetNameSheet: View {
                     TextField("Name", text: $name)
                         .focused($isFocused)
                         .submitLabel(.done)
-                        .onSubmit {
-                            if problem == nil {
-                                confirm()
-                            }
-                        }
+                        .onSubmit(confirm)
                         .listRowBackground(colors.background)
                 } footer: {
                     if let footer = problem?.footer {
@@ -77,8 +73,11 @@ struct PresetNameSheet: View {
         .presentationBackground(colors.raised)
     }
 
+    /// Save and Return both land here, and do nothing while the name check reports a problem.
     private func confirm() {
-        save(name)
+        guard check(name) == nil else { return }
+        // The name check passed, so saving can't throw.
+        try? save(name)
         dismiss()
     }
 }

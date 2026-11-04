@@ -78,7 +78,7 @@ struct SetupScreen: View {
         .navigationSubtitle(presets.subtitle(for: settings) ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarTitleMenu {
-            PresetMenu(presets: presets, isModified: presets.isModified(settings)) { id in
+            PresetMenu(list: presets, isModified: presets.isModified(settings)) { id in
                 remembered.pickPreset(id, of: workoutType)
             } saveAsNew: {
                 isNamingPreset = true
@@ -96,52 +96,12 @@ struct SetupScreen: View {
         .sheet(isPresented: $isNamingPreset) {
             PresetNameSheet(title: "New Preset") { name in
                 remembered.presets(of: workoutType).nameProblem(name)
-            } save: { name in
-                // Save is enabled only once the name check passes, so this can't throw.
-                try? remembered.saveAsNewPreset(named: name, of: workoutType)
+            } save: { name throws(PresetNameProblem) in
+                try remembered.saveAsNewPreset(named: name, of: workoutType)
             }
         }
         .sheet(isPresented: $isManagingPresets) {
             ManagePresetsSheet(workoutType: workoutType, remembered: remembered)
-        }
-    }
-}
-
-/// The title menu: the type's Presets in order, then what can be done with them.
-private struct PresetMenu: View {
-    let presets: PresetList
-    let isModified: Bool
-    let pick: (Preset.ID) -> Void
-    let saveAsNew: () -> Void
-    let update: () -> Void
-    let manage: () -> Void
-
-    var body: some View {
-        // Plain buttons rather than a Picker, so choosing the picked Preset again still reaches pick.
-        ForEach(presets.presets) { preset in
-            let isPicked = preset.id == presets.pickedID
-
-            Button {
-                pick(preset.id)
-            } label: {
-                if isPicked {
-                    Label(preset.name, systemImage: "checkmark")
-                } else {
-                    Text(preset.name)
-                }
-            }
-            .accessibilityAddTraits(isPicked ? .isSelected : [])
-        }
-        if !presets.presets.isEmpty {
-            Divider()
-        }
-        Button("Save as New Preset…", systemImage: "plus", action: saveAsNew)
-        // No confirmation, because the label names the Preset it overwrites.
-        if isModified, let picked = presets.picked {
-            Button("Update “\(picked.name)”", systemImage: "arrow.triangle.2.circlepath", action: update)
-        }
-        if !presets.presets.isEmpty {
-            Button("Manage Presets…", systemImage: "list.bullet", action: manage)
         }
     }
 }

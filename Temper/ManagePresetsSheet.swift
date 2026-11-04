@@ -9,7 +9,6 @@ struct ManagePresetsSheet: View {
 
     @State private var renaming: Preset?
     @State private var deleting: Preset?
-    @State private var isConfirmingDelete = false
     @State private var editMode = EditMode.inactive
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -34,7 +33,7 @@ struct ManagePresetsSheet: View {
                         renaming = preset
                     }
                     .accessibilityAction(named: "Delete") {
-                        confirmDelete(preset)
+                        deleting = preset
                     }
                     // So reordering doesn't depend on dragging. Each offset is the one `onMove` would report.
                     .accessibilityActions {
@@ -56,7 +55,7 @@ struct ManagePresetsSheet: View {
                 // Swipe and edit mode's delete control both land here, and the row stays until it's confirmed.
                 .onDelete { offsets in
                     if let index = offsets.first {
-                        confirmDelete(list.presets[index])
+                        deleting = list.presets[index]
                     }
                 }
             }
@@ -70,9 +69,8 @@ struct ManagePresetsSheet: View {
             }
             .confirmationDialog(
                 "Delete “\(deleting?.name ?? "")”?",
-                isPresented: $isConfirmingDelete,
-                titleVisibility: .visible,
-                presenting: deleting
+                item: $deleting,
+                titleVisibility: .visible
             ) { preset in
                 Button("Delete", role: .destructive) {
                     remembered.deletePreset(preset.id, of: workoutType)
@@ -104,9 +102,8 @@ struct ManagePresetsSheet: View {
         .sheet(item: $renaming) { preset in
             PresetNameSheet(title: "Rename Preset", name: preset.name) { name in
                 remembered.presets(of: workoutType).nameProblem(name, excluding: preset.id)
-            } save: { name in
-                // Save is enabled only once the name check passes, so this can't throw.
-                try? remembered.renamePreset(preset.id, to: name, of: workoutType)
+            } save: { name throws(PresetNameProblem) in
+                try remembered.renamePreset(preset.id, to: name, of: workoutType)
             }
         }
         .presentationDetents([.large])
@@ -115,45 +112,5 @@ struct ManagePresetsSheet: View {
 
     private func move(_ offsets: IndexSet, to destination: Int) {
         remembered.movePresets(fromOffsets: offsets, toOffset: destination, of: workoutType)
-    }
-
-    private func confirmDelete(_ preset: Preset) {
-        deleting = preset
-        isConfirmingDelete = true
-    }
-}
-
-/// A Preset's name over its value summary, with a checkmark when it's the picked one.
-private struct PresetRow: View {
-    let name: String
-    let summary: String
-    let isPicked: Bool
-    let rename: () -> Void
-
-    @Environment(\.colorSchemeContrast) private var contrast
-
-    var body: some View {
-        let colors = InkColors(contrast: contrast)
-
-        Button(action: rename) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(name)
-                        .foregroundStyle(colors.text)
-                    Text(summary)
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(colors.secondary)
-                }
-                Spacer()
-                if isPicked {
-                    Image(systemName: "checkmark")
-                        .fontWeight(.semibold)
-                        .foregroundStyle(colors.accent)
-                        .accessibilityHidden(true)
-                }
-            }
-            .contentShape(.rect)
-        }
-        .accessibilityAddTraits(isPicked ? .isSelected : [])
     }
 }

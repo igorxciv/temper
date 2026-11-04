@@ -76,15 +76,15 @@ struct LiveActivityButtonTests {
     }
 }
 
-struct RememberedValuesTests {
-    /// A `UserDefaults` suite no other test or launch can see, emptied when the test ends.
-    private func withThrowawayDefaults(_ body: (UserDefaults) -> Void) throws {
-        let suite = "RememberedValuesTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        body(defaults)
-    }
+/// Runs the body with a `UserDefaults` suite no other test or launch can see, emptied when it ends.
+private func withThrowawayDefaults(_ body: (UserDefaults) throws -> Void) throws {
+    let suite = "TemperTests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    try body(defaults)
+}
 
+struct RememberedValuesTests {
     @Test func `A first launch opens on Intervals, with every type's first-launch values and Dip on`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
@@ -256,14 +256,6 @@ struct RememberedPresetsTests {
         cooldown: .seconds(10)
     )
 
-    /// A `UserDefaults` suite no other test or launch can see, emptied when the test ends.
-    private func withThrowawayDefaults(_ body: (UserDefaults) throws -> Void) throws {
-        let suite = "RememberedPresetsTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        try body(defaults)
-    }
-
     private func store(_ json: String, forKey key: String, in defaults: UserDefaults) {
         defaults.set(Data(json.utf8), forKey: key)
     }
@@ -419,6 +411,31 @@ struct RememberedPresetsTests {
             #expect(stored.first?["values"] as? [String: Int] == ["prepare": 10, "work": 600])
             #expect(defaults.string(forKey: "pickedPreset.stopwatch") == preset.id.uuidString)
             #expect(defaults.object(forKey: "presets.intervals") == nil)
+        }
+    }
+
+    /// The name sheet's Save and Return both reach these, so a name with a problem must save nothing.
+    @Test func `Saving or renaming under a name with a problem throws it and saves nothing`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+            try remembered.saveAsNewPreset(named: "Long", of: .intervals)
+            let longID = try #require(remembered.presets(of: .intervals).pickedID)
+            let taken = PresetNameProblem.taken(existingName: "Tabata", workoutType: .intervals)
+
+            #expect(throws: taken) {
+                try remembered.saveAsNewPreset(named: "tabata", of: .intervals)
+            }
+            #expect(throws: PresetNameProblem.empty) {
+                try remembered.saveAsNewPreset(named: " ", of: .intervals)
+            }
+            #expect(throws: taken) {
+                try remembered.renamePreset(longID, to: "TABATA", of: .intervals)
+            }
+
+            let restored = RememberedValues(defaults: defaults).presets(of: .intervals)
+            #expect(restored.presets.map(\.name) == ["Tabata", "Long"])
+            #expect(restored.pickedID == longID)
         }
     }
 
