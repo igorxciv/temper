@@ -165,29 +165,18 @@ final class RememberedValues {
     }
 
     private static func restore(_ workoutType: WorkoutType, from defaults: UserDefaults) -> WorkoutSettings {
-        var settings = workoutType.firstLaunch
-        for value in workoutType.values {
-            if let stored = defaults.object(forKey: value.defaultsKey(for: workoutType)) as? Int {
-                settings[value] = value.clamped(stored)
-            }
-        }
-        return settings
+        workoutType.restoredSettings { defaults.object(forKey: $0.defaultsKey(for: workoutType)) as? Int }
     }
 
-    /// Each Preset starts from the type's first-launch values and takes each stored value clamped, as the
-    /// remembered values do. An entry that can't be read is dropped, and unreadable data is an empty list.
+    /// Each Preset's values restore as the remembered values do. An entry that can't be read is dropped, and
+    /// unreadable data is an empty list.
     private static func restorePresets(of workoutType: WorkoutType, from defaults: UserDefaults) -> PresetList {
         let entries =
             defaults.data(forKey: presetsKey(for: workoutType))
             .flatMap { try? JSONDecoder().decode([LenientStoredPreset].self, from: $0) } ?? []
         let presets = entries.compactMap(\.preset).compactMap { stored -> Preset? in
             guard let id = UUID(uuidString: stored.id) else { return nil }
-            var settings = workoutType.firstLaunch
-            for value in workoutType.values {
-                if let amount = stored.values[value.storedName] {
-                    settings[value] = value.clamped(amount)
-                }
-            }
+            let settings = workoutType.restoredSettings { stored.values[$0.storedName] }
             return Preset(id: id, name: stored.name, settings: settings)
         }
         let pickedID = defaults.string(forKey: pickedPresetKey(for: workoutType)).flatMap(UUID.init(uuidString:))
@@ -201,6 +190,19 @@ final class RememberedValues {
 
     private static func pickedPresetKey(for workoutType: WorkoutType) -> String {
         "pickedPreset.\(workoutType.rawValue)"
+    }
+}
+
+extension WorkoutType {
+    /// The type's first-launch values, with each stored value its setup shows taken in clamped.
+    fileprivate func restoredSettings(_ stored: (WorkoutValue) -> Int?) -> WorkoutSettings {
+        var settings = firstLaunch
+        for value in values {
+            if let amount = stored(value) {
+                settings[value] = value.clamped(amount)
+            }
+        }
+        return settings
     }
 }
 
