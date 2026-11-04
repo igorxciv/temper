@@ -2,6 +2,8 @@ import SwiftUI
 import TemperCore
 
 /// Where a Workout Type gets its values, and where End Workout and Done return to.
+///
+/// Has to fit on the iPhone SE, 375 by 667 pt, with the tab bar and Start, at every text size.
 struct SetupScreen: View {
     let workoutType: WorkoutType
     let remembered: RememberedValues

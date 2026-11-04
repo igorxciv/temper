@@ -22,6 +22,8 @@ struct TemperApp: App {
 }
 
 /// Shows the screen for where the Workout is, and catches up whenever Temper returns to the front.
+///
+/// The running and complete screens replace the whole tab bar, so nothing on screen distracts from the time.
 struct RootView: View {
     let runner: WorkoutRunner
     @Bindable var remembered: RememberedValues
