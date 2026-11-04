@@ -97,6 +97,12 @@ final class RememberedValues {
         }
     }
 
+    /// Saves the values on the type's setup over its picked Preset. With nothing picked it does nothing.
+    func updatePickedPreset(of workoutType: WorkoutType) {
+        let settings = self[workoutType]
+        changePresets(of: workoutType) { $0.updatePicked(with: settings) }
+    }
+
     /// The tab showing. Selecting a Workout Type's tab makes it the last-used Workout Type, and selecting
     /// Settings doesn't, so leaving a Workout always comes back to the tab it started from.
     var selectedTab: RootTab {
