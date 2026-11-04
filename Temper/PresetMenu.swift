@@ -11,7 +11,8 @@ struct PresetMenu: View {
     let manage: () -> Void
 
     var body: some View {
-        // Plain buttons rather than a Picker, so choosing the picked Preset again still reaches pick.
+        // Plain buttons rather than a Picker, so choosing the picked Preset again still reaches pick. Picking
+        // replaces setup's values without asking, since they're only ever a scratch copy of a Preset.
         ForEach(list.presets) { preset in
             let isPicked = preset.id == list.pickedID
 

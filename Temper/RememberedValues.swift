@@ -21,7 +21,9 @@ final class RememberedValues {
         didSet { save(stopwatch, oldValue, of: .stopwatch) }
     }
 
-    /// Each type's Presets, which save whole whenever that type's list changes.
+    /// Each type's Presets, which save whole whenever that type's list changes. They sit in `UserDefaults` beside
+    /// the values rather than in SwiftData or a file, since the lists are small and the widget extension never
+    /// reads them.
     private var presetLists: [WorkoutType: PresetList]
 
     /// The Workout Type Temper opens on, which is the last one whose tab was selected.

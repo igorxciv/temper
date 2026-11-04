@@ -331,6 +331,19 @@ struct RememberedPresetsTests {
         }
     }
 
+    @Test func `Editing a value on setup leaves the picked Preset as it was saved`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            remembered[.intervals] = tabata
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+
+            remembered[.intervals].rounds = 12
+
+            #expect(remembered.presets(of: .intervals).picked?.settings == tabata)
+            #expect(RememberedValues(defaults: defaults).presets(of: .intervals).picked?.settings == tabata)
+        }
+    }
+
     @Test func `Updating the picked Preset saves setup's values over it, and they restore`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
@@ -439,10 +452,11 @@ struct RememberedPresetsTests {
         }
     }
 
-    @Test func `A picked id that matches no Preset restores as nothing picked`() throws {
+    @Test(arguments: ["E621E1F8-C36C-495A-93FC-0C247A3E6E5F", "not an id"])
+    func `A picked id that matches no Preset, or can't be read, restores as nothing picked`(id: String) throws {
         try withThrowawayDefaults { defaults in
             try RememberedValues(defaults: defaults).saveAsNewPreset(named: "Tabata", of: .intervals)
-            defaults.set(UUID().uuidString, forKey: "pickedPreset.intervals")
+            defaults.set(id, forKey: "pickedPreset.intervals")
 
             let restored = RememberedValues(defaults: defaults).presets(of: .intervals)
 
