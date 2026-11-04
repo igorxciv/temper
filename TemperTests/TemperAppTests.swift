@@ -373,6 +373,22 @@ struct RememberedPresetsTests {
         }
     }
 
+    @Test func `A new order restores on the next launch, and the pick survives the move`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+            try remembered.saveAsNewPreset(named: "Long", of: .intervals)
+            try remembered.saveAsNewPreset(named: "Short", of: .intervals)
+            let shortID = try #require(remembered.presets(of: .intervals).pickedID)
+
+            remembered.movePresets(fromOffsets: IndexSet(integer: 2), toOffset: 0, of: .intervals)
+
+            let restored = RememberedValues(defaults: defaults).presets(of: .intervals)
+            #expect(restored.presets.map(\.name) == ["Short", "Tabata", "Long"])
+            #expect(restored.pickedID == shortID)
+        }
+    }
+
     @Test func `Deleting the picked Preset restores as nothing picked and leaves the values on setup`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
