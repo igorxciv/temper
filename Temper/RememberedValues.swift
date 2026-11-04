@@ -21,13 +21,8 @@ final class RememberedValues {
         didSet { save(stopwatch, oldValue, of: .stopwatch) }
     }
 
-    private var intervalsPresets: PresetList {
-        didSet { save(intervalsPresets) }
-    }
-
-    private var stopwatchPresets: PresetList {
-        didSet { save(stopwatchPresets) }
-    }
+    /// Each type's Presets, which save whole whenever that type's list changes.
+    private var presetLists: [WorkoutType: PresetList]
 
     /// The Workout Type Temper opens on, which is the last one whose tab was selected.
     private(set) var lastUsed: WorkoutType {
@@ -52,8 +47,8 @@ final class RememberedValues {
         self.defaults = defaults
         intervals = Self.restore(.intervals, from: defaults)
         stopwatch = Self.restore(.stopwatch, from: defaults)
-        intervalsPresets = Self.restorePresets(of: .intervals, from: defaults)
-        stopwatchPresets = Self.restorePresets(of: .stopwatch, from: defaults)
+        presetLists = Dictionary(
+            uniqueKeysWithValues: WorkoutType.allCases.map { ($0, Self.restorePresets(of: $0, from: defaults)) })
         lastUsed = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init) ?? .intervals
         isDipOn = defaults.object(forKey: Self.dipKey) as? Bool ?? true
     }
@@ -76,10 +71,7 @@ final class RememberedValues {
 
     /// A Workout Type's Presets, in menu order, and the one its setup picked.
     func presets(of workoutType: WorkoutType) -> PresetList {
-        switch workoutType {
-        case .intervals: intervalsPresets
-        case .stopwatch: stopwatchPresets
-        }
+        presetLists[workoutType] ?? PresetList(workoutType: workoutType)
     }
 
     /// Saves the values on the type's setup as a new Preset at the end of its list, and picks it.
@@ -144,10 +136,8 @@ final class RememberedValues {
     ) throws(Failure) -> Result {
         var list = presets(of: workoutType)
         let result = try change(&list)
-        switch workoutType {
-        case .intervals: intervalsPresets = list
-        case .stopwatch: stopwatchPresets = list
-        }
+        presetLists[workoutType] = list
+        save(list)
         return result
     }
 
