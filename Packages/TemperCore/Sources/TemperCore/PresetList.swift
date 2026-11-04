@@ -38,8 +38,9 @@ public nonisolated struct PresetList: Equatable, Sendable {
         picked?.name
     }
 
-    /// The first problem with a name, or `nil` if a Preset can take it. The name is trimmed first.
-    public func nameProblem(_ name: String) -> PresetNameProblem? {
+    /// The first problem with a name, or `nil` if a Preset can take it. The name is trimmed first. The Preset
+    /// being renamed is left out, so it can change only the case of its own name.
+    public func nameProblem(_ name: String, excluding excluded: Preset.ID? = nil) -> PresetNameProblem? {
         let trimmed = Self.trimmed(name)
         if trimmed.isEmpty {
             return .empty
@@ -47,7 +48,9 @@ public nonisolated struct PresetList: Equatable, Sendable {
         if trimmed.count > PresetNameProblem.maximumLength {
             return .tooLong
         }
-        if let existing = presets.first(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+        if let existing = presets.first(where: {
+            $0.id != excluded && $0.name.caseInsensitiveCompare(trimmed) == .orderedSame
+        }) {
             return .taken(existingName: existing.name, workoutType: workoutType)
         }
         return nil
@@ -70,6 +73,24 @@ public nonisolated struct PresetList: Equatable, Sendable {
         guard let preset = presets.first(where: { $0.id == id }) else { return nil }
         pickedID = id
         return preset.settings
+    }
+
+    /// Gives a Preset the trimmed name and keeps the pick. A name with a problem throws it and changes nothing,
+    /// and so does an unknown Preset.
+    public mutating func rename(_ id: Preset.ID, to name: String) throws(PresetNameProblem) {
+        guard let index = presets.firstIndex(where: { $0.id == id }) else { return }
+        if let problem = nameProblem(name, excluding: id) {
+            throw problem
+        }
+        presets[index].name = Self.trimmed(name)
+    }
+
+    /// Removes a Preset. Deleting the picked one leaves nothing picked, and setup's values stay as they are.
+    public mutating func delete(_ id: Preset.ID) {
+        presets.removeAll { $0.id == id }
+        if pickedID == id {
+            pickedID = nil
+        }
     }
 
     private static func trimmed(_ name: String) -> String {
