@@ -1,7 +1,7 @@
 import SwiftUI
 import TemperCore
 
-/// One Workout Type's Presets, to rename and delete. Tapping a row renames it rather than picking it, since
+/// One Workout Type's Presets, to rename, delete and reorder. Tapping a row renames it rather than picking it, since
 /// picking stays in the title menu. Each change saves at once, so Done only closes the sheet.
 struct ManagePresetsSheet: View {
     let workoutType: WorkoutType
@@ -21,7 +21,7 @@ struct ManagePresetsSheet: View {
 
         NavigationStack {
             List {
-                ForEach(list.presets) { preset in
+                ForEach(list.presets.enumerated(), id: \.element.id) { index, preset in
                     PresetRow(
                         name: preset.name,
                         summary: list.summary(of: preset),
@@ -36,6 +36,22 @@ struct ManagePresetsSheet: View {
                     .accessibilityAction(named: "Delete") {
                         confirmDelete(preset)
                     }
+                    // So reordering doesn't depend on dragging. Each offset is the one `onMove` would report.
+                    .accessibilityActions {
+                        if index > 0 {
+                            Button("Move Up") {
+                                move(IndexSet(integer: index), to: index - 1)
+                            }
+                        }
+                        if index < list.presets.count - 1 {
+                            Button("Move Down") {
+                                move(IndexSet(integer: index), to: index + 2)
+                            }
+                        }
+                    }
+                }
+                .onMove { offsets, destination in
+                    move(offsets, to: destination)
                 }
                 // Swipe and edit mode's delete control both land here, and the row stays until it's confirmed.
                 .onDelete { offsets in
@@ -95,6 +111,10 @@ struct ManagePresetsSheet: View {
         }
         .presentationDetents([.large])
         .presentationBackground(colors.raised)
+    }
+
+    private func move(_ offsets: IndexSet, to destination: Int) {
+        remembered.movePresets(fromOffsets: offsets, toOffset: destination, of: workoutType)
     }
 
     private func confirmDelete(_ preset: Preset) {
