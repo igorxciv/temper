@@ -302,7 +302,7 @@ struct RememberedPresetsTests {
             #expect(restored.presets(of: .intervals).picked?.settings == tabata)
             #expect(restored.presets(of: .stopwatch) == remembered.presets(of: .stopwatch))
             #expect(restored.presets(of: .stopwatch).presets.map(\.name) == ["Tabata"])
-            #expect(restored.presets(of: .stopwatch).subtitle == "Tabata")
+            #expect(restored.presets(of: .stopwatch).subtitle(for: restored[.stopwatch]) == "Tabata")
         }
     }
 

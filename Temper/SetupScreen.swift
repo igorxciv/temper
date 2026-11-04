@@ -74,7 +74,7 @@ struct SetupScreen: View {
         .background(colors.background.ignoresSafeArea())
         .navigationTitle(workoutType.title)
         // An empty subtitle draws nothing, which keeps the screen's identity when a Preset is first picked.
-        .navigationSubtitle(presets.subtitle ?? "")
+        .navigationSubtitle(presets.subtitle(for: settings) ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarTitleMenu {
             PresetMenu(presets: presets) { id in
