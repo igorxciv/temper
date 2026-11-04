@@ -9,7 +9,6 @@ struct ManagePresetsSheet: View {
 
     @State private var renaming: Preset?
     @State private var deleting: Preset?
-    @State private var isConfirmingDelete = false
     @State private var editMode = EditMode.inactive
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -34,7 +33,7 @@ struct ManagePresetsSheet: View {
                         renaming = preset
                     }
                     .accessibilityAction(named: "Delete") {
-                        confirmDelete(preset)
+                        deleting = preset
                     }
                     // So reordering doesn't depend on dragging. Each offset is the one `onMove` would report.
                     .accessibilityActions {
@@ -56,7 +55,7 @@ struct ManagePresetsSheet: View {
                 // Swipe and edit mode's delete control both land here, and the row stays until it's confirmed.
                 .onDelete { offsets in
                     if let index = offsets.first {
-                        confirmDelete(list.presets[index])
+                        deleting = list.presets[index]
                     }
                 }
             }
@@ -70,9 +69,8 @@ struct ManagePresetsSheet: View {
             }
             .confirmationDialog(
                 "Delete “\(deleting?.name ?? "")”?",
-                isPresented: $isConfirmingDelete,
-                titleVisibility: .visible,
-                presenting: deleting
+                item: $deleting,
+                titleVisibility: .visible
             ) { preset in
                 Button("Delete", role: .destructive) {
                     remembered.deletePreset(preset.id, of: workoutType)
@@ -115,11 +113,6 @@ struct ManagePresetsSheet: View {
 
     private func move(_ offsets: IndexSet, to destination: Int) {
         remembered.movePresets(fromOffsets: offsets, toOffset: destination, of: workoutType)
-    }
-
-    private func confirmDelete(_ preset: Preset) {
-        deleting = preset
-        isConfirmingDelete = true
     }
 }
 
