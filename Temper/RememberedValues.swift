@@ -8,8 +8,8 @@ enum RootTab: Hashable {
     case settings
 }
 
-/// Each Workout Type's last-used values, the last-used Workout Type, and the Dip setting. Each change saves at
-/// once, and nothing about a running Workout is ever stored here.
+/// Each Workout Type's last-used values and Presets, the last-used Workout Type, and the Dip setting. Each change
+/// saves at once, and nothing about a running Workout is ever stored here.
 @Observable
 final class RememberedValues {
     /// The Intervals values, under the keys Temper used before it had Workout Types, so an upgrade keeps them.
@@ -19,6 +19,14 @@ final class RememberedValues {
 
     private var stopwatch: WorkoutSettings {
         didSet { save(stopwatch, oldValue, of: .stopwatch) }
+    }
+
+    private var intervalsPresets: PresetList {
+        didSet { save(intervalsPresets) }
+    }
+
+    private var stopwatchPresets: PresetList {
+        didSet { save(stopwatchPresets) }
     }
 
     /// The Workout Type Temper opens on, which is the last one whose tab was selected.
@@ -44,6 +52,8 @@ final class RememberedValues {
         self.defaults = defaults
         intervals = Self.restore(.intervals, from: defaults)
         stopwatch = Self.restore(.stopwatch, from: defaults)
+        intervalsPresets = Self.restorePresets(of: .intervals, from: defaults)
+        stopwatchPresets = Self.restorePresets(of: .stopwatch, from: defaults)
         lastUsed = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init) ?? .intervals
         isDipOn = defaults.object(forKey: Self.dipKey) as? Bool ?? true
     }
@@ -64,6 +74,29 @@ final class RememberedValues {
         }
     }
 
+    /// A Workout Type's Presets, in menu order, and the one its setup picked.
+    func presets(of workoutType: WorkoutType) -> PresetList {
+        switch workoutType {
+        case .intervals: intervalsPresets
+        case .stopwatch: stopwatchPresets
+        }
+    }
+
+    /// Saves the values on the type's setup as a new Preset at the end of its list, and picks it.
+    func saveAsNewPreset(named name: String, of workoutType: WorkoutType) throws(PresetNameProblem) {
+        let settings = self[workoutType]
+        try changePresets(of: workoutType) { list throws(PresetNameProblem) in
+            try list.saveAsNew(named: name, settings: settings)
+        }
+    }
+
+    /// Picks a Preset and puts its values on the type's setup, where they save as any other change does.
+    func pickPreset(_ id: Preset.ID, of workoutType: WorkoutType) {
+        if let settings = changePresets(of: workoutType, { $0.pick(id) }) {
+            self[workoutType] = settings
+        }
+    }
+
     /// The tab showing. Selecting a Workout Type's tab makes it the last-used Workout Type, and selecting
     /// Settings doesn't, so leaving a Workout always comes back to the tab it started from.
     var selectedTab: RootTab {
@@ -81,10 +114,41 @@ final class RememberedValues {
         }
     }
 
+    /// Changes one type's list, which then saves whole.
+    private func changePresets<Result, Failure>(
+        of workoutType: WorkoutType,
+        _ change: (inout PresetList) throws(Failure) -> Result
+    ) throws(Failure) -> Result {
+        var list = presets(of: workoutType)
+        let result = try change(&list)
+        switch workoutType {
+        case .intervals: intervalsPresets = list
+        case .stopwatch: stopwatchPresets = list
+        }
+        return result
+    }
+
     private func save(_ settings: WorkoutSettings, _ oldSettings: WorkoutSettings, of workoutType: WorkoutType) {
         for value in workoutType.values where settings[value] != oldSettings[value] {
             defaults.set(settings[value], forKey: value.defaultsKey(for: workoutType))
         }
+    }
+
+    /// Writes the whole list and its pick. Lists are short, so there is no partial write.
+    private func save(_ list: PresetList) {
+        let workoutType = list.workoutType
+        let stored = list.presets.map { preset in
+            StoredPreset(
+                id: preset.id.uuidString,
+                name: preset.name,
+                values: Dictionary(
+                    uniqueKeysWithValues: workoutType.values.map { ($0.storedName, preset.settings[$0]) })
+            )
+        }
+        if let data = try? JSONEncoder().encode(stored) {
+            defaults.set(data, forKey: Self.presetsKey(for: workoutType))
+        }
+        defaults.set(list.pickedID?.uuidString, forKey: Self.pickedPresetKey(for: workoutType))
     }
 
     private static func restore(_ workoutType: WorkoutType, from defaults: UserDefaults) -> WorkoutSettings {
@@ -96,19 +160,67 @@ final class RememberedValues {
         }
         return settings
     }
+
+    /// Each Preset starts from the type's first-launch values and takes each stored value clamped, as the
+    /// remembered values do. An entry that can't be read is dropped, and unreadable data is an empty list.
+    private static func restorePresets(of workoutType: WorkoutType, from defaults: UserDefaults) -> PresetList {
+        let entries =
+            defaults.data(forKey: presetsKey(for: workoutType))
+            .flatMap { try? JSONDecoder().decode([LenientStoredPreset].self, from: $0) } ?? []
+        let presets = entries.compactMap(\.preset).compactMap { stored -> Preset? in
+            guard let id = UUID(uuidString: stored.id) else { return nil }
+            var settings = workoutType.firstLaunch
+            for value in workoutType.values {
+                if let amount = stored.values[value.storedName] {
+                    settings[value] = value.clamped(amount)
+                }
+            }
+            return Preset(id: id, name: stored.name, settings: settings)
+        }
+        let pickedID = defaults.string(forKey: pickedPresetKey(for: workoutType)).flatMap(UUID.init(uuidString:))
+        return PresetList(workoutType: workoutType, restoring: presets, pickedID: pickedID)
+    }
+
+    /// The suffix is the raw value, so renaming a case forgets that type's Presets.
+    private static func presetsKey(for workoutType: WorkoutType) -> String {
+        "presets.\(workoutType.rawValue)"
+    }
+
+    private static func pickedPresetKey(for workoutType: WorkoutType) -> String {
+        "pickedPreset.\(workoutType.rawValue)"
+    }
 }
 
 extension WorkoutValue {
     /// Intervals keeps the keys from before Workout Types, and every other type prefixes its own name.
     fileprivate func defaultsKey(for workoutType: WorkoutType) -> String {
-        let name =
-            switch self {
-            case .prepare: "prepare"
-            case .rounds: "rounds"
-            case .work: "work"
-            case .rest: "rest"
-            case .cooldown: "cooldown"
-            }
-        return workoutType == .intervals ? name : "\(workoutType.rawValue).\(name)"
+        workoutType == .intervals ? storedName : "\(workoutType.rawValue).\(storedName)"
+    }
+
+    /// The value's name in its `UserDefaults` key and in a stored Preset.
+    fileprivate var storedName: String {
+        switch self {
+        case .prepare: "prepare"
+        case .rounds: "rounds"
+        case .work: "work"
+        case .rest: "rest"
+        case .cooldown: "cooldown"
+        }
+    }
+}
+
+/// A Preset as `UserDefaults` keeps it, in JSON: its values are whole seconds or a Round count, by value name.
+private nonisolated struct StoredPreset: Codable {
+    var id: String
+    var name: String
+    var values: [String: Int]
+}
+
+/// One stored entry, or `nil` if it can't be read, so one bad entry doesn't lose the rest of the list.
+private nonisolated struct LenientStoredPreset: Decodable {
+    let preset: StoredPreset?
+
+    init(from decoder: any Decoder) throws {
+        preset = try? StoredPreset(from: decoder)
     }
 }

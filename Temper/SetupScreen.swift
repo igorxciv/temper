@@ -3,19 +3,22 @@ import TemperCore
 
 /// Where a Workout Type gets its values, and where End Workout and Done return to.
 ///
-/// Has to fit on the iPhone SE, 375 by 667 pt, with the tab bar and Start, at every text size.
+/// Has to fit on the iPhone SE, 375 by 667 pt, with the tab bar, Start and a Preset's subtitle, at every text
+/// size.
 struct SetupScreen: View {
     let workoutType: WorkoutType
     let remembered: RememberedValues
     let start: (WorkoutType, Workout) -> Void
 
     @State private var editing: WorkoutValue?
+    @State private var isNamingPreset = false
 
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         let colors = InkColors(contrast: contrast)
         let settings = remembered[workoutType]
+        let presets = remembered.presets(of: workoutType)
         let workout = workoutType.makeWorkout(from: settings)
 
         // The rows fill the screen and don't need to scroll. The scroll view is there so a drag stretches them
@@ -66,14 +69,62 @@ struct SetupScreen: View {
             .padding(.bottom, 6)
             .padding(.horizontal)
         }
+        // The name sheet's keyboard would otherwise squeeze the rows behind the sheet.
+        .ignoresSafeArea(.keyboard)
         .background(colors.background.ignoresSafeArea())
         .navigationTitle(workoutType.title)
+        // An empty subtitle draws nothing, which keeps the screen's identity when a Preset is first picked.
+        .navigationSubtitle(presets.subtitle ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarTitleMenu {
+            PresetMenu(presets: presets) { id in
+                remembered.pickPreset(id, of: workoutType)
+            } saveAsNew: {
+                isNamingPreset = true
+            }
+        }
         .sheet(item: $editing) { value in
             ValueSheet(value: value, amount: settings[value]) { draft in
                 remembered[workoutType][value] = draft
             }
         }
+        .sheet(isPresented: $isNamingPreset) {
+            PresetNameSheet(title: "New Preset") { name in
+                remembered.presets(of: workoutType).nameProblem(name)
+            } save: { name in
+                // Save is enabled only once the name check passes, so this can't throw.
+                try? remembered.saveAsNewPreset(named: name, of: workoutType)
+            }
+        }
+    }
+}
+
+/// The title menu: the type's Presets in order, then what can be done with them.
+private struct PresetMenu: View {
+    let presets: PresetList
+    let pick: (Preset.ID) -> Void
+    let saveAsNew: () -> Void
+
+    var body: some View {
+        // Plain buttons rather than a Picker, so choosing the picked Preset again still reaches pick.
+        ForEach(presets.presets) { preset in
+            let isPicked = preset.id == presets.pickedID
+
+            Button {
+                pick(preset.id)
+            } label: {
+                if isPicked {
+                    Label(preset.name, systemImage: "checkmark")
+                } else {
+                    Text(preset.name)
+                }
+            }
+            .accessibilityAddTraits(isPicked ? .isSelected : [])
+        }
+        if !presets.presets.isEmpty {
+            Divider()
+        }
+        Button("Save as New Preset…", systemImage: "plus", action: saveAsNew)
     }
 }
 

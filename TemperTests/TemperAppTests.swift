@@ -246,3 +246,170 @@ struct RememberedValuesTests {
         }
     }
 }
+
+struct RememberedPresetsTests {
+    private let tabata = WorkoutSettings(
+        prepare: .seconds(5),
+        rounds: 8,
+        work: .seconds(20),
+        rest: .seconds(10),
+        cooldown: .seconds(10)
+    )
+
+    /// A `UserDefaults` suite no other test or launch can see, emptied when the test ends.
+    private func withThrowawayDefaults(_ body: (UserDefaults) throws -> Void) throws {
+        let suite = "RememberedPresetsTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        try body(defaults)
+    }
+
+    private func store(_ json: String, forKey key: String, in defaults: UserDefaults) {
+        defaults.set(Data(json.utf8), forKey: key)
+    }
+
+    @Test func `An upgrade with only today's keys has no Presets, nothing picked, and keeps today's values`() throws {
+        try withThrowawayDefaults { defaults in
+            defaults.set(12, forKey: "rounds")
+            defaults.set(300, forKey: "stopwatch.work")
+
+            let remembered = RememberedValues(defaults: defaults)
+
+            for workoutType in WorkoutType.allCases {
+                #expect(remembered.presets(of: workoutType).presets.isEmpty)
+                #expect(remembered.presets(of: workoutType).pickedID == nil)
+            }
+            #expect(remembered[.intervals].rounds == 12)
+            #expect(remembered[.stopwatch].work == .seconds(300))
+        }
+    }
+
+    @Test func `Each type's Presets and pick restore on the next launch, independently of the other's`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            remembered[.intervals] = tabata
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+            remembered[.intervals] = WorkoutType.intervals.firstLaunch
+            try remembered.saveAsNewPreset(named: "Long", of: .intervals)
+            let tabataID = remembered.presets(of: .intervals).presets[0].id
+            remembered.pickPreset(tabataID, of: .intervals)
+            try remembered.saveAsNewPreset(named: "Tabata", of: .stopwatch)
+
+            let restored = RememberedValues(defaults: defaults)
+
+            #expect(restored.presets(of: .intervals) == remembered.presets(of: .intervals))
+            #expect(restored.presets(of: .intervals).presets.map(\.name) == ["Tabata", "Long"])
+            #expect(restored.presets(of: .intervals).picked?.settings == tabata)
+            #expect(restored.presets(of: .stopwatch) == remembered.presets(of: .stopwatch))
+            #expect(restored.presets(of: .stopwatch).presets.map(\.name) == ["Tabata"])
+            #expect(restored.presets(of: .stopwatch).subtitle == "Tabata")
+        }
+    }
+
+    @Test func `Picking a Preset writes its values into the type's remembered values, which restore too`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            remembered[.intervals] = tabata
+            try remembered.saveAsNewPreset(named: "Tabata", of: .intervals)
+            let tabataID = try #require(remembered.presets(of: .intervals).pickedID)
+            remembered[.intervals] = WorkoutType.intervals.firstLaunch
+
+            remembered.pickPreset(tabataID, of: .intervals)
+
+            #expect(remembered[.intervals] == tabata)
+            #expect(RememberedValues(defaults: defaults)[.intervals] == tabata)
+            #expect(remembered[.stopwatch] == WorkoutType.stopwatch.firstLaunch)
+        }
+    }
+
+    @Test func `Presets save under presets and pickedPreset keys, with only the type's own values`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            try remembered.saveAsNewPreset(named: "Run", of: .stopwatch)
+            let preset = try #require(remembered.presets(of: .stopwatch).picked)
+
+            let data = try #require(defaults.data(forKey: "presets.stopwatch"))
+            let stored = try #require(try JSONSerialization.jsonObject(with: data) as? [[String: Any]])
+            #expect(stored.count == 1)
+            #expect(stored.first?["id"] as? String == preset.id.uuidString)
+            #expect(stored.first?["name"] as? String == "Run")
+            #expect(stored.first?["values"] as? [String: Int] == ["prepare": 10, "work": 600])
+            #expect(defaults.string(forKey: "pickedPreset.stopwatch") == preset.id.uuidString)
+            #expect(defaults.object(forKey: "presets.intervals") == nil)
+        }
+    }
+
+    @Test func `A picked id that matches no Preset restores as nothing picked`() throws {
+        try withThrowawayDefaults { defaults in
+            try RememberedValues(defaults: defaults).saveAsNewPreset(named: "Tabata", of: .intervals)
+            defaults.set(UUID().uuidString, forKey: "pickedPreset.intervals")
+
+            let restored = RememberedValues(defaults: defaults).presets(of: .intervals)
+
+            #expect(restored.presets.map(\.name) == ["Tabata"])
+            #expect(restored.pickedID == nil)
+        }
+    }
+
+    @Test func `Stored Preset values restore clamped, and missing ones at first launch`() throws {
+        try withThrowawayDefaults { defaults in
+            store(
+                #"[{"id": "\#(UUID().uuidString)", "name": "Odd", "values": {"rounds": 0, "work": 9000, "rest": 7}}]"#,
+                forKey: "presets.intervals",
+                in: defaults
+            )
+
+            let preset = try #require(RememberedValues(defaults: defaults).presets(of: .intervals).presets.first)
+
+            #expect(
+                preset.settings
+                    == WorkoutSettings(
+                        prepare: .seconds(10),
+                        rounds: 1,
+                        work: .seconds(1800),
+                        rest: .seconds(5),
+                        cooldown: .seconds(60)
+                    )
+            )
+        }
+    }
+
+    @Test func `Unreadable Presets restore as an empty list and leave the remembered values alone`() throws {
+        try withThrowawayDefaults { defaults in
+            defaults.set(15, forKey: "prepare")
+            store("not json", forKey: "presets.intervals", in: defaults)
+            defaults.set("not data", forKey: "presets.stopwatch")
+
+            let remembered = RememberedValues(defaults: defaults)
+
+            #expect(remembered.presets(of: .intervals).presets.isEmpty)
+            #expect(remembered.presets(of: .stopwatch).presets.isEmpty)
+            #expect(remembered[.intervals].prepare == .seconds(15))
+            #expect(remembered[.stopwatch] == WorkoutType.stopwatch.firstLaunch)
+        }
+    }
+
+    @Test func `A single bad stored Preset is dropped, and the rest survive`() throws {
+        try withThrowawayDefaults { defaults in
+            let longName = String(repeating: "a", count: 31)
+            store(
+                """
+                [
+                    {"id": "\(UUID().uuidString)", "name": "First", "values": {"work": 30}},
+                    {"id": "not an id", "name": "Bad id", "values": {}},
+                    {"id": "\(UUID().uuidString)", "name": "\(longName)", "values": {}},
+                    {"id": "\(UUID().uuidString)", "values": {}},
+                    {"id": "\(UUID().uuidString)", "name": "Last", "values": {"work": 45}}
+                ]
+                """,
+                forKey: "presets.stopwatch",
+                in: defaults
+            )
+
+            let presets = RememberedValues(defaults: defaults).presets(of: .stopwatch).presets
+
+            #expect(presets.map(\.name) == ["First", "Last"])
+            #expect(presets.map(\.settings.work) == [.seconds(30), .seconds(45)])
+        }
+    }
+}
