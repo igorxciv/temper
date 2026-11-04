@@ -20,6 +20,10 @@ _Avoid_: HIIT, Tabata, rounds timer
 The Workout Type made of a Prepare if one is configured, followed by a single Work that counts up to a set length.
 _Avoid_: Timer, count-up
 
+**Preset**:
+A named, saved set of one Workout Type's values, kept for starting that kind of Workout again.
+_Avoid_: Saved Workout, template, favorite, routine
+
 **Phase**:
 A single timed period within a Workout: a Prepare, Work, Rest, or Cooldown.
 _Avoid_: Stage, step, interval
