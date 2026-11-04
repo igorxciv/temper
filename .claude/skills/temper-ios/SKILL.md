@@ -46,6 +46,7 @@ Keep timer ticks out of the environment, and narrow what the running screen obse
 ## Testing and style
 
 - New tests use Swift Testing and wait on events or confirmations, with no sleeps.
+- No UI tests. Keep screens thin, with their rules in `TemperCore` where they can be tested, and check the screens on a real iPhone.
 - `make lint` runs `swift-format` and a check for soft-deprecated APIs and non-private `@State`, which the compiler lets through.
 - Follow the [API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/).
 
