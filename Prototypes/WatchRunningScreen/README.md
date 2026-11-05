@@ -25,9 +25,13 @@ macOS draws SF Pro where the Watch uses SF Compact, and the clock and corner rad
 
 No watchOS Simulator runtime is installed, and only the wrist answers "can I hit it mid-set without looking".
 
+A watchOS 26 Watch doesn't show up in Xcode 27's Device Hub, and its nearby-device pairing covers only watchOS 27. So a tiny iPhone app, `PrototypeHost`, carries the Watch app, and the iPhone passes it on.
+
 1. Make sure `Config/Local.xcconfig` exists in this checkout. The prototype reads `DEVELOPMENT_TEAM` and `BUNDLE_ID_PREFIX` from it.
-2. Open `Prototypes/WatchRunningScreen/WatchRunningPrototype.xcodeproj`, pick the Watch as the destination, and Run. The app is watch-only and appears as "Temper Proto".
-3. On the Watch, set Settings → General → Return to Clock → Temper Proto → After 1 hour. The prototype has no workout session, so it would otherwise drop to the watch face after 2 minutes, and Always On updates only once a minute.
+2. Open `Prototypes/WatchRunningScreen/WatchRunningPrototype.xcodeproj`, pick the **PrototypeHost** scheme with the iPhone as the destination, and Run.
+3. On the iPhone, open the Watch app → My Watch, and install **Temper Proto** under Available Apps, unless it installs by itself.
+4. If the Watch asks for Developer Mode, turn it on in Settings → Privacy & Security → Developer Mode and let it restart.
+5. On the Watch, set Settings → General → Return to Clock → Temper Proto → After 1 hour. The prototype has no workout session, so it would otherwise drop to the watch face after 2 minutes, and Always On updates only once a minute.
 
 On the Watch:
 
