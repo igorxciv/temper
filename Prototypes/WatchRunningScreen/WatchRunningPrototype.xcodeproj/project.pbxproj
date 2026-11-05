@@ -1,0 +1,166 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXFileReference section */
+		BB0000000000000000000002 /* Prototype.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prototype.xcconfig; sourceTree = "<group>"; };
+		BB0000000000000000000011 /* WatchRunningPrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WatchRunningPrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BB0000000000000000000012 /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; path = App; sourceTree = "<group>"; };
+		BB0000000000000000000013 /* Screens */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Screens; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BB0000000000000000000014 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BB0000000000000000000003 = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000002 /* Prototype.xcconfig */,
+				BB0000000000000000000012 /* App */,
+				BB0000000000000000000013 /* Screens */,
+				BB0000000000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BB0000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000011 /* WatchRunningPrototype.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BB0000000000000000000010 /* WatchRunningPrototype */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB0000000000000000000020 /* Build configuration list for PBXNativeTarget "WatchRunningPrototype" */;
+			buildPhases = (
+				BB0000000000000000000015 /* Sources */,
+				BB0000000000000000000014 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BB0000000000000000000012 /* App */,
+				BB0000000000000000000013 /* Screens */,
+			);
+			name = WatchRunningPrototype;
+			productName = WatchRunningPrototype;
+			productReference = BB0000000000000000000011 /* WatchRunningPrototype.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BB0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2720;
+				LastUpgradeCheck = 2720;
+			};
+			buildConfigurationList = BB0000000000000000000005 /* Build configuration list for PBXProject "WatchRunningPrototype" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BB0000000000000000000003;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BB0000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BB0000000000000000000010 /* WatchRunningPrototype */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BB0000000000000000000015 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		BB0000000000000000000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BB0000000000000000000002 /* Prototype.xcconfig */;
+			buildSettings = {
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				DEBUG_INFORMATION_FORMAT = dwarf;
+			};
+			name = Debug;
+		};
+		BB0000000000000000000007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BB0000000000000000000002 /* Prototype.xcconfig */;
+			buildSettings = {
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		BB0000000000000000000021 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		BB0000000000000000000022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BB0000000000000000000005 /* Build configuration list for PBXProject "WatchRunningPrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB0000000000000000000006 /* Debug */,
+				BB0000000000000000000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB0000000000000000000020 /* Build configuration list for PBXNativeTarget "WatchRunningPrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB0000000000000000000021 /* Debug */,
+				BB0000000000000000000022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BB0000000000000000000001 /* Project object */;
+}
