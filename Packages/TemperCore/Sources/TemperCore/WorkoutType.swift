@@ -70,6 +70,6 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
         case .stopwatch:
             phases.append(Phase(kind: .work, duration: settings.work))
         }
-        return Workout(phases: phases.filter { $0.duration > .zero })
+        return Workout(phases: phases.filter { $0.length != .set(.zero) })
     }
 }

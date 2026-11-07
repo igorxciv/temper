@@ -20,7 +20,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     private let continuation: AsyncStream<Snapshot>.Continuation
     private let clock: EngineClock
     private let timeline: Timeline
-    private let rounds: Int
+    private let rounds: Int?
     private let cueRules: CueRules<EngineClock>
     private var state = State.ready
     private var latest: Snapshot?
@@ -57,7 +57,11 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         }
         wake?.cancel()
         state = .paused(start: start, heldFor: heldFor, since: tap)
-        publish(Snapshot(progress: .paused(phase: phase, timeLeft: position.timeLeft), rounds: rounds))
+        let progress: Snapshot.Progress =
+            phase.isOpen
+            ? .pausedOpen(phase: phase, elapsed: position.elapsed)
+            : .paused(phase: phase, timeLeft: position.timeLeft)
+        publish(Snapshot(progress: progress, rounds: rounds))
         await cueRules.pause(at: tap)
     }
 
@@ -93,13 +97,20 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         }
     }
 
-    /// Works out where the Workout is now. Only a change of Phase or the finish publishes anything.
+    /// Works out where the Workout is now. Only a change of Phase or the finish publishes anything. An open Phase
+    /// has no end to wake for, so it waits for the next event.
     private func recalculate() async {
         guard case .running(let start, let heldFor) = state else { return }
         let now = clock.now
         let position = timeline.position(at: start.duration(to: now) - heldFor)
         guard let phase = position.phase else {
             await end(.finished)
+            return
+        }
+        guard !phase.isOpen else {
+            wake?.cancel()
+            let startedAt = now.advanced(by: .zero - position.elapsed)
+            publish(Snapshot(progress: .runningOpen(phase: phase, startedAt: startedAt), rounds: rounds))
             return
         }
         let endsAt = now.advanced(by: position.timeLeft)

@@ -55,7 +55,7 @@ struct SetupScreen: View {
             Button {
                 start(workoutType, workout)
             } label: {
-                Text("Start · \(workout.totalDuration.clockText)")
+                Text(workout.totalDuration.map { "Start · \($0.clockText)" } ?? "Start")
                     .font(.title2.bold().monospacedDigit())
                     .foregroundStyle(colors.onAccent)
                     .lineLimit(1)

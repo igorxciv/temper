@@ -20,15 +20,21 @@ public nonisolated struct UpcomingCue: Equatable, Sendable {
 }
 
 /// Where a Workout is at any active time, the time spent running and not Paused.
+///
+/// An open Phase's end isn't known until it is marked Done, so nothing after an open Phase is placed. Until then
+/// the position stays in that Phase, with no time left and no Cue upcoming.
 public nonisolated struct Timeline: Sendable {
     /// Where the Workout is at one active time.
     public struct Position: Equatable, Sendable {
         /// The current Phase, or `nil` once the Workout has finished.
         public let phase: Phase?
-        /// The time left in the current Phase, or zero once the Workout has finished.
+        /// The time left in the current Phase, or zero in an open Phase and once the Workout has finished.
         public let timeLeft: Duration
+        /// The time spent in the current Phase, or zero once the Workout has finished.
+        public let elapsed: Duration
         /// The first Cue due at or after this time, so a Workout that opens on Work reports its Cue at zero.
-        /// It is `nil` only past the finish. Whether a Cue actually plays is not decided here.
+        /// It is `nil` past the finish, and in an open Phase once it has started. Whether a Cue actually plays is
+        /// not decided here.
         public let nextCue: UpcomingCue?
 
         public var isFinished: Bool { phase == nil }
@@ -36,24 +42,36 @@ public nonisolated struct Timeline: Sendable {
 
     private struct Span: Sendable {
         let phase: Phase
-        let end: Duration
+        let start: Duration
+        /// The start of the next Phase, or `nil` for an open Phase.
+        let end: Duration?
+
+        func contains(_ activeTime: Duration) -> Bool {
+            end.map { activeTime < $0 } ?? true
+        }
     }
 
     private let spans: [Span]
     private let cues: [UpcomingCue]
 
     public init(workout: Workout) {
-        var end = Duration.zero
+        var start = Duration.zero
         var spans: [Span] = []
         var cues: [UpcomingCue] = []
         for phase in workout.phases {
             if let cue = Cue(entering: phase.kind) {
-                cues.append(UpcomingCue(cue: cue, due: end))
+                cues.append(UpcomingCue(cue: cue, due: start))
             }
-            end += phase.duration
-            spans.append(Span(phase: phase, end: end))
+            guard let duration = phase.duration else {
+                spans.append(Span(phase: phase, start: start, end: nil))
+                break
+            }
+            spans.append(Span(phase: phase, start: start, end: start + duration))
+            start += duration
         }
-        cues.append(UpcomingCue(cue: .workoutComplete, due: end))
+        if spans.last?.end != nil || spans.isEmpty {
+            cues.append(UpcomingCue(cue: .workoutComplete, due: start))
+        }
         self.spans = spans
         self.cues = cues
     }
@@ -61,9 +79,14 @@ public nonisolated struct Timeline: Sendable {
     /// A Phase's end is the start of the next Phase, and the Workout's end is its finish.
     public func position(at activeTime: Duration) -> Position {
         let nextCue = cues.first { $0.due >= activeTime }
-        guard let span = spans.first(where: { activeTime < $0.end }) else {
-            return Position(phase: nil, timeLeft: .zero, nextCue: nextCue)
+        guard let span = spans.first(where: { $0.contains(activeTime) }) else {
+            return Position(phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue)
         }
-        return Position(phase: span.phase, timeLeft: span.end - activeTime, nextCue: nextCue)
+        return Position(
+            phase: span.phase,
+            timeLeft: span.end.map { $0 - activeTime } ?? .zero,
+            elapsed: activeTime - span.start,
+            nextCue: nextCue
+        )
     }
 }

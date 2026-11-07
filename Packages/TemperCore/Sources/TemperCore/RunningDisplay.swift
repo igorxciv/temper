@@ -15,8 +15,8 @@ public nonisolated enum RingLine: Equatable, Sendable {
 /// What the running screen shows for a Workout Type at one snapshot: the time in the ring, how full the ring is,
 /// and the line under it, with what VoiceOver says for each.
 ///
-/// Every Phase counts down except a Stopwatch's Work, which counts up. Counting up is only a display choice, so
-/// the engine, the Timeline and the Cue rules are the same for both.
+/// Every Phase counts down except a Stopwatch's Work and an open Phase, which count up. Counting up is only a display
+/// choice, so the engine, the Timeline and the Cue rules are the same for both.
 public nonisolated struct RunningDisplay<Instant: InstantProtocol>: Equatable, Sendable
 where Instant.Duration == Duration {
     /// The ring at one instant.
@@ -39,9 +39,10 @@ where Instant.Duration == Duration {
         self.snapshot = snapshot
     }
 
-    /// True during a Stopwatch's Work, including while it's Paused.
+    /// True during a Stopwatch's Work and an open Phase, including while it's Paused.
     public var countsUp: Bool {
-        workoutType == .stopwatch && snapshot.phase?.kind == .work
+        guard let phase = snapshot.phase else { return false }
+        return phase.isOpen || (workoutType == .stopwatch && phase.kind == .work)
     }
 
     /// The ring at `now`. Counting down, the time left rounds up and the ring empties. Counting up, the time
@@ -49,14 +50,14 @@ where Instant.Duration == Duration {
     public func ring(at now: Instant) -> Ring {
         let timeLeft = snapshot.timeLeft(at: now)
         let fractionLeft = snapshot.fractionLeft(at: now)
-        guard countsUp, let phase = snapshot.phase else {
+        guard countsUp else {
             return Ring(
                 time: timeLeft.clockText,
                 spokenTime: "\(timeLeft.spokenText(rounding: .up)) left",
                 fill: fractionLeft
             )
         }
-        let elapsed = Duration.seconds((phase.duration - timeLeft).wholeSeconds(rounding: .down))
+        let elapsed = Duration.seconds(snapshot.elapsed(at: now).wholeSeconds(rounding: .down))
         return Ring(
             time: elapsed.clockText,
             spokenTime: "\(elapsed.spokenText(rounding: .down)) elapsed",
@@ -64,7 +65,7 @@ where Instant.Duration == Duration {
         )
     }
 
-    /// The line under the ring, or `nil` once the Workout has ended.
+    /// The line under the ring, or `nil` once the Workout has ended or when there's nothing to say.
     public var line: RingLine? {
         guard let phase = snapshot.phase else { return nil }
         if snapshot.isPaused { return .paused }
@@ -74,8 +75,10 @@ where Instant.Duration == Duration {
         }
     }
 
-    private func roundLine(in phase: Phase) -> RingLine {
-        let rounds = snapshot.rounds
+    private func roundLine(in phase: Phase) -> RingLine? {
+        guard let rounds = snapshot.rounds else {
+            return phase.round.map { .value("\($0)", caption: .before("Round"), spoken: "Round \($0)") }
+        }
         let total = rounds == 1 ? "1 Round" : "\(rounds) Rounds"
         switch phase.kind {
         case .prepare:
@@ -89,8 +92,10 @@ where Instant.Duration == Duration {
     }
 
     /// Prepare shows the length to come, and Work shows the length it counts up to.
-    private func lengthLine(in phase: Phase) -> RingLine {
-        let length = workout.phases.first { $0.kind == .work }?.duration ?? phase.duration
+    private func lengthLine(in phase: Phase) -> RingLine? {
+        guard let length = workout.phases.first(where: { $0.kind == .work })?.duration ?? phase.duration else {
+            return nil
+        }
         let spokenLength = length.spokenText(rounding: .up)
         if phase.kind == .prepare {
             return .value(length.clockText, caption: .after("Stopwatch"), spoken: "Stopwatch, \(spokenLength)")

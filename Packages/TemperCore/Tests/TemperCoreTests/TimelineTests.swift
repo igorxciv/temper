@@ -91,4 +91,38 @@ nonisolated struct TimelineTests {
 
         #expect(timeline.position(at: .seconds(11)).nextCue == UpcomingCue(cue: .workoutComplete, due: .seconds(40)))
     }
+
+    @Test func `Time spent counts up inside a Phase`() {
+        #expect(timeline.position(at: .milliseconds(47_250)).elapsed == .milliseconds(7_250))
+        #expect(timeline.position(at: .seconds(40)).elapsed == .zero)
+    }
+
+    // MARK: Open Phases
+
+    private let openWork = Phase(kind: .work, length: .open, round: 1)
+
+    /// A Prepare of 10 s, then an open Work, then a Rest that can't be placed until the Work is marked Done.
+    private var openTimeline: Timeline {
+        Timeline(workout: Workout(phases: [prepare, openWork, rest]))
+    }
+
+    @Test(arguments: [10, 11, 100_000])
+    func `An open Phase holds the position with no time left, however long it runs`(seconds: Int) {
+        let position = openTimeline.position(at: .seconds(seconds))
+
+        #expect(position.phase == openWork)
+        #expect(position.timeLeft == .zero)
+        #expect(position.elapsed == .seconds(seconds - 10))
+        #expect(!position.isFinished)
+    }
+
+    @Test func `An open Phase's own Cue is due at its start`() {
+        #expect(openTimeline.position(at: .seconds(5)).nextCue == UpcomingCue(cue: .work, due: .seconds(10)))
+        #expect(openTimeline.position(at: .seconds(10)).nextCue == UpcomingCue(cue: .work, due: .seconds(10)))
+    }
+
+    @Test func `Once an open Phase has started, no Cue is upcoming`() {
+        #expect(openTimeline.position(at: .milliseconds(10_001)).nextCue == nil)
+        #expect(openTimeline.position(at: .seconds(100_000)).nextCue == nil)
+    }
 }

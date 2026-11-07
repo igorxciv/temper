@@ -97,6 +97,26 @@ nonisolated struct LiveActivityStateTests {
         #expect(state == .complete(total: "08:50", spokenTotal: "8 minutes 50 seconds"))
     }
 
+    @Test func `An open Phase counts up, spanning from its start to now`() throws {
+        let openWork = Phase(kind: .work, length: .open, round: 1)
+        let workout = Workout(phases: [openWork])
+        let snapshot = Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(100)), rounds: nil)
+        let display = Display(workoutType: .intervals, workout: workout, snapshot: snapshot)
+
+        let phase = try #require(livePhase(display.liveActivityState(at: at(130), date: date)))
+
+        #expect(phase.countsUp)
+        #expect(phase.interval == date.addingTimeInterval(-30)...date)
+    }
+
+    @Test func `A finished Workout with no total length shows none`() {
+        let workout = Workout(phases: [Phase(kind: .work, length: .open, round: 1)])
+        let display = Display(
+            workoutType: .intervals, workout: workout, snapshot: Snapshot(progress: .finished, rounds: nil))
+
+        #expect(display.liveActivityState(at: at(0), date: date) == .complete(total: nil, spokenTotal: nil))
+    }
+
     @Test func `A stopped Workout has no Live Activity`() {
         #expect(intervals(.stopped).liveActivityState(at: at(0), date: date) == nil)
     }

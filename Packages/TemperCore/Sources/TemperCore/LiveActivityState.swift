@@ -7,18 +7,20 @@ import Foundation
 /// changes, never on a tick. Its time uses the system's rounding, which can differ from the ring's by a second.
 public nonisolated enum LiveActivityState: Codable, Hashable, Sendable {
     case phase(LivePhase)
-    /// The Workout has finished. The total is its length as `00:00`, and what VoiceOver says for it.
-    case complete(total: String, spokenTotal: String)
+    /// The Workout has finished. The total is its length as `00:00`, and what VoiceOver says for it, or `nil` for
+    /// a Workout with no total length.
+    case complete(total: String?, spokenTotal: String?)
 }
 
 /// A Phase on the Live Activity, running or Paused.
 public nonisolated struct LivePhase: Codable, Hashable, Sendable {
     public let kind: Phase.Kind
-    /// When the Phase would start and end if it ran without a Pause from the snapshot on.
+    /// When the Phase would start and end if it ran without a Pause from the snapshot on. An open Phase has no end,
+    /// so it spans from its start to the snapshot, until the Open Rounds screens decide how it shows.
     public let interval: ClosedRange<Date>
     /// The time at which a Paused Phase is held, or `nil` while it runs.
     public let pausedAt: Date?
-    /// True during a Stopwatch's Work, which counts up from the start of `interval`.
+    /// True during a Stopwatch's Work and an open Phase, which count up from the start of `interval`.
     public let countsUp: Bool
     /// The line under the time, the same as under the ring, and what VoiceOver says for it.
     public let line: String
@@ -44,9 +46,10 @@ extension RunningDisplay {
     /// are worked out from the time left at `now` rather than kept from Start.
     public nonisolated func liveActivityState(at now: Instant, date: Date) -> LiveActivityState? {
         switch snapshot.progress {
-        case .running(let phase, _), .paused(let phase, _):
+        case .running(let phase, _), .runningOpen(let phase, _), .paused(let phase, _), .pausedOpen(let phase, _):
             let end = date.addingTimeInterval(snapshot.timeLeft(at: now) / .seconds(1))
-            let start = end.addingTimeInterval(-(phase.duration / .seconds(1)))
+            let length = phase.duration ?? snapshot.elapsed(at: now)
+            let start = end.addingTimeInterval(-(length / .seconds(1)))
             let (text, spoken) = lineText
             return .phase(
                 LivePhase(
@@ -60,7 +63,7 @@ extension RunningDisplay {
             )
         case .finished:
             let total = workout.totalDuration
-            return .complete(total: total.clockText, spokenTotal: total.spokenText(rounding: .up))
+            return .complete(total: total?.clockText, spokenTotal: total?.spokenText(rounding: .up))
         case .stopped:
             return nil
         }

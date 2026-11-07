@@ -3,17 +3,23 @@
 public nonisolated struct WorkoutSnapshot<Instant: InstantProtocol>: Equatable, Sendable
 where Instant.Duration == Duration {
     public enum Progress: Equatable, Sendable {
+        /// A Phase with a set length, running until `endsAt`.
         case running(phase: Phase, endsAt: Instant)
+        /// An open Phase, running since `startedAt`, which any Pause has moved later by its length.
+        case runningOpen(phase: Phase, startedAt: Instant)
+        /// A Phase with a set length, held with `timeLeft` to go.
         case paused(phase: Phase, timeLeft: Duration)
+        /// An open Phase, held with `elapsed` spent in it.
+        case pausedOpen(phase: Phase, elapsed: Duration)
         case finished
         case stopped
     }
 
     public let progress: Progress
-    /// How many Rounds the Workout has.
-    public let rounds: Int
+    /// How many Rounds the Workout has, or `nil` if it has no set number.
+    public let rounds: Int?
 
-    public init(progress: Progress, rounds: Int) {
+    public init(progress: Progress, rounds: Int?) {
         self.progress = progress
         self.rounds = rounds
     }
@@ -21,13 +27,17 @@ where Instant.Duration == Duration {
     /// The current Phase, or `nil` once the Workout has ended.
     public var phase: Phase? {
         switch progress {
-        case .running(let phase, _), .paused(let phase, _): phase
+        case .running(let phase, _), .runningOpen(let phase, _), .paused(let phase, _), .pausedOpen(let phase, _):
+            phase
         case .finished, .stopped: nil
         }
     }
 
     public var isPaused: Bool {
-        if case .paused = progress { true } else { false }
+        switch progress {
+        case .paused, .pausedOpen: true
+        case .running, .runningOpen, .finished, .stopped: false
+        }
     }
 
     /// True from Start until the Workout finishes or stops, including during a Pause.
@@ -35,18 +45,32 @@ where Instant.Duration == Duration {
         phase != nil
     }
 
-    /// The time left in the current Phase, held at zero from the Phase's end until the next snapshot.
+    /// The time left in the current Phase, held at zero from the Phase's end until the next snapshot. An open
+    /// Phase has none.
     public func timeLeft(at now: Instant) -> Duration {
         switch progress {
         case .running(_, let end): max(.zero, now.duration(to: end))
         case .paused(_, let timeLeft): timeLeft
+        case .runningOpen, .pausedOpen, .finished, .stopped: .zero
+        }
+    }
+
+    /// The time spent in the current Phase, not counting any Pause. In a Phase with a set length it holds at that
+    /// length from the Phase's end until the next snapshot.
+    public func elapsed(at now: Instant) -> Duration {
+        switch progress {
+        case .running(let phase, _), .paused(let phase, _):
+            phase.duration.map { $0 - timeLeft(at: now) } ?? .zero
+        case .runningOpen(_, let start): max(.zero, start.duration(to: now))
+        case .pausedOpen(_, let elapsed): elapsed
         case .finished, .stopped: .zero
         }
     }
 
-    /// How much of the current Phase is left at `now`, from 1 as it starts to 0 as it ends.
+    /// How much of the current Phase is left at `now`, from 1 as it starts to 0 as it ends. An open Phase has
+    /// no length to measure against, so it reads 0.
     public func fractionLeft(at now: Instant) -> Double {
-        guard let phase, phase.duration > .zero else { return 0 }
-        return min(1, timeLeft(at: now) / phase.duration)
+        guard let length = phase?.duration, length > .zero else { return 0 }
+        return min(1, timeLeft(at: now) / length)
     }
 }

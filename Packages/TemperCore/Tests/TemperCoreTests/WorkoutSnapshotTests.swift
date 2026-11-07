@@ -66,6 +66,54 @@ nonisolated struct WorkoutSnapshotTests {
         #expect(Snapshot(progress: .finished, rounds: 8).fractionLeft(at: at(1)) == 0)
     }
 
+    // MARK: Time spent
+
+    @Test func `A Phase with a set length has spent the time it no longer has left`() {
+        #expect(running(work, endsAt: 100).elapsed(at: at(70)) == .seconds(10))
+        #expect(
+            Snapshot(progress: .paused(phase: work, timeLeft: .seconds(12)), rounds: 8).elapsed(at: at(1))
+                == .seconds(28))
+    }
+
+    @Test func `An ended Workout has spent no time in a Phase`() {
+        #expect(Snapshot(progress: .finished, rounds: 8).elapsed(at: at(1)) == .zero)
+    }
+
+    // MARK: Open Phases
+
+    private let openWork = Phase(kind: .work, length: .open, round: 3)
+
+    @Test func `A running open Phase counts the time since its start, and has no time left`() {
+        let snapshot = Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(100)), rounds: nil)
+
+        #expect(snapshot.phase == openWork)
+        #expect(!snapshot.isPaused)
+        #expect(snapshot.elapsed(at: at(137.5)) == .seconds(37.5))
+        #expect(snapshot.timeLeft(at: at(137.5)) == .zero)
+        #expect(snapshot.fractionLeft(at: at(137.5)) == 0)
+    }
+
+    @Test func `A running open Phase has spent no time before its start`() {
+        let snapshot = Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(100)), rounds: nil)
+
+        #expect(snapshot.elapsed(at: at(99)) == .zero)
+    }
+
+    @Test func `A Paused open Phase holds the time it had spent, ignoring now`() {
+        let snapshot = Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .seconds(42)), rounds: nil)
+
+        #expect(snapshot.phase == openWork)
+        #expect(snapshot.isPaused)
+        #expect(snapshot.elapsed(at: at(1)) == .seconds(42))
+        #expect(snapshot.elapsed(at: at(9_000)) == .seconds(42))
+        #expect(snapshot.timeLeft(at: at(1)) == .zero)
+    }
+
+    @Test func `The screen stays awake through an open Phase, running or Paused`() {
+        #expect(Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(1)), rounds: nil).keepsScreenAwake)
+        #expect(Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .seconds(1)), rounds: nil).keepsScreenAwake)
+    }
+
     // MARK: Staying awake
 
     @Test func `The screen stays awake while running and during a Pause`() {
