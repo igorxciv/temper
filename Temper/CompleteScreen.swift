@@ -2,7 +2,8 @@ import SwiftUI
 import TemperCore
 
 struct CompleteScreen: View {
-    let total: Duration
+    /// The Workout's length, or `nil` if it has none to show.
+    let total: Duration?
     let done: () -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -20,10 +21,12 @@ struct CompleteScreen: View {
                 .font(.largeTitle.weight(.semibold))
                 .foregroundStyle(colors.text)
                 .multilineTextAlignment(.center)
-            Text(total.clockText)
-                .font(.title2.monospacedDigit())
-                .foregroundStyle(colors.secondary)
-                .accessibilityLabel(total.spokenText(rounding: .up))
+            if let total {
+                Text(total.clockText)
+                    .font(.title2.monospacedDigit())
+                    .foregroundStyle(colors.secondary)
+                    .accessibilityLabel(total.spokenText(rounding: .up))
+            }
             Spacer()
             Button(action: done) {
                 Text("Done")

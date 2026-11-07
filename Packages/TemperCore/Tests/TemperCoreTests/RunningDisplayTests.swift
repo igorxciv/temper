@@ -208,3 +208,38 @@ nonisolated struct RunningDisplayTests {
         #expect(display.line == nil)
     }
 }
+
+/// An open Phase isn't reachable in the app yet. These only pin down that the display handles one without a made-up
+/// value, so the Open Rounds screens start from a sound place.
+nonisolated struct RunningDisplayOpenPhaseTests {
+    private typealias Snapshot = WorkoutSnapshot<ManualClock.Instant>
+    private typealias Display = RunningDisplay<ManualClock.Instant>
+
+    private let openWork = Phase(kind: .work, length: .open, round: 3)
+
+    private func at(_ seconds: Double) -> ManualClock.Instant {
+        ManualClock.Instant(offset: .seconds(seconds))
+    }
+
+    private func display(_ progress: Snapshot.Progress) -> Display {
+        let workout = Workout(phases: [openWork, Phase(kind: .rest, duration: .seconds(60), round: 3)])
+        return Display(workoutType: .intervals, workout: workout, snapshot: Snapshot(progress: progress, rounds: nil))
+    }
+
+    @Test func `An open Phase counts up from its start, rounding down`() {
+        let display = display(.runningOpen(phase: openWork, startedAt: at(100)))
+
+        let ring = display.ring(at: at(164.9))
+
+        #expect(display.countsUp)
+        #expect(ring.time == "01:04")
+        #expect(ring.spokenTime == "1 minute 4 seconds elapsed")
+    }
+
+    @Test func `With no set number of Rounds, the line shows the Round with no total`() {
+        #expect(
+            display(.runningOpen(phase: openWork, startedAt: at(0))).line
+                == .value("3", caption: .before("Round"), spoken: "Round 3")
+        )
+    }
+}

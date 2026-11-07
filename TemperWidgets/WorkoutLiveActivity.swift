@@ -258,7 +258,7 @@ private struct CompleteView: View {
                 Text("Workout complete")
                     .font(.headline)
                     .foregroundStyle(colors.text)
-                if case .complete(let total, let spokenTotal) = state {
+                if case .complete(let total?, let spokenTotal?) = state {
                     Text(total)
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(colors.secondary)

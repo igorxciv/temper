@@ -75,6 +75,24 @@ struct WorkoutTests {
         #expect(Workout(phases: [Phase(kind: .prepare, duration: .seconds(10))]).rounds == 0)
     }
 
+    @Test func `An open Phase has no set length`() {
+        let phase = Phase(kind: .work, length: .open, round: 1)
+
+        #expect(phase.isOpen)
+        #expect(phase.duration == nil)
+        #expect(!Phase(kind: .work, duration: .seconds(30), round: 1).isOpen)
+    }
+
+    @Test func `A Workout with an open Phase has no total length and no set number of Rounds`() {
+        let workout = Workout(phases: [
+            Phase(kind: .work, length: .open, round: 1),
+            Phase(kind: .rest, duration: .seconds(60), round: 1),
+        ])
+
+        #expect(workout.totalDuration == nil)
+        #expect(workout.rounds == nil)
+    }
+
     @Test func `A Workout needs at least one Round`() async {
         await #expect(processExitsWith: .failure) {
             _ = WorkoutType.intervals.makeWorkout(

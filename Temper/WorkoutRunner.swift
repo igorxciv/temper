@@ -108,12 +108,12 @@ final class WorkoutRunner {
         /// A Phase's end is timed where the screen learns of it, so the figure covers everything before the screen.
         private func logTiming(of next: Snapshot) {
             switch next.progress {
-            case .paused:
+            case .paused, .pausedOpen:
                 return
             case .stopped:
                 timingLog?.write("run_end", ["completed": false])
                 return
-            case .running, .finished:
+            case .running, .runningOpen, .finished:
                 break
             }
             if case .running(let phase, let endsAt) = snapshot?.progress, phase != next.phase {

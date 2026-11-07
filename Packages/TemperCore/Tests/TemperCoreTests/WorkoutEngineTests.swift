@@ -405,4 +405,56 @@ nonisolated struct WorkoutEngineTests {
 
         #expect(await snapshots.next() == running(secondWork, endsAt: 85))
     }
+
+    // MARK: Open Phases
+
+    private let openWork = Phase(kind: .work, length: .open, round: 1)
+
+    private func runningOpen(since start: Double) -> Snapshot {
+        Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(start)), rounds: nil)
+    }
+
+    @Test func `An open Phase is published with its start, and no set number of Rounds`() async {
+        let engine = makeEngine([prepare, openWork, rest])
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(10))
+
+        #expect(await snapshots.next() == runningOpen(since: 10))
+    }
+
+    @Test func `An open Phase publishes nothing however long it runs, and Pause holds its time spent`() async {
+        let engine = makeEngine([openWork, rest])
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        #expect(await snapshots.next() == runningOpen(since: 0))
+
+        clock.advance(by: .seconds(10_000))
+        let tap = clock.now
+        clock.advanceWhileSuspended(by: .milliseconds(300))
+        await engine.pause(at: tap)
+
+        // Had the engine published anything for the wait, it would arrive ahead of the Pause.
+        #expect(
+            await snapshots.next()
+                == Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .seconds(10_000)), rounds: nil)
+        )
+    }
+
+    @Test func `Resume moves an open Phase's start later by exactly the Pause`() async {
+        let engine = makeEngine([openWork, rest])
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(25))
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(40))
+        await engine.resume(at: clock.now)
+
+        #expect(await snapshots.next() == runningOpen(since: 40))
+    }
 }

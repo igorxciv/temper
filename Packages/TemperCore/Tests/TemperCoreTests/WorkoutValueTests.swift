@@ -108,6 +108,6 @@ struct WorkoutValueTests {
         settings[.rest] = 0
         settings[.cooldown] = 0
 
-        #expect(WorkoutType.intervals.makeWorkout(from: settings).totalDuration.clockText == "120:00")
+        #expect(WorkoutType.intervals.makeWorkout(from: settings).totalDuration?.clockText == "120:00")
     }
 }
