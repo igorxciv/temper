@@ -43,6 +43,7 @@ nonisolated struct LiveActivityStateTests {
         #expect(phase.pausedAt == nil)
         #expect(!phase.isPaused)
         #expect(!phase.countsUp)
+        #expect(phase.hasBar)
     }
 
     @Test func `A Phase past its end, before the next snapshot, ends now`() throws {
@@ -89,6 +90,20 @@ nonisolated struct LiveActivityStateTests {
         #expect(round.spokenLine == "Round 3 of 8")
         #expect(length.line == "of 10:00")
         #expect(paused.line == "Paused")
+    }
+
+    @Test func `Intervals and Stopwatch offer Pause while running and Resume while Paused`() throws {
+        let running = try #require(
+            livePhase(intervals(.running(phase: work, endsAt: at(100))).liveActivityState(at: at(90), date: date))
+        )
+        let paused = try #require(
+            livePhase(
+                stopwatch(.paused(phase: stopwatchWork, timeLeft: .seconds(150))).liveActivityState(
+                    at: at(0), date: date))
+        )
+
+        #expect(running.button == .pause)
+        #expect(paused.button == .resume)
     }
 
     @Test func `A finished Workout shows its total length`() {
@@ -145,6 +160,7 @@ nonisolated struct LiveActivityStateOpenRoundsTests {
         #expect(phase.start == date.addingTimeInterval(-30))
         #expect(phase.end == nil)
         #expect(phase.countsUp)
+        #expect(!phase.hasBar)
         #expect(!phase.isPaused)
         #expect(phase.line == "Round 3")
         #expect(phase.spokenLine == "Round 3")
@@ -157,6 +173,7 @@ nonisolated struct LiveActivityStateOpenRoundsTests {
         #expect(phase.end == nil)
         #expect(phase.pausedAt == date)
         #expect(phase.pausedFill == 0)
+        #expect(!phase.hasBar)
         #expect(phase.line == "Paused")
     }
 
@@ -167,6 +184,7 @@ nonisolated struct LiveActivityStateOpenRoundsTests {
         #expect(phase.start == date.addingTimeInterval(-50))
         #expect(phase.end == date.addingTimeInterval(10))
         #expect(!phase.countsUp)
+        #expect(phase.hasBar)
         #expect(phase.line == "Round 3")
         #expect(phase.spokenLine == "Round 3")
     }
@@ -177,6 +195,20 @@ nonisolated struct LiveActivityStateOpenRoundsTests {
 
         #expect(phase.line == "Paused")
         #expect(phase.pausedFill == 0.25)
+    }
+
+    @Test func `Only a running open Work offers Done, and Rest and Pause offer no button`() throws {
+        let runningWork = try #require(livePhase(state(.runningOpen(phase: work, startedAt: at(100)), at: 130)))
+        let pausedWork = try #require(livePhase(state(.pausedOpen(phase: work, elapsed: .seconds(42)), at: 500)))
+        let runningRest = try #require(
+            livePhase(state(.running(phase: rest, endsAt: at(160)), at: 150, workTime: .seconds(102))))
+        let pausedRest = try #require(
+            livePhase(state(.paused(phase: rest, timeLeft: .seconds(15)), at: 0, workTime: .seconds(102))))
+
+        #expect(runningWork.button == .done)
+        #expect(pausedWork.button == nil)
+        #expect(runningRest.button == nil)
+        #expect(pausedRest.button == nil)
     }
 
     @Test func `After a Stop it shows Workout complete with the active time, rounding down`() {

@@ -15,6 +15,14 @@ public nonisolated enum LiveActivityState: Codable, Hashable, Sendable {
 
 /// A Phase on the Live Activity, running or Paused.
 public nonisolated struct LivePhase: Codable, Hashable, Sendable {
+    /// The Live Activity's one button. Its Workout Type isn't on the Live Activity, so the state names the button.
+    public enum Button: String, Codable, Hashable, Sendable {
+        case pause
+        case resume
+        /// Ends a running open Work.
+        case done
+    }
+
     public let kind: Phase.Kind
     /// When the Phase would have started if it ran without a Pause up to the snapshot.
     public let start: Date
@@ -28,9 +36,17 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
     /// The line under the time, the same as under the ring, and what VoiceOver says for it.
     public let line: String
     public let spokenLine: String
+    /// Pause or Resume in Intervals and Stopwatch. Done in a running open Work, and `nil` in an Open Rounds Rest
+    /// or while it's Paused, since Open Rounds keeps Pause in the app.
+    public let button: Button?
 
     public var isPaused: Bool {
         pausedAt != nil
+    }
+
+    /// False for an open Phase, which has no length for a bar to fill or empty, the same as its empty ring.
+    public var hasBar: Bool {
+        end != nil
     }
 
     /// The range the system counts over: from `start` to `end`, or, for an open Phase, from `start` with no end in
@@ -72,13 +88,23 @@ extension RunningDisplay {
                     pausedAt: snapshot.isPaused ? date : nil,
                     countsUp: countsUp,
                     line: text,
-                    spokenLine: spoken
+                    spokenLine: spoken,
+                    button: liveButton
                 )
             )
         case .finished(let record):
             return complete(record)
         case .stopped(let record):
             return workoutType == .openRounds ? complete(record) : nil
+        }
+    }
+
+    private nonisolated var liveButton: LivePhase.Button? {
+        switch (workoutType, snapshot.progress) {
+        case (.openRounds, .runningOpen): .done
+        case (.openRounds, _): nil
+        case (_, .paused), (_, .pausedOpen): .resume
+        case (_, _): .pause
         }
     }
 
