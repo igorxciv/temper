@@ -43,6 +43,13 @@ nonisolated struct WorkoutEngineTests {
         #expect(await snapshots.next() == running(prepare, endsAt: 17))
     }
 
+    @Test func `Start returns its fixed start point`() async {
+        let engine = makeEngine()
+        clock.advance(by: .seconds(7))
+
+        #expect(await engine.start() == at(7))
+    }
+
     @Test func `Starting twice changes nothing`() async {
         let engine = makeEngine()
         var snapshots = engine.snapshots.makeAsyncIterator()
@@ -50,7 +57,7 @@ nonisolated struct WorkoutEngineTests {
         _ = await snapshots.next()
         clock.advanceWhileSuspended(by: .seconds(3))
 
-        await engine.start()
+        #expect(await engine.start() == nil)
         await engine.pause(at: clock.now)
 
         #expect(await snapshots.next() == Snapshot(progress: .paused(phase: prepare, timeLeft: .seconds(7)), rounds: 2))

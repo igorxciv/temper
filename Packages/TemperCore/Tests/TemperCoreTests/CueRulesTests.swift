@@ -159,7 +159,7 @@ nonisolated struct CueRulesTests {
 
         advance(to: 0.5)
         await audio.release()
-        await start.value
+        _ = await start.value
 
         #expect(await snapshots.next()?.progress == .running(phase: prepare, endsAt: at(10.5)))
     }
@@ -175,7 +175,7 @@ nonisolated struct CueRulesTests {
         _ = await calls.next()
 
         advance(to: 1)
-        await start.value
+        _ = await start.value
 
         #expect(await snapshots.next()?.progress == .running(phase: prepare, endsAt: at(11)))
         advance(to: 9.5)
@@ -738,7 +738,7 @@ nonisolated struct CueRulesTests {
         _ = await calls.next()
 
         await engine.stop(at: clock.now)
-        await start.value
+        #expect(await start.value == nil)
 
         #expect(await snapshots.next()?.wasStopped == true)
         #expect(await snapshots.next() == nil)
