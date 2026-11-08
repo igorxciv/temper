@@ -1,0 +1,272 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CC0000000000000000000041 /* WatchHapticsPrototype.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000011 /* WatchHapticsPrototype.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CC0000000000000000000042 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CC0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CC0000000000000000000010;
+			remoteInfo = WatchHapticsPrototype;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CC0000000000000000000040 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				CC0000000000000000000041 /* WatchHapticsPrototype.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		CC0000000000000000000002 /* Prototype.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prototype.xcconfig; sourceTree = "<group>"; };
+		CC0000000000000000000008 /* Watch.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Watch.xcconfig; sourceTree = "<group>"; };
+		CC0000000000000000000009 /* Host.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Host.xcconfig; sourceTree = "<group>"; };
+		CC000000000000000000000A /* Watch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Watch.entitlements; sourceTree = "<group>"; };
+		CC000000000000000000000B /* Watch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Watch-Info.plist"; sourceTree = "<group>"; };
+		CC0000000000000000000011 /* WatchHapticsPrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WatchHapticsPrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC0000000000000000000031 /* HapticsHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HapticsHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CC0000000000000000000012 /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; path = App; sourceTree = "<group>"; };
+		CC0000000000000000000032 /* Host */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Host; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CC0000000000000000000014 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC0000000000000000000034 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CC0000000000000000000003 = {
+			isa = PBXGroup;
+			children = (
+				CC0000000000000000000002 /* Prototype.xcconfig */,
+				CC0000000000000000000008 /* Watch.xcconfig */,
+				CC0000000000000000000009 /* Host.xcconfig */,
+				CC000000000000000000000A /* Watch.entitlements */,
+				CC000000000000000000000B /* Watch-Info.plist */,
+				CC0000000000000000000012 /* App */,
+				CC0000000000000000000032 /* Host */,
+				CC0000000000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CC0000000000000000000011 /* WatchHapticsPrototype.app */,
+				CC0000000000000000000031 /* HapticsHost.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CC0000000000000000000010 /* WatchHapticsPrototype */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC0000000000000000000020 /* Build configuration list for PBXNativeTarget "WatchHapticsPrototype" */;
+			buildPhases = (
+				CC0000000000000000000015 /* Sources */,
+				CC0000000000000000000014 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CC0000000000000000000012 /* App */,
+			);
+			name = WatchHapticsPrototype;
+			productName = WatchHapticsPrototype;
+			productReference = CC0000000000000000000011 /* WatchHapticsPrototype.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CC0000000000000000000030 /* HapticsHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC0000000000000000000036 /* Build configuration list for PBXNativeTarget "HapticsHost" */;
+			buildPhases = (
+				CC0000000000000000000035 /* Sources */,
+				CC0000000000000000000034 /* Frameworks */,
+				CC0000000000000000000040 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CC0000000000000000000043 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CC0000000000000000000032 /* Host */,
+			);
+			name = HapticsHost;
+			productName = HapticsHost;
+			productReference = CC0000000000000000000031 /* HapticsHost.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CC0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2720;
+				LastUpgradeCheck = 2720;
+			};
+			buildConfigurationList = CC0000000000000000000005 /* Build configuration list for PBXProject "WatchHapticsPrototype" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CC0000000000000000000003;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CC0000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CC0000000000000000000010 /* WatchHapticsPrototype */,
+				CC0000000000000000000030 /* HapticsHost */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CC0000000000000000000015 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC0000000000000000000035 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CC0000000000000000000043 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CC0000000000000000000010 /* WatchHapticsPrototype */;
+			targetProxy = CC0000000000000000000042 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		CC0000000000000000000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC0000000000000000000002 /* Prototype.xcconfig */;
+			buildSettings = {
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				DEBUG_INFORMATION_FORMAT = dwarf;
+			};
+			name = Debug;
+		};
+		CC0000000000000000000007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC0000000000000000000002 /* Prototype.xcconfig */;
+			buildSettings = {
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		CC0000000000000000000021 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC0000000000000000000008 /* Watch.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		CC0000000000000000000022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC0000000000000000000008 /* Watch.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		CC0000000000000000000037 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC0000000000000000000009 /* Host.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		CC0000000000000000000038 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC0000000000000000000009 /* Host.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CC0000000000000000000005 /* Build configuration list for PBXProject "WatchHapticsPrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC0000000000000000000006 /* Debug */,
+				CC0000000000000000000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC0000000000000000000020 /* Build configuration list for PBXNativeTarget "WatchHapticsPrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC0000000000000000000021 /* Debug */,
+				CC0000000000000000000022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC0000000000000000000036 /* Build configuration list for PBXNativeTarget "HapticsHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC0000000000000000000037 /* Debug */,
+				CC0000000000000000000038 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CC0000000000000000000001 /* Project object */;
+}

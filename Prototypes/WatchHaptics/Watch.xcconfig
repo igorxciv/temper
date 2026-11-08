@@ -1,0 +1,18 @@
+// PROTOTYPE, throwaway. The Watch app. It runs a workout session that never saves, so haptics keep playing with
+// the wrist down, as they will in Temper.
+#include "Prototype.xcconfig"
+
+SDKROOT = watchos
+SUPPORTED_PLATFORMS = watchos watchsimulator
+TARGETED_DEVICE_FAMILY = 4
+WATCHOS_DEPLOYMENT_TARGET = 26.0
+SKIP_INSTALL = YES
+INFOPLIST_FILE = Watch-Info.plist
+CODE_SIGN_ENTITLEMENTS = Watch.entitlements
+INFOPLIST_KEY_CFBundleDisplayName = Haptics Proto
+INFOPLIST_KEY_WKApplication = YES
+INFOPLIST_KEY_WKCompanionAppBundleIdentifier = $(HOST_BUNDLE_ID)
+INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES
+INFOPLIST_KEY_NSHealthShareUsageDescription = The haptics prototype runs a workout session so haptics play with the wrist down. It reads nothing.
+INFOPLIST_KEY_NSHealthUpdateUsageDescription = The haptics prototype runs a workout session so haptics play with the wrist down. It saves nothing.
+PRODUCT_BUNDLE_IDENTIFIER = $(HOST_BUNDLE_ID).watchkitapp
