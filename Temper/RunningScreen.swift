@@ -70,8 +70,8 @@ private struct TimeRing: View {
                         .font(.system(size: 180, weight: .semibold).monospacedDigit())
                         .foregroundStyle(colors.text)
                         .lineLimit(1)
-                        // Low enough for "72:15" in the ring Open Rounds' Done leaves on an iPhone SE.
-                        .minimumScaleFactor(0.3)
+                        // With Done, low enough for "72:15" in the smaller ring it leaves on an iPhone SE.
+                        .minimumScaleFactor(display.doneButton == nil ? 0.4 : 0.3)
                         .padding(.horizontal, 24)
                         // Read only when focus lands on it. The `updatesFrequently` trait would announce it as it
                         // changes, and the Cues already speak every Phase change.
