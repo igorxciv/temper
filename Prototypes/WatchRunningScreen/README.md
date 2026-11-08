@@ -1,50 +1,64 @@
-# PROTOTYPE: Watch running screen
+# PROTOTYPE: every Watch screen
 
 Throwaway. It lives only on the `prototype/watch-running-screen` branch and is never merged. It answers
-[How should the Watch running screen look: a large tap target or tap-anywhere?](https://github.com/igorxciv/temper/issues/76)
+[How should each of the Watch's screens look, and which heart-rate reading goes in the slot?](https://github.com/igorxciv/temper/issues/111)
 
-Three variants, from the smallest target to the whole screen:
+It started as the prototype for [How should the Watch running screen look: a large tap target or tap-anywhere?](https://github.com/igorxciv/temper/issues/76). Variant A won there, so the running screen here is A only. B, C and the Crown turn are in this branch's history at `ec745ac`.
 
-- **A · Large button:** the iPhone layout shrunk, with one full-width capsule about 56 pt tall at the bottom. Taps above it do nothing.
-- **B · Half-screen band:** information in the top half and the bottom half of the glass, edge to edge, as the button.
-- **C · Tap anywhere:** no button. The time is about 40% bigger, progress runs around the screen's edge, and a hint at the bottom says what a tap does.
+## What's in it
 
-Each one covers an Open Rounds Work, an Open Rounds Rest (Done dimmed in place), and an Intervals Work (Pause and Resume), awake and Always On, with a slot kept for heart rate.
+Every screen from "Start on iPhone" to the complete screen, with a pick wherever the map left a choice:
+
+| Screen | Fixed | Variants |
+| --- | --- | --- |
+| Idle | "Start on iPhone" | none |
+| Waiting, from `handle(_:)` to the iPhone's first message | "Connecting to iPhone" | none |
+| Running, per Workout Type and Phase | #76's variant A | **Heart rate:** H1 bpm only, H2 bpm + zone number, H3 bpm + zone meter |
+| Dropout | time held at what it last heard, 00:00 at most; controls dimmed in place | **D1** the mark replaces the Phase name, **D2** the mark replaces the line |
+| Secondary page, a swipe right | Pause or Resume, and Stop | **P1** two wide buttons, **P2** two round buttons |
+| Stop's confirmation | | **S1** "End this Workout?" dialog, **S2** tap again within 3 s |
+| Late Watch | "Running on iPhone", no controls, no heart rate | **L1** message only, **L2** message and the time, read-only |
+| Complete | the iPhone's complete screen shrunk; Done goes back to idle | **C1** as the iPhone, **C2** plus average and max heart rate |
+
+The zone uses heart-rate reserve at 60, 70, 80 and 90%, with a stand-in maximum of 186 and resting rate of 58. On a real Watch Temper would have to find both itself, because watchOS 27's zone APIs don't run on a Series 8.
 
 ## Look at the snapshots
 
-`Snapshots/Output/watch-running-45mm.png` and `watch-running-41mm.png` put all three side by side at Series 8 sizes. Regenerate them with:
+`Snapshots/Output/` has two sheets per Series 8 size:
+
+- `watch-running-*.png`: every Workout Type and Phase against H1, H2 and H3, and H3 in Always On
+- `watch-screens-*.png`: every other screen and variant
+
+Regenerate them with:
 
 ```sh
 swift run --package-path Prototypes/WatchRunningScreen Snapshots Prototypes/WatchRunningScreen/Snapshots/Output
 ```
 
-macOS draws SF Pro where the Watch uses SF Compact, and the clock and corner radius are approximate, so trust the Watch over the snapshots.
+macOS draws SF Pro where the Watch uses SF Compact, and the clock and corner radius are approximate, so trust the Watch over the snapshots. The complete screens show only the first screenful, because a snapshot can't scroll.
 
 ## Run it on the Series 8
 
-No watchOS Simulator runtime is installed, and only the wrist answers "can I hit it mid-set without looking".
-
-A watchOS 26 Watch doesn't show up in Xcode 27's Device Hub, and its nearby-device pairing covers only watchOS 27. So a tiny iPhone app, `PrototypeHost`, carries the Watch app, and the iPhone passes it on.
+Xcode 27.2 runs a Watch app on the Series 8 directly ([#101](https://github.com/igorxciv/temper/issues/101)).
 
 1. Make sure `Config/Local.xcconfig` exists in this checkout. The prototype reads `DEVELOPMENT_TEAM` and `BUNDLE_ID_PREFIX` from it.
-2. Open `Prototypes/WatchRunningScreen/WatchRunningPrototype.xcodeproj`, pick the **PrototypeHost** scheme with the iPhone as the destination, and Run.
-3. On the iPhone, open the Watch app → My Watch, and install **Temper Proto** under Available Apps, unless it installs by itself.
-4. If the Watch asks for Developer Mode, turn it on in Settings → Privacy & Security → Developer Mode and let it restart.
-5. On the Watch, set Settings → General → Return to Clock → Temper Proto → After 1 hour. The prototype has no workout session, so it would otherwise drop to the watch face after 2 minutes, and Always On updates only once a minute.
+2. Open `Prototypes/WatchRunningScreen/WatchRunningPrototype.xcodeproj`, pick the **WatchRunningPrototype** scheme with the Watch as the destination, and Run. The **PrototypeHost** scheme, which carries the Watch app through the iPhone, still works as a fallback.
+3. On the Watch, set Settings → General → Return to Clock → Temper Proto → After 1 hour. The prototype has no workout session, so it would otherwise drop to the watch face after 2 minutes, and Always On updates only once a minute.
 
-On the Watch:
+On the Watch, the last page (swipe left) holds the prototype's controls:
 
-- **Middle page:** the running screen. The quick action works by tap, or by a firm Crown turn with a meter beside the Crown. One turn fires once, and the Crown has to rest before it can fire again.
-- **Swipe right:** Stop, with its "End this Workout?" confirmation.
-- **Swipe left:** the prototype's controls: variant, scenario, restart, Force Always On, the heart-rate slot, and the Crown turn's firmness (Light, Firm, Very firm).
+- **iPhone:** pick the Workout Type, then **Start, in time** (waiting, then the running screen) or **Start, Watch late** (waiting, then "Running on iPhone"). **Connected** off starts a dropout. **Stop** stands in for Stop on the iPhone.
+- **Jump into a run:** go straight to Prepare, Work, Rest, Cooldown or Paused.
+- **Variants:** every pick in the table above, and Force Always On.
 
-The clock is a stand-in for the iPhone engine. Done starts a 1:00 Rest, and the next Work starts by itself. Intervals runs 0:40 Work and 0:20 Rest. A Done that does nothing gives a failure haptic.
+While a Workout runs, swipe right for the secondary page. The clock stands in for the iPhone engine: Intervals is a 0:10 Prepare, eight Rounds of 0:40 Work and 0:20 Rest, and a 1:00 Cooldown. Stopwatch is a 0:10 Prepare and a 5:00 Work. Open Rounds has a 1:00 Rest after each Done. A tap that does nothing gives a failure haptic.
 
 ## What to judge
 
-- Can you hit the quick action mid-set without looking, with a sweaty hand, in a sleeve?
-- Did anything fire that you didn't mean? A sleeve or a brush in C, a wrist bend on the Crown.
-- Can you still read the time, Phase, Round and the last Work time at arm's length, and is there room for heart rate?
-- Does Always On stay readable, and is a dimmed tap still easy?
-- Which Crown firmness is a deliberate turn and not an accident?
+- Which heart-rate slot do you read at arm's length mid-set: the bpm alone, or a zone beside it? If a zone, the number or the meter?
+- During a dropout, is "iPhone not connected" obvious without hiding the Phase or the heart rate?
+- Secondary page: wide buttons or round ones? Is Stop far enough from Pause?
+- Stop: a dialog, or tap again?
+- A late Watch: a message, or the time without controls?
+- Complete: is heart rate worth a line there, given the iPhone's complete screen leaves it out?
+- Idle, waiting and "Running on iPhone": is the wording right?

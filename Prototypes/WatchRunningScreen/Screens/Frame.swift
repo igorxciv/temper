@@ -1,42 +1,150 @@
-// PROTOTYPE, throwaway. Answers "How should the Watch running screen look: a large tap target or tap-anywhere?"
+// PROTOTYPE, throwaway. Answers "How should each of the Watch's screens look, and which heart-rate reading goes in
+// the slot?" (https://github.com/igorxciv/temper/issues/111), building on the running-screen prototype for #76.
 // Lives only on the prototype/watch-running-screen branch and is never merged.
 
 import Foundation
 
-/// The three layouts under test, from the smallest tap target to the whole screen.
-public enum Variant: String, CaseIterable, Identifiable, Sendable {
-    case button = "A"
-    case band = "B"
-    case anywhere = "C"
+// MARK: - What the owner flips between
+
+/// What sits in the running screen's heart-rate slot.
+public enum HeartVariant: String, CaseIterable, Identifiable, Sendable {
+    case bpm = "H1"
+    case zoneNumber = "H2"
+    case zoneMeter = "H3"
 
     public var id: String { rawValue }
 
     public var name: String {
         switch self {
-        case .button: "Large button"
-        case .band: "Half-screen band"
-        case .anywhere: "Tap anywhere"
+        case .bpm: "bpm only"
+        case .zoneNumber: "bpm + zone number"
+        case .zoneMeter: "bpm + zone meter"
         }
     }
 }
 
-/// The three moments the ticket asks to cover.
-public enum Scenario: String, CaseIterable, Identifiable, Sendable {
-    case openWork = "Open Rounds Work"
-    case openRest = "Open Rounds Rest"
-    case intervalsWork = "Intervals Work"
+/// Where "iPhone not connected" shows during a dropout. The controls dim in place either way.
+public enum DropoutVariant: String, CaseIterable, Identifiable, Sendable {
+    case header = "D1"
+    case line = "D2"
+
+    public var id: String { rawValue }
+
+    public var name: String {
+        switch self {
+        case .header: "mark replaces the Phase name"
+        case .line: "mark replaces the line"
+        }
+    }
+}
+
+/// The secondary page, a swipe right of the running screen.
+public enum ControlsVariant: String, CaseIterable, Identifiable, Sendable {
+    case stacked = "P1"
+    case circles = "P2"
+
+    public var id: String { rawValue }
+
+    public var name: String {
+        switch self {
+        case .stacked: "two wide buttons"
+        case .circles: "two round buttons"
+        }
+    }
+}
+
+/// How Stop asks before it ends the Workout.
+public enum StopVariant: String, CaseIterable, Identifiable, Sendable {
+    case dialog = "S1"
+    case tapAgain = "S2"
+
+    public var id: String { rawValue }
+
+    public var name: String {
+        switch self {
+        case .dialog: "\"End this Workout?\" dialog"
+        case .tapAgain: "tap again within 3 s"
+        }
+    }
+}
+
+/// What a late Watch shows while its session records in the background.
+public enum LateVariant: String, CaseIterable, Identifiable, Sendable {
+    case message = "L1"
+    case readOnly = "L2"
+
+    public var id: String { rawValue }
+
+    public var name: String {
+        switch self {
+        case .message: "message only"
+        case .readOnly: "message + time, no controls"
+        }
+    }
+}
+
+/// The complete screen, after Stop or the Workout's end.
+public enum CompleteVariant: String, CaseIterable, Identifiable, Sendable {
+    case plain = "C1"
+    case heart = "C2"
+
+    public var id: String { rawValue }
+
+    public var name: String {
+        switch self {
+        case .plain: "as the iPhone"
+        case .heart: "plus average and max heart rate"
+        }
+    }
+}
+
+// MARK: - The Workout
+
+public enum WorkoutType: String, CaseIterable, Identifiable, Sendable {
+    case intervals = "Intervals"
+    case stopwatch = "Stopwatch"
+    case openRounds = "Open Rounds"
 
     public var id: String { rawValue }
 }
 
 public enum PhaseKind: Sendable {
+    case prepare
     case work
     case rest
+    case cooldown
+
+    public var name: String {
+        switch self {
+        case .prepare: "Prepare"
+        case .work: "Work"
+        case .rest: "Rest"
+        case .cooldown: "Cooldown"
+        }
+    }
 }
 
-/// What the quick action means right now.
+/// A moment to start a sample Workout at, for the snapshots and the controls page.
+public enum Moment: String, CaseIterable, Identifiable, Sendable {
+    case prepare = "Prepare"
+    case work = "Work"
+    case rest = "Rest"
+    case cooldown = "Cooldown"
+    case paused = "Paused"
+
+    public var id: String { rawValue }
+
+    public func applies(to type: WorkoutType) -> Bool {
+        switch (type, self) {
+        case (.stopwatch, .rest), (.stopwatch, .cooldown), (.openRounds, .prepare), (.openRounds, .cooldown): false
+        default: true
+        }
+    }
+}
+
+/// What the capsule does right now. It mirrors the iPhone's large button.
 public enum QuickAction: Equatable, Sendable {
-    /// Done in Open Rounds. Disabled during Rest and while Paused, and dimmed in place.
+    /// Done in Open Rounds. Dimmed in place outside running Work, and while Paused.
     case done(isEnabled: Bool)
     case pause
     case resume
@@ -60,77 +168,123 @@ public enum QuickAction: Equatable, Sendable {
     public var isEnabled: Bool {
         if case .done(let isEnabled) = self { isEnabled } else { true }
     }
+}
 
-    /// The hint shown by the tap-anywhere variant, which has no button to label.
-    public var hint: String {
-        switch self {
-        case .done(true): "Tap to finish the set"
-        case .done(false): "Work starts by itself"
-        case .pause: "Tap to pause"
-        case .resume: "Tap to resume"
+/// One heart-rate reading, and the zone Temper works out from it. A Series 8 runs watchOS 26, where Apple's zone
+/// APIs don't exist, so the zone here uses heart-rate reserve with a stand-in maximum and resting rate.
+public struct HeartReading: Sendable {
+    public var bpm: Int?
+
+    public static let maximum = 186
+    public static let resting = 58
+
+    public init(bpm: Int?) {
+        self.bpm = bpm
+    }
+
+    /// 1 to 5, at 60, 70, 80 and 90% of heart-rate reserve, as Apple's Workout app splits it by default.
+    public var zone: Int? {
+        guard let bpm else { return nil }
+        let reserve = Double(bpm - Self.resting) / Double(Self.maximum - Self.resting)
+        return switch reserve {
+        case ..<0.6: 1
+        case ..<0.7: 2
+        case ..<0.8: 3
+        case ..<0.9: 4
+        default: 5
         }
     }
 }
 
-/// Everything one running screen draws at one instant.
+/// Everything the running screen draws at one instant.
 public struct Frame: Sendable {
+    public var type: WorkoutType
     public var phase: PhaseKind
-    public var phaseName: String
     public var time: String
-    /// The part of the Phase left, from 1 to 0. `nil` for an open Work, which shows only the empty track.
+    /// The part of the Phase left, from 1 to 0. `nil` for a Phase that counts up with no end: an open Work.
     public var remaining: Double?
-    public var roundLine: String
-    /// In Rest, the set just finished: "Work 1:42".
-    public var detail: String?
+    /// The line under the bar, as under the iPhone's ring. "Paused" replaces it.
+    public var line: String
     public var isPaused: Bool
     public var action: QuickAction
-
-    public init(
-        phase: PhaseKind, phaseName: String, time: String, remaining: Double?, roundLine: String, detail: String?,
-        isPaused: Bool, action: QuickAction
-    ) {
-        self.phase = phase
-        self.phaseName = phaseName
-        self.time = time
-        self.remaining = remaining
-        self.roundLine = roundLine
-        self.detail = detail
-        self.isPaused = isPaused
-        self.action = action
-    }
+    public var heart: HeartReading
 }
 
-/// A stand-in for the iPhone engine: just enough clock to make each scenario move and react to the quick action.
+/// What the complete screen shows.
+public struct Summary: Sendable {
+    public var type: WorkoutType
+    public var total: String
+    public var rounds: [String]
+    public var averageBPM: Int
+    public var maximumBPM: Int
+}
+
+/// A stand-in for the iPhone engine: just enough clock to move each Workout Type through its Phases and to react to
+/// the quick action, Pause, Resume and Stop.
 public struct FakeWorkout: Sendable {
-    public private(set) var scenario: Scenario
-    private var phase: PhaseKind = .work
+    public let type: WorkoutType
+    public private(set) var phase: PhaseKind
     private var phaseStart: Date
     private var pausedAt: Date?
     private var round: Int
     private var lastWork: TimeInterval?
+    private var workTimes: [TimeInterval]
+    private var activeBefore: TimeInterval
+    public private(set) var isFinished = false
 
-    private let openRest: TimeInterval = 60
+    private let prepareLength: TimeInterval = 10
     private let intervalsWork: TimeInterval = 40
     private let intervalsRest: TimeInterval = 20
     private let intervalsRounds = 8
+    private let cooldownLength: TimeInterval = 60
+    private let stopwatchLength: TimeInterval = 300
+    private let openRest: TimeInterval = 60
 
-    private var isOpenRounds: Bool { scenario != .intervalsWork }
-
-    /// Starts each scenario part-way in, so the numbers look like a real set.
-    public init(scenario: Scenario, now: Date) {
-        self.scenario = scenario
-        switch scenario {
-        case .openWork:
-            round = 3
-            phaseStart = now.addingTimeInterval(-42)
-        case .openRest:
-            round = 3
+    /// Starts part-way into the moment, so the numbers look like a real Workout.
+    public init(type: WorkoutType, moment: Moment, now: Date) {
+        self.type = type
+        workTimes = type == .openRounds ? [98, 105] : []
+        activeBefore = 0
+        switch (type, moment) {
+        case (_, .prepare):
+            phase = .prepare
+            round = 1
+            phaseStart = now.addingTimeInterval(-3)
+        case (.intervals, .rest):
             phase = .rest
-            lastWork = 102
-            phaseStart = now.addingTimeInterval(-18)
-        case .intervalsWork:
+            round = 4
+            phaseStart = now.addingTimeInterval(-7)
+            activeBefore = 220
+        case (.intervals, .cooldown):
+            phase = .cooldown
+            round = 8
+            phaseStart = now.addingTimeInterval(-15)
+            activeBefore = 470
+        case (.intervals, _):
+            phase = .work
             round = 4
             phaseStart = now.addingTimeInterval(-12)
+            activeBefore = 190
+        case (.stopwatch, _):
+            phase = .work
+            round = 1
+            phaseStart = now.addingTimeInterval(-134)
+            activeBefore = 10
+        case (.openRounds, .rest):
+            phase = .rest
+            round = 3
+            lastWork = 102
+            workTimes.append(102)
+            phaseStart = now.addingTimeInterval(-18)
+            activeBefore = 425
+        case (.openRounds, _):
+            phase = .work
+            round = 3
+            phaseStart = now.addingTimeInterval(-42)
+            activeBefore = 323
+        }
+        if moment == .paused {
+            pausedAt = now
         }
     }
 
@@ -139,79 +293,147 @@ public struct FakeWorkout: Sendable {
     }
 
     private var length: TimeInterval? {
-        switch (isOpenRounds, phase) {
-        case (true, .work): nil
-        case (true, .rest): openRest
-        case (false, .work): intervalsWork
-        case (false, .rest): intervalsRest
+        switch (type, phase) {
+        case (_, .prepare): prepareLength
+        case (_, .cooldown): cooldownLength
+        case (.intervals, .work): intervalsWork
+        case (.intervals, .rest): intervalsRest
+        case (.stopwatch, _): stopwatchLength
+        case (.openRounds, .work): nil
+        case (.openRounds, .rest): openRest
         }
     }
 
+    /// Whether the Phase counts up: a Stopwatch's Work and an open Phase.
+    private var countsUp: Bool { type == .stopwatch && phase == .work || length == nil }
+
     /// Moves to the next Phase once a timed one runs out.
     public mutating func advance(to now: Date) {
-        guard pausedAt == nil, let length, elapsed(at: now) >= length else { return }
+        guard !isFinished, pausedAt == nil, let length, elapsed(at: now) >= length else { return }
         let end = phaseStart.addingTimeInterval(length)
-        switch phase {
-        case .work:
-            phase = .rest
-        case .rest:
+        if phase != .prepare { activeBefore += length }
+        switch (type, phase) {
+        case (_, .prepare):
             phase = .work
-            round = isOpenRounds ? round + 1 : round % intervalsRounds + 1
+        case (.intervals, .work) where round == intervalsRounds:
+            phase = .cooldown
+        case (_, .work) where type == .stopwatch:
+            isFinished = true
+        case (_, .work):
+            phase = .rest
+        case (_, .rest):
+            phase = .work
+            round += 1
+        case (_, .cooldown):
+            isFinished = true
         }
         phaseStart = end
     }
 
-    /// Returns whether the tap did anything.
+    /// Returns whether the capsule did anything.
     @discardableResult
     public mutating func quickAction(at now: Date) -> Bool {
-        if isOpenRounds {
+        if type == .openRounds {
             guard phase == .work, pausedAt == nil else { return false }
-            lastWork = elapsed(at: now)
+            let work = elapsed(at: now)
+            lastWork = work
+            workTimes.append(work)
+            activeBefore += work
             phase = .rest
             phaseStart = now
             return true
         }
+        togglePause(at: now)
+        return true
+    }
+
+    public mutating func togglePause(at now: Date) {
         if let pausedAt {
             phaseStart = phaseStart.addingTimeInterval(now.timeIntervalSince(pausedAt))
             self.pausedAt = nil
         } else {
             pausedAt = now
         }
-        return true
     }
 
-    public func frame(at now: Date) -> Frame {
+    public var isPaused: Bool { pausedAt != nil }
+
+    public func frame(at now: Date, bpm: Int?) -> Frame {
         let elapsed = elapsed(at: now)
-        let shown = length.map { max($0 - elapsed, 0).rounded(.up) } ?? elapsed.rounded(.down)
+        let shown = countsUp ? elapsed.rounded(.down) : max((length ?? 0) - elapsed, 0).rounded(.up)
         let action: QuickAction =
-            if isOpenRounds {
+            if type == .openRounds {
                 .done(isEnabled: phase == .work && pausedAt == nil)
             } else {
                 pausedAt == nil ? .pause : .resume
             }
+        let remaining: Double? =
+            switch (type, phase) {
+            case (.openRounds, .work): nil
+            case (.stopwatch, .work): min(elapsed / stopwatchLength, 1)
+            default: length.map { max($0 - elapsed, 0) / $0 }
+            }
         return Frame(
+            type: type,
             phase: phase,
-            phaseName: pausedAt == nil ? (phase == .work ? "Work" : "Rest") : "Paused",
             time: Self.clock(shown),
-            remaining: length.map { max($0 - elapsed, 0) / $0 },
-            roundLine: isOpenRounds ? "Round \(round)" : "Round \(round) of \(intervalsRounds)",
-            detail: isOpenRounds && phase == .rest ? lastWork.map { "Work \(Self.short($0))" } : nil,
+            remaining: remaining,
+            line: pausedAt == nil ? line : "Paused",
             isPaused: pausedAt != nil,
-            action: action
+            action: action,
+            heart: HeartReading(bpm: bpm)
+        )
+    }
+
+    /// The iPhone's line under the ring.
+    private var line: String {
+        switch (type, phase) {
+        case (.intervals, .prepare): "\(intervalsRounds) Rounds"
+        case (.intervals, .cooldown): "\(intervalsRounds) of \(intervalsRounds)"
+        case (.intervals, _): "\(round) of \(intervalsRounds)"
+        case (.stopwatch, .prepare): "\(Self.clock(stopwatchLength)) Stopwatch"
+        case (.stopwatch, _): "of \(Self.clock(stopwatchLength))"
+        case (.openRounds, .rest): lastWork.map { "Round \(round) · Work \(Self.short($0))" } ?? "Round \(round)"
+        case (.openRounds, _): "Round \(round)"
+        }
+    }
+
+    public func summary(at now: Date) -> Summary {
+        var total = activeBefore
+        if phase != .prepare, !isFinished { total += elapsed(at: now) }
+        return Summary(
+            type: type,
+            total: Self.clock(total),
+            rounds: workTimes.map { Self.short($0) },
+            averageBPM: 132,
+            maximumBPM: 171
         )
     }
 
     /// "00:42", the iPhone running screen's format.
-    static func clock(_ seconds: TimeInterval) -> String {
+    public static func clock(_ seconds: TimeInterval) -> String {
         let total = Int(seconds)
-        let minutes = String(format: "%02d", total / 60)
-        let rest = String(format: "%02d", total % 60)
-        return "\(minutes):\(rest)"
+        return String(format: "%02d:%02d", total / 60, total % 60)
     }
 
     /// "1:42", the line's format.
-    static func short(_ seconds: TimeInterval) -> String {
+    public static func short(_ seconds: TimeInterval) -> String {
         let total = Int(seconds)
         return "\(total / 60):" + String(format: "%02d", total % 60)
+    }
+}
+
+/// A heart rate that climbs in Work and falls in Rest, so the slot and the zone move.
+public enum FakeHeart {
+    public static func bpm(type: WorkoutType, phase: PhaseKind, at now: Date) -> Int {
+        let wobble = sin(now.timeIntervalSinceReferenceDate / 6) * 6
+        let base: Double =
+            switch phase {
+            case .prepare: 92
+            case .work: type == .stopwatch ? 152 : 166
+            case .rest: 142
+            case .cooldown: 124
+            }
+        return Int(base + wobble)
     }
 }
