@@ -10,9 +10,9 @@ public nonisolated enum Completion: Equatable, Sendable {
 extension RunningDisplay {
     /// The complete screen once the Workout has ended, or `nil` while it runs and after a Stop that returns to setup.
     ///
-    /// Open Rounds ends only at Stop, so its Stop opens the Rounds complete screen, and the Live Activity shows its
-    /// complete state. In Intervals and Stopwatch, Stop returns to setup and ends the Live Activity, and a finish
-    /// opens the complete screen.
+    /// Open Rounds ends only at Stop, so its Stop opens the Rounds complete screen however soon after Start, and the
+    /// Live Activity shows its complete state. In Intervals and Stopwatch, Stop returns to setup and ends the Live
+    /// Activity, and a finish opens the complete screen.
     public nonisolated var completion: Completion? {
         switch (workoutType, snapshot.progress) {
         case (.openRounds, .stopped(let record)), (.openRounds, .finished(let record)):

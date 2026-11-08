@@ -15,6 +15,8 @@ private final class FakeHealthStore: HealthWorkoutStore {
 
     /// Called when asked for permission, as the system sheet would be shown.
     var duringPermissionRequest: () -> Void = {}
+    /// Called with each record while it's being saved, before the outcome returns.
+    var duringSave: (HealthRecord) async -> Void = { _ in }
 
     func requestPermission() async {
         permissionRequests += 1
@@ -23,6 +25,7 @@ private final class FakeHealthStore: HealthWorkoutStore {
 
     func save(_ record: HealthRecord) async -> HealthSaveOutcome {
         saved.append(record)
+        await duringSave(record)
         return outcomes.isEmpty ? .saved : outcomes.removeFirst()
     }
 }
@@ -83,6 +86,49 @@ struct HealthSavesTests {
         #expect(harness.store.saved.first?.start == startDate)
         await harness.launch().retryPending()
         #expect(harness.store.saved.count == 1)
+    }
+
+    /// A save Temper is suspended before attempting is still tried again later.
+    @Test func `The pending save is stored before save returns`() async throws {
+        let harness = try Harness()
+        let workoutID = UUID()
+
+        let saving = harness.launch().save(
+            stopwatch(seconds: 90), of: .stopwatch, workoutID: workoutID, at: start, date: startDate)
+
+        #expect(harness.store.saved.isEmpty)
+        #expect(PendingHealthSaves(defaults: harness.defaults)[workoutID: workoutID]?.record.syncVersion == 1)
+        await saving.value
+    }
+
+    /// A save cut off midway may still land, so the retry needs a higher version to replace it.
+    @Test func `The next version is stored before an attempt is made`() async throws {
+        let harness = try Harness()
+        let workoutID = UUID()
+        var storedDuringSave: Int?
+        harness.store.duringSave = { [defaults = harness.defaults] _ in
+            storedDuringSave = PendingHealthSaves(defaults: defaults)[workoutID: workoutID]?.record.syncVersion
+        }
+
+        await harness.launch().save(
+            stopwatch(seconds: 90), of: .stopwatch, workoutID: workoutID, at: start, date: startDate
+        )
+        .value
+
+        #expect(storedDuringSave == 2)
+    }
+
+    @Test func `A retry while an attempt is under way doesn't save the same Workout again`() async throws {
+        let harness = try Harness()
+        let health = harness.launch()
+        harness.store.duringSave = { [unowned store = harness.store, unowned health] _ in
+            guard store.saved.count == 1 else { return }
+            await health.retryPending()
+        }
+
+        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+
+        #expect(harness.store.saved.map(\.syncVersion) == [1])
     }
 
     @Test func `A Workout of less than a minute saves nothing`() async throws {

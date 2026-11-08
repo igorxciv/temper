@@ -75,6 +75,13 @@ struct WorkoutTests {
         #expect(Workout(phases: [Phase(kind: .prepare, duration: .seconds(10))]).rounds == 0)
     }
 
+    @Test func `Phase kinds keep the raw values a showing Live Activity stores`() {
+        #expect(Phase.Kind(rawValue: "prepare") == .prepare)
+        #expect(Phase.Kind(rawValue: "work") == .work)
+        #expect(Phase.Kind(rawValue: "rest") == .rest)
+        #expect(Phase.Kind(rawValue: "cooldown") == .cooldown)
+    }
+
     @Test func `An open Phase has no set length`() {
         let phase = Phase(kind: .work, length: .open, round: 1)
 

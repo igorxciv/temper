@@ -12,6 +12,8 @@ import UIKit
 /// available, or once writing isn't allowed. Nothing on screen reports a save.
 @Observable
 final class HealthSaves {
+    /// Attempts made while locked don't count, because a locked save's outcome says nothing about whether saving
+    /// works. The limit keeps a save Health never confirms from being tried forever.
     static let attemptLimit = 3
 
     /// The write status as last read, or `nil` before the first read.
