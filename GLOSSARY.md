@@ -75,3 +75,7 @@ _Avoid_: Interrupt, mute
 **Health workout**:
 The record of one Workout that Temper saves to Apple Health. One Workout makes at most one.
 _Avoid_: Activity, Session, Fitness workout
+
+**Zone**:
+One of five bands of heart rate, from 1 (easiest) to 5 (hardest), that the Watch shows beside the current heart rate.
+_Avoid_: Intensity, level, heart-rate band
