@@ -66,7 +66,7 @@ public nonisolated struct Phase: Equatable, Sendable {
 /// A Workout can end in a repeating Round: a group of Phases, holding at least one open Phase, that runs again
 /// and again until Stop. Each time it repeats, its Phases are produced as they're reached, never all at once,
 /// and numbered as the next Round after any in `phases`. Such a Workout never finishes, so it has no total length and no set number
-/// of Rounds. Open Rounds is a repeating Round of an open Work and a Rest, with nothing before it.
+/// of Rounds. Open Rounds is a repeating Round of an open Work and a Rest, after a Prepare if one is set.
 public nonisolated struct Workout: Equatable, Sendable {
     /// The Phases that run once, in order.
     public let phases: [Phase]

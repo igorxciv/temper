@@ -198,8 +198,9 @@ struct RememberedValuesTests {
         #expect(RootTab.workoutTypes == [.intervals, .stopwatch, .openRounds])
     }
 
-    @Test func `Open Rounds opens on a Rest of 01:00 at first launch`() throws {
+    @Test func `Open Rounds opens on Prepare Off and a Rest of 01:00 at first launch`() throws {
         try withThrowawayDefaults { defaults in
+            #expect(RememberedValues(defaults: defaults)[.openRounds].prepare == .zero)
             #expect(RememberedValues(defaults: defaults)[.openRounds].rest == .seconds(60))
         }
     }
@@ -259,6 +260,16 @@ struct RememberedValuesTests {
             #expect(defaults.object(forKey: "openRounds.rest") as? Int == 90)
             #expect(defaults.object(forKey: "rest") == nil)
             #expect(RememberedValues(defaults: defaults)[.openRounds].rest == .seconds(90))
+        }
+    }
+
+    @Test func `The Open Rounds Prepare saves under its own key and restores`() throws {
+        try withThrowawayDefaults { defaults in
+            RememberedValues(defaults: defaults)[.openRounds][.prepare] = 15
+
+            #expect(defaults.object(forKey: "openRounds.prepare") as? Int == 15)
+            #expect(defaults.object(forKey: "prepare") == nil)
+            #expect(RememberedValues(defaults: defaults)[.openRounds].prepare == .seconds(15))
         }
     }
 
@@ -525,9 +536,10 @@ struct RememberedPresetsTests {
         }
     }
 
-    @Test func `An Open Rounds Preset saves only its Rest, under its own keys, and restores`() throws {
+    @Test func `An Open Rounds Preset saves its Prepare and Rest, under its own keys, and restores`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
+            remembered[.openRounds][.prepare] = 15
             remembered[.openRounds][.rest] = 90
             try remembered.saveAsNewPreset(named: "Squats", of: .openRounds)
             let preset = try #require(remembered.presets(of: .openRounds).picked)
@@ -535,14 +547,31 @@ struct RememberedPresetsTests {
             let data = try #require(defaults.data(forKey: "presets.openRounds"))
             let stored = try #require(try JSONSerialization.jsonObject(with: data) as? [[String: Any]])
             #expect(stored.first?["name"] as? String == "Squats")
-            #expect(stored.first?["values"] as? [String: Int] == ["rest": 90])
+            #expect(stored.first?["values"] as? [String: Int] == ["prepare": 15, "rest": 90])
             #expect(defaults.string(forKey: "pickedPreset.openRounds") == preset.id.uuidString)
 
             remembered[.openRounds][.rest] = 0
             let restored = RememberedValues(defaults: defaults)
             #expect(restored.presets(of: .openRounds).subtitle(for: restored[.openRounds]) == "Squats · Modified")
             restored.pickPreset(preset.id, of: .openRounds)
+            #expect(RememberedValues(defaults: defaults)[.openRounds].prepare == .seconds(15))
             #expect(RememberedValues(defaults: defaults)[.openRounds].rest == .seconds(90))
+        }
+    }
+
+    /// Open Rounds had no Prepare row before, so its Presets were saved with only a Rest.
+    @Test func `An Open Rounds Preset saved before Prepare picks with Prepare Off`() throws {
+        try withThrowawayDefaults { defaults in
+            let id = UUID()
+            let stored = #"[{"id": "\#(id.uuidString)", "name": "Squats", "values": {"rest": 90}}]"#
+            defaults.set(Data(stored.utf8), forKey: "presets.openRounds")
+            let remembered = RememberedValues(defaults: defaults)
+            remembered[.openRounds][.prepare] = 20
+
+            remembered.pickPreset(id, of: .openRounds)
+
+            #expect(remembered[.openRounds].prepare == .zero)
+            #expect(remembered[.openRounds].rest == .seconds(90))
         }
     }
 

@@ -372,4 +372,28 @@ nonisolated struct RunningDisplayOpenRoundsTests {
         #expect(display(.paused(phase: rest, timeLeft: .seconds(5)), workTime: .seconds(40)).doneButton == .disabled)
         #expect(display(.pausedOpen(phase: work, elapsed: .seconds(5))).doneButton == .disabled)
     }
+
+    // MARK: Prepare
+
+    private let prepare = Phase(kind: .prepare, duration: .seconds(10))
+
+    @Test func `Prepare counts down, rounding up, and empties the ring`() {
+        let display = display(.running(phase: prepare, endsAt: at(10)))
+
+        let ring = display.ring(at: at(2.5))
+
+        #expect(!display.countsUp)
+        #expect(ring.time == "00:08")
+        #expect(ring.fill == 0.75)
+    }
+
+    /// No Round has started, and Open Rounds has no set number to give.
+    @Test func `Prepare has no line under the ring`() {
+        #expect(display(.running(phase: prepare, endsAt: at(10))).line == nil)
+    }
+
+    @Test func `Done stays in place, disabled, through Prepare`() {
+        #expect(display(.running(phase: prepare, endsAt: at(10))).doneButton == .disabled)
+        #expect(display(.paused(phase: prepare, timeLeft: .seconds(5))).doneButton == .disabled)
+    }
 }

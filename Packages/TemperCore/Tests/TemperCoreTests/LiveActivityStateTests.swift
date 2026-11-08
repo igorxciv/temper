@@ -190,6 +190,18 @@ nonisolated struct LiveActivityStateOpenRoundsTests {
         #expect(phase.spokenLine == "Round 3")
     }
 
+    @Test func `A Prepare counts down to its end, with no line and no button`() throws {
+        let prepare = Phase(kind: .prepare, duration: .seconds(10))
+        let phase = try #require(livePhase(state(.running(phase: prepare, endsAt: at(10)), at: 4)))
+
+        #expect(phase.kind == .prepare)
+        #expect(phase.end == date.addingTimeInterval(6))
+        #expect(!phase.countsUp)
+        #expect(phase.hasBar)
+        #expect(phase.line == "")
+        #expect(phase.button == nil)
+    }
+
     @Test func `A Paused Rest shows Paused`() throws {
         let phase = try #require(
             livePhase(state(.paused(phase: rest, timeLeft: .seconds(15)), at: 0, workTime: .seconds(102))))
