@@ -820,7 +820,7 @@ extension WorkoutEngineTests {
         advance(to: 41)
         await engine.done(at: clock.now)
 
-        #expect(await snapshots.next() == openRoundsWork(round: 3, since: at(41), workTime: .seconds(1)))
+        #expect(await snapshots.next() == openRoundsWork(round: 3, since: clock.now, workTime: .seconds(1)))
     }
 
     @Test func `The Rest after Done carries the Work time just ended, leaving out its Pause`() async {

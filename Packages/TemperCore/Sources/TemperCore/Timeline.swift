@@ -105,7 +105,8 @@ public nonisolated struct Timeline: Sendable {
     /// Ends the open Phase still waiting for Done at `activeTime`, which places every following Phase and its Cue
     /// up to the next open Phase. It's `nil` if `activeTime` isn't in that Phase, so a Done during a Phase with a
     /// set length, or a second Done that lands in the Phase after, ends nothing. It's also `nil` within
-    /// `doubleTapLimit` of the last Done, even when that Done went straight to the next open Phase.
+    /// `doubleTapLimit` of active time after the last Done, which matters only when that Done went straight to the
+    /// next open Phase.
     func markingDone(at activeTime: Duration) -> Timeline? {
         guard let waiting = spans.last, waiting.end == nil, activeTime >= waiting.start else { return nil }
         if let lastDone = doneTimes.last, activeTime - lastDone < doubleTapLimit { return nil }
