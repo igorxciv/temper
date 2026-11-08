@@ -221,6 +221,22 @@ nonisolated struct WorkoutRecordTests {
         #expect(record?.activeTime == .seconds(50))
     }
 
+    @Test func `Open Rounds Stopped as its Rest ends doesn't record the Work that would have started then`() async {
+        let (engine, snapshots) = await startOpenRounds()
+        advance(to: 85)
+
+        await engine.stop(at: clock.now)
+
+        let record = await record(of: snapshots)
+        #expect(
+            record?.phases == [
+                phase(.work, round: 1, from: 0, to: 25),
+                phase(.rest, round: 1, from: 25, to: 85),
+            ]
+        )
+        #expect(record?.workTimes == [.seconds(25)])
+    }
+
     @Test func `Open Rounds Stopped while Paused ends that Pause and its Phase at the Stop`() async {
         var (engine, snapshots) = await startOpenRounds()
         advance(to: 85)

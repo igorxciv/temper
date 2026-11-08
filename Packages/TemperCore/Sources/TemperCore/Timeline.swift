@@ -114,10 +114,11 @@ public nonisolated struct Timeline: Sendable {
     }
 
     /// Each Phase reached by `activeTime`, with the active time it started: every Phase up to the one the Workout is
-    /// in at `activeTime`, or every Phase once it has finished. A Phase starting exactly then is reached.
+    /// in at `activeTime`, or every Phase once it has finished. A Phase starting exactly then hasn't run, so it isn't
+    /// reached.
     func phasesReached(by activeTime: Duration) -> [(phase: Phase, start: Duration)] {
         var reached: [(phase: Phase, start: Duration)] = []
-        for span in spans where span.start <= activeTime {
+        for span in spans where span.start < activeTime {
             reached.append((span.phase, span.start))
             if span.contains(activeTime) { break }
         }
