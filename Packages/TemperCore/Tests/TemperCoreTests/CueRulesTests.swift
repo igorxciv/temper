@@ -1084,7 +1084,12 @@ nonisolated struct CueRulesTests {
 
         advance(to: 10_000)
         await letAudioSettle()
-        #expect(await audio.history.count == 5)
+        #expect(
+            await audio.history == [
+                .activate(ducking: true), .schedule(.work, at: at(0)), .activate(ducking: false), .deactivate,
+                .activate(ducking: false),
+            ]
+        )
 
         await engine.done(at: clock.now)
         #expect(await calls.next() == .activate(ducking: true))
@@ -1096,5 +1101,31 @@ nonisolated struct CueRulesTests {
         advance(to: 10_028.5)
         #expect(await calls.next() == .activate(ducking: true))
         #expect(await calls.next() == .schedule(.work, at: at(10_030)))
+    }
+
+    @Test
+    func `Pause in the Rest after Done releases the session, and Resume hands over the next Cue at its shifted end`()
+        async
+    {
+        let engine = makeDoneEngine(isDipOn: true)
+        var calls = await startOpenWorkWithDipLifted(engine)
+        advance(to: 40)
+        await engine.done(at: clock.now)
+        _ = await calls.next()
+        #expect(await calls.next() == .schedule(.rest, at: at(40)))
+        await audio.finishSpeaking()
+        #expect(await calls.next() == .activate(ducking: false))
+        advance(to: 50)
+
+        await engine.pause(at: clock.now)
+        #expect(await calls.next() == .deactivate)
+
+        advance(to: 150)
+        await engine.resume(at: clock.now)
+        #expect(await calls.next() == .activate(ducking: false))
+
+        advance(to: 168.5)
+        #expect(await calls.next() == .activate(ducking: true))
+        #expect(await calls.next() == .schedule(.work, at: at(170)))
     }
 }

@@ -219,20 +219,20 @@ nonisolated struct WorkoutEngineTests {
     }
 
     /// A first-launch Stopwatch is a Prepare of 0:10 and a Work of 10:00.
-    @Test(arguments: [(4.0, 0, 6.0), (100, 1, 510)])
+    @Test(arguments: [(4.0, Phase.Kind.prepare, 6.0), (100, .work, 510)])
     func `Pause and Resume keep the exact time left in every Stopwatch Phase`(
         active: Double,
-        phaseIndex: Int,
+        kind: Phase.Kind,
         timeLeft: Double
-    ) async {
+    ) async throws {
         let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
-        let phase = workout.phases[phaseIndex]
+        let phase = try #require(workout.phases.first { $0.kind == kind })
         let engine = WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
         var snapshots = engine.snapshots.makeAsyncIterator()
         await engine.start()
         _ = await snapshots.next()
         clock.advance(by: .seconds(active))
-        if phaseIndex > 0 {
+        if kind == .work {
             _ = await snapshots.next()
         }
 
