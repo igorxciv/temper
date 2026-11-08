@@ -16,14 +16,7 @@ struct RoundsCompleteScreen: View {
 
         VStack(spacing: 16) {
             VStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(colors.accent)
-                    .accessibilityHidden(true)
-                Text("Workout complete")
-                    .font(.largeTitle.weight(.semibold))
-                    .foregroundStyle(colors.text)
-                    .multilineTextAlignment(.center)
+                CompleteHeading(checkmarkSize: 64)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Group {
@@ -59,17 +52,9 @@ struct RoundsCompleteScreen: View {
             .scrollBounceBehavior(.basedOnSize)
             .contentMargins(.top, 0, for: .scrollContent)
 
-            Button(action: done) {
-                Text("Done")
-                    .font(.title2.bold())
-                    .foregroundStyle(colors.onAccent)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-            }
-            .buttonStyle(.glassProminent)
-            .tint(colors.accent)
-            .padding([.horizontal, .bottom])
-            // The list grows with the text instead, so Done can't push it off the screen.
-            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            CompleteDoneButton(done: done)
+                // The list grows with the text instead, so Done can't push it off the screen.
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         }
         .frame(maxWidth: .infinity)
         .background(colors.background.ignoresSafeArea())
