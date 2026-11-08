@@ -37,9 +37,14 @@ struct WorkoutLiveActivity: Widget {
                         VStack(alignment: .leading, spacing: 8) {
                             PhaseLine(phase: phase)
                                 .font(.headline)
-                            PhaseBar(phase: phase)
+                            if phase.hasBar {
+                                PhaseBar(phase: phase)
+                            }
                         }
-                        PauseResumeButton(phase: phase)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        if let button = phase.button {
+                            PhaseButton(phase: phase, button: button)
+                        }
                     }
                 }
             } compactLeading: {
@@ -123,9 +128,16 @@ private struct MediumPhaseView: View {
                     .font(.system(size: 48, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
             }
-            HStack(spacing: 12) {
-                PhaseBar(phase: phase)
-                PauseResumeButton(phase: phase)
+            if phase.hasBar || phase.button != nil {
+                HStack(spacing: 12) {
+                    if phase.hasBar {
+                        PhaseBar(phase: phase)
+                    }
+                    if let button = phase.button {
+                        // With no bar beside it, Done takes the whole row, the easier to hit mid-set.
+                        PhaseButton(phase: phase, button: button, fillsWidth: !phase.hasBar)
+                    }
+                }
             }
         }
         .padding(16)
@@ -149,36 +161,52 @@ private struct SmallPhaseView: View {
                 PhaseTime(phase: phase)
                     .font(.system(size: 36, weight: .semibold).monospacedDigit())
                 Spacer(minLength: 4)
-                PauseResumeButton(phase: phase)
+                if let button = phase.button {
+                    PhaseButton(phase: phase, button: button)
+                }
             }
-            PhaseBar(phase: phase)
+            if phase.hasBar {
+                PhaseBar(phase: phase)
+            }
         }
     }
 }
 
-/// Pause while the Phase runs, and Resume while it's Paused. The tap runs in the app, which reads the clock as
-/// the tap arrives, the same as a tap on the running screen.
-private struct PauseResumeButton: View {
+/// The Phase's button: Pause or Resume in Intervals and Stopwatch, and Done in Open Rounds' running Work. The tap
+/// runs in the app, which reads the clock as the tap arrives, the same as a tap on the running screen.
+private struct PhaseButton: View {
     let phase: LivePhase
+    let button: LivePhase.Button
+    var fillsWidth = false
 
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Group {
-            if phase.isPaused {
-                Button(intent: ResumeWorkoutIntent()) {
-                    Label("Resume", systemImage: "play.fill")
-                }
-            } else {
+            switch button {
+            case .pause:
                 Button(intent: PauseWorkoutIntent()) {
                     Label("Pause", systemImage: "pause.fill")
                 }
+                .labelStyle(.iconOnly)
+                .buttonBorderShape(.circle)
+            case .resume:
+                Button(intent: ResumeWorkoutIntent()) {
+                    Label("Resume", systemImage: "play.fill")
+                }
+                .labelStyle(.iconOnly)
+                .buttonBorderShape(.circle)
+            case .done:
+                Button(intent: DoneWorkoutIntent()) {
+                    Text("Done")
+                        .lineLimit(1)
+                        .frame(maxWidth: fillsWidth ? .infinity : nil)
+                }
+                .buttonBorderShape(.capsule)
             }
         }
-        .labelStyle(.iconOnly)
         .font(.title3.bold())
         .buttonStyle(.bordered)
-        .buttonBorderShape(.circle)
         .tint(PhaseColors(kind: phase.kind, contrast: contrast).ring)
     }
 }
@@ -194,7 +222,8 @@ private struct PhaseName: View {
     }
 }
 
-/// The time the system counts, held while Paused. It reads the time left, or the time elapsed in a Stopwatch.
+/// The time the system counts, held while Paused. It reads the time left, or the time elapsed in a Stopwatch's Work
+/// and an open Phase.
 private struct PhaseTime: View {
     let phase: LivePhase
 
@@ -220,7 +249,7 @@ private struct PhaseLine: View {
     }
 }
 
-/// The ring as a bar. It empties as the time counts down and fills as a Stopwatch counts up.
+/// The ring as a bar. It empties as the time counts down and fills as a Stopwatch counts up. An open Phase has none.
 private struct PhaseBar: View {
     let phase: LivePhase
 
