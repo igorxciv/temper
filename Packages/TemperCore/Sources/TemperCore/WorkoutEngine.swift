@@ -37,16 +37,19 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         cueRules = CueRules(timeline: timeline, clock: clock, audio: audio, isDipOn: isDipOn)
     }
 
-    /// Waits for audio, for at most a second, then sets the fixed start point.
-    public func start() async {
-        guard case .ready = state else { return }
+    /// Waits for audio, for at most a second, then sets the fixed start point and returns it. It returns `nil` if the
+    /// Workout had already started, or was Stopped before the start point was set.
+    @discardableResult
+    public func start() async -> Instant? {
+        guard case .ready = state else { return nil }
         state = .starting
         await cueRules.prepareToStart()
-        guard case .starting = state else { return }
+        guard case .starting = state else { return nil }
         let start = clock.now
         state = .running(start: start, heldFor: .zero)
         await cueRules.run(from: start)
         await recalculate()
+        return start
     }
 
     /// Pause keeps the time of the tap, so nothing the engine is busy with can shift the time left.
