@@ -70,7 +70,8 @@ private func stopwatch(seconds: Int, workoutID: UUID = UUID()) -> HealthRecord? 
         start: start, end: end, pauses: [],
         phases: [.init(kind: .work, round: nil, start: start, end: end)]
     )
-    return HealthRecord(record, of: .stopwatch, workoutID: workoutID, attempt: 1, at: start, date: startDate)
+    return HealthRecord(
+        record, of: .stopwatch, workoutID: workoutID, attempt: 1, anchor: ClockAnchor(instant: start, date: startDate))
 }
 
 @MainActor
@@ -288,13 +289,35 @@ struct HealthSavesTests {
         #expect(health.row == row)
     }
 
+    /// "Allow Heart Rate" still saves workouts, so its footer keeps the saves sentence and adds what the Watch does.
+    @Test(arguments: [
+        (
+            AppleHealthRow.saveWorkouts,
+            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch."
+        ),
+        (
+            .allowHeartRate,
+            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch. "
+                + "Apple Watch shows your heart rate and saves it to Health."
+        ),
+        (
+            .saving,
+            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch. "
+                + "Turn this off in the Health app."
+        ),
+        (.notAllowed, "Allow Temper under Settings › Health › Data Access & Devices."),
+    ])
+    func `Each row has its footer`(row: AppleHealthRow, footer: String) {
+        #expect(row.footer == footer)
+    }
+
     /// Anyone who allowed workouts in the shipped build is asked once more, and the row settles on the checkmark.
     @Test func `Asking for permission reads both statuses again`() async throws {
         let harness = try Harness()
         harness.store.requestStatus = .shouldRequest
         let health = harness.launch()
         await health.refreshStatus()
-        #expect(health.row == .allowHeartRate)
+        try #require(health.row == .allowHeartRate)
 
         harness.store.duringPermissionRequest = { harness.store.requestStatus = .unnecessary }
         await health.requestPermission()

@@ -70,7 +70,7 @@ final class WorkoutRunner {
         Task { [cues] in
             await cues.waitForRendering(atMost: renderingWaitLimit)
             if let start = await engine.start() {
-                startDate = Self.date(of: start)
+                startDate = ClockAnchor.now.date(of: start)
             }
             for await snapshot in engine.snapshots {
                 show(snapshot)
@@ -159,14 +159,14 @@ extension WorkoutRunner {
     /// is `nil` for a Workout too short to save.
     fileprivate func saveToHealth(_ snapshot: Snapshot) {
         guard let record = snapshot.record, let workoutID = healthWorkoutID.take() else { return }
-        let (instant, date) = (ContinuousClock.now, Date.now)
-        health.save(HealthRecord(record, of: workoutType, workoutID: workoutID, attempt: 1, at: instant, date: date))
+        health.save(HealthRecord(record, of: workoutType, workoutID: workoutID, attempt: 1, anchor: .now))
     }
+}
 
-    /// The wall-clock date of an engine instant, placed through one pair of instant and date read together now.
-    fileprivate static func date(of instant: ContinuousClock.Instant) -> Date {
-        let (now, date) = (ContinuousClock.now, Date.now)
-        return date.addingTimeInterval(now.duration(to: instant) / .seconds(1))
+extension ClockAnchor<ContinuousClock.Instant> {
+    /// The engine clock and the wall clock, read together now.
+    fileprivate static var now: Self {
+        Self(instant: ContinuousClock.now, date: Date.now)
     }
 }
 

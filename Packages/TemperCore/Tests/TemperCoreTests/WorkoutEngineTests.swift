@@ -904,6 +904,21 @@ extension WorkoutEngineTests {
 /// The Live Activity's taps arrive at once, and the Watch's arrive dated a little in the past, so a Watch tap can be
 /// dated before something the engine already applied. Each test applies one tap at once, then sends one dated earlier.
 extension WorkoutEngineTests {
+    /// An engine started at 0, with a Done applied at once at `seconds` and its snapshots read up to that point. It's
+    /// `makeDoneEngine()`'s unless another is given.
+    nonisolated private func engine(
+        doneAt seconds: Double, of engine: WorkoutEngine<ManualClock>? = nil
+    ) async -> (WorkoutEngine<ManualClock>, AsyncStream<Snapshot>.Iterator) {
+        let engine = engine ?? makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: seconds)
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+        return (engine, snapshots)
+    }
+
     @Test func `A Pause dated before the last Resume holds the time left at the Resume`() async {
         var (engine, snapshots) = await engine(runFor: .seconds(4))
         await engine.pause(at: clock.now)
@@ -919,13 +934,7 @@ extension WorkoutEngineTests {
     }
 
     @Test func `A Pause dated before the last Done holds the Phase the Done began, with its full length left`() async {
-        let engine = makeDoneEngine()
-        var snapshots = engine.snapshots.makeAsyncIterator()
-        await engine.start()
-        _ = await snapshots.next()
-        advance(to: 40)
-        await engine.done(at: clock.now)
-        _ = await snapshots.next()
+        var (engine, snapshots) = await engine(doneAt: 40)
         clock.advanceWhileSuspended(by: .milliseconds(300))
 
         await engine.pause(at: at(39.5))
@@ -985,13 +994,7 @@ extension WorkoutEngineTests {
     }
 
     @Test func `A Resume dated before the start of the Phase a Done began never runs the Phase before it`() async {
-        let engine = makeDoneEngine()
-        var snapshots = engine.snapshots.makeAsyncIterator()
-        await engine.start()
-        _ = await snapshots.next()
-        advance(to: 40)
-        await engine.done(at: clock.now)
-        _ = await snapshots.next()
+        var (engine, snapshots) = await engine(doneAt: 40)
         await engine.pause(at: clock.now)
         _ = await snapshots.next()
         advance(to: 45)
@@ -1049,13 +1052,7 @@ extension WorkoutEngineTests {
     /// now.
     @Test(arguments: [39.8, 41.2])
     func `A Done from each remote for the same Work gives one Done`(watchTap: Double) async {
-        let engine = makeOpenRoundsEngine(rest: 0)
-        var snapshots = engine.snapshots.makeAsyncIterator()
-        await engine.start()
-        _ = await snapshots.next()
-        advance(to: 40)
-        await engine.done(at: clock.now)
-        _ = await snapshots.next()
+        var (engine, snapshots) = await engine(doneAt: 40, of: makeOpenRoundsEngine(rest: 0))
         clock.advanceWhileSuspended(by: .milliseconds(300))
 
         await engine.done(at: at(watchTap))
@@ -1074,13 +1071,7 @@ extension WorkoutEngineTests {
     }
 
     @Test func `A Stop dated before the last Done ends the Workout at the Done`() async {
-        let engine = makeDoneEngine()
-        var snapshots = engine.snapshots.makeAsyncIterator()
-        await engine.start()
-        _ = await snapshots.next()
-        advance(to: 40)
-        await engine.done(at: clock.now)
-        _ = await snapshots.next()
+        var (engine, snapshots) = await engine(doneAt: 40)
         clock.advanceWhileSuspended(by: .milliseconds(300))
 
         await engine.stop(at: at(39.5))
