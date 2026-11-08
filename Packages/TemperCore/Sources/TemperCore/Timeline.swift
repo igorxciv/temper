@@ -19,6 +19,9 @@ public nonisolated enum Cue: Equatable, Sendable {
 private nonisolated let restWarning = Duration.seconds(10)
 /// A shorter Rest has no room for "10 seconds" after its own Cue.
 private nonisolated let shortestWarnedRest = Duration.seconds(20)
+/// A Done this soon after the last one is the second tap of a double tap. With a Rest of zero, the next Round's open
+/// Work starts at the first tap, so the second would otherwise end it at once.
+private nonisolated let doubleTapLimit = Duration.seconds(1)
 
 /// A Cue and the active time it is due.
 public nonisolated struct UpcomingCue: Equatable, Sendable {
@@ -101,9 +104,12 @@ public nonisolated struct Timeline: Sendable {
 
     /// Ends the open Phase still waiting for Done at `activeTime`, which places every following Phase and its Cue
     /// up to the next open Phase. It's `nil` if `activeTime` isn't in that Phase, so a Done during a Phase with a
-    /// set length, or a second Done that lands in the Phase after, ends nothing.
+    /// set length, or a second Done that lands in the Phase after, ends nothing. It's also `nil` within
+    /// `doubleTapLimit` of active time after the last Done, which matters only when that Done went straight to the
+    /// next open Phase.
     func markingDone(at activeTime: Duration) -> Timeline? {
         guard let waiting = spans.last, waiting.end == nil, activeTime >= waiting.start else { return nil }
+        if let lastDone = doneTimes.last, activeTime - lastDone < doubleTapLimit { return nil }
         return Timeline(workout: workout, doneTimes: doneTimes + [activeTime])
     }
 
