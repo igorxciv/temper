@@ -40,3 +40,16 @@ struct ResumeWorkoutIntent: LiveActivityIntent {
         return .result()
     }
 }
+
+/// The Live Activity's Done button, which ends a running open Work and runs the same way as its Pause button. The
+/// Workout reads the clock when it runs. A Done with no running open Work does nothing, so a tap during Rest, while
+/// Paused, or a second quick tap is safe.
+struct DoneWorkoutIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Done with Work"
+    static let isDiscoverable = false
+
+    @MainActor func perform() async throws -> some IntentResult {
+        LiveActivityControls.workout?.done()
+        return .result()
+    }
+}

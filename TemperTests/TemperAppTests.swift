@@ -66,6 +66,24 @@ struct LiveActivityButtonTests {
         #expect(fake.taps == ["pause", "resume"])
     }
 
+    @Test func `Done reaches the Workout`() async throws {
+        let app = LiveActivityControls.workout
+        defer { LiveActivityControls.workout = app }
+        let fake = FakeControls()
+        LiveActivityControls.workout = fake
+
+        _ = try await DoneWorkoutIntent().perform()
+
+        #expect(fake.taps == ["done"])
+    }
+
+    /// Shortcuts and Spotlight would offer them with no Live Activity in sight.
+    @Test func `The buttons stay out of Shortcuts and Spotlight`() {
+        #expect(!PauseWorkoutIntent.isDiscoverable)
+        #expect(!ResumeWorkoutIntent.isDiscoverable)
+        #expect(!DoneWorkoutIntent.isDiscoverable)
+    }
+
     /// As in the widget extension, where nothing sets the Workout.
     @Test func `With no Workout to reach, a button does nothing`() async throws {
         let app = LiveActivityControls.workout
@@ -74,6 +92,7 @@ struct LiveActivityButtonTests {
 
         _ = try await PauseWorkoutIntent().perform()
         _ = try await ResumeWorkoutIntent().perform()
+        _ = try await DoneWorkoutIntent().perform()
     }
 }
 
