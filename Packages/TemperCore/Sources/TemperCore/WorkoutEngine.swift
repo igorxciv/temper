@@ -25,6 +25,8 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     private var state = State.ready
     /// Each Pause that has been Resumed, from its tap to its Resume, kept for the Workout record.
     private var pauses: [Range<Instant>] = []
+    /// The start point, or the last Pause, Resume or Done the engine applied, as placed. No tap lands before it.
+    private var lastApplied: Instant?
     private var latest: Snapshot?
     private var wake: Task<Void, Never>?
 
@@ -45,13 +47,15 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         guard case .starting = state else { return }
         let start = clock.now
         state = .running(start: start, heldFor: .zero)
+        lastApplied = start
         await cueRules.run(from: start)
         await recalculate()
     }
 
-    /// Pause keeps the time of the tap, so nothing the engine is busy with can shift the time left.
+    /// Pause keeps the time of the tap, as placed, so nothing the engine is busy with can shift the time left.
     public func pause(at tap: Instant) async {
         guard case .running(let start, let heldFor) = state else { return }
+        let tap = place(tap)
         let position = timeline.position(at: start.duration(to: tap) - heldFor)
         guard let phase = position.phase else {
             await finish(start: start, heldFor: heldFor)
@@ -59,6 +63,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         }
         wake?.cancel()
         state = .paused(start: start, heldFor: heldFor, since: tap)
+        lastApplied = tap
         let progress: Snapshot.Progress =
             phase.isOpen
             ? .pausedOpen(phase: phase, elapsed: position.elapsed)
@@ -67,48 +72,62 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         await cueRules.pause(at: tap)
     }
 
-    /// Resume keeps the time of the tap, so the Pause's length is exactly what the owner held it for.
+    /// Resume keeps the time of the tap, as placed, so the Pause's length is exactly what the owner held it for.
     public func resume(at tap: Instant) async {
         guard case .paused(let start, let heldFor, let since) = state else { return }
+        let tap = place(tap)
         let held = heldFor + since.duration(to: tap)
         pauses.append(since..<tap)
+        lastApplied = tap
         state = .running(start: start, heldFor: held)
         await cueRules.resume(from: start.advanced(by: held))
         await recalculate()
     }
 
-    /// Done keeps the time of the tap, so the next Phase starts when the owner ended the open one, not when the
-    /// tap arrived. It applies only to a running open Phase. A Done during a Phase with a set length, a second tap
-    /// of a double tap, or one after Stop or the finish does nothing. So does a Done while Paused, so the owner
-    /// resumes before ending a Work and a stray tap can't end it.
+    /// Done keeps the time of the tap, as placed, so the next Phase starts when the owner ended the open one, not
+    /// when the tap arrived. It applies only to a running open Phase. A Done during a Phase with a set length, a
+    /// second tap of a double tap, or one after Stop or the finish does nothing. So does a Done while Paused, so the
+    /// owner resumes before ending a Work and a stray tap can't end it. The double-tap limit counts the placed time,
+    /// so a Done from each remote for the same Work gives one Done.
     public func done(at tap: Instant) async {
+        let tap = place(tap)
         guard case .running(let start, let heldFor) = state,
             let marked = timeline.markingDone(at: start.duration(to: tap) - heldFor)
         else { return }
         timeline = marked
+        lastApplied = tap
         await cueRules.done(timeline: marked)
         await recalculate()
     }
 
-    /// Stop keeps the time of the tap, so the Workout record ends where the owner Stopped it: a Phase cut short and a
-    /// Pause still on both end at the tap. A tap that arrives after the Workout's finish ends it at the finish.
+    /// Stop keeps the time of the tap, as placed, so the Workout record ends where the owner Stopped it: a Phase cut
+    /// short and a Pause still on both end at the tap. A tap that arrives after the Workout's finish ends it at the finish.
     public func stop(at tap: Instant) async {
+        let tap = place(tap)
         switch state {
         case .ready, .starting:
             await end(.stopped(WorkoutRecord(start: tap, end: tap, pauses: [], phases: [])))
         case .running(let start, let heldFor):
-            // A tap can't land before the Resume the engine already heard, nor past the finish.
-            var end = max(tap, pauses.last?.upperBound ?? start)
+            var end = tap
             if let finish = timeline.finish, start.duration(to: end) - heldFor > finish {
                 end = start.advanced(by: finish + heldFor)
             }
             await self.end(.stopped(record(start: start, pauses: pauses, end: end)))
         case .paused(let start, _, let since):
-            let end = max(tap, since)
-            await self.end(.stopped(record(start: start, pauses: pauses + [since..<end], end: end)))
+            await self.end(.stopped(record(start: start, pauses: pauses + [since..<tap], end: tap)))
         case .ended:
             break
         }
+    }
+
+    /// Where a tap from any remote lands: at its own time, but no earlier than the start point or the last Pause,
+    /// Resume or Done the engine applied, and no later than now. A Watch tap arrives dated a little in the past, so
+    /// it could otherwise land before a Live Activity tap already applied, and the Watch's clock can run ahead.
+    ///
+    /// A Phase that began at a Done starts at that Done, so no tap lands before it. A Phase that began on its own at
+    /// its set end is no limit: a tap just before that end lands in the Phase the owner saw.
+    private func place(_ tap: Instant) -> Instant {
+        min(max(tap, lastApplied ?? tap), clock.now)
     }
 
     /// For returning to the front: works out where the Workout is and always publishes it, because a
