@@ -7,7 +7,7 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
     case intervals
     /// A Prepare, then a single Work that counts up to a set length.
     case stopwatch
-    /// Rounds of an open Work and a Rest, repeated until Stop.
+    /// A Prepare, then Rounds of an open Work and a Rest, repeated until Stop.
     case openRounds
 
     public var id: Self { self }
@@ -35,7 +35,7 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
         switch self {
         case .intervals: [.prepare, .rounds, .work, .rest, .cooldown]
         case .stopwatch: [.prepare, .work]
-        case .openRounds: [.rest]
+        case .openRounds: [.prepare, .rest]
         }
     }
 
@@ -54,7 +54,8 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
             // Only Prepare and Work are read. The rest are placeholders that build a valid Intervals Workout.
             WorkoutSettings(prepare: .seconds(10), rounds: 1, work: .seconds(600), rest: .zero, cooldown: .zero)
         case .openRounds:
-            // Only Rest is read. Work is open, so its value is never used.
+            // Only Prepare and Rest are read. Work is open, so its value is never used. Prepare starts Off, so
+            // Start goes straight into Work until the owner sets one.
             WorkoutSettings(prepare: .zero, rounds: 1, work: .zero, rest: .seconds(60), cooldown: .zero)
         }
     }
@@ -62,7 +63,7 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
     /// Builds the Phases in order, dropping any zero Prepare, Rest or Cooldown.
     ///
     /// Intervals is a Prepare, then each Round's Work and Rest with no Rest after the last Work, then a Cooldown.
-    /// A Stopwatch is a Prepare, then one Work with no Round. Open Rounds is nothing before a repeating Round of an
+    /// A Stopwatch is a Prepare, then one Work with no Round. Open Rounds is a Prepare, then a repeating Round of an
     /// open Work and a Rest, and its Rest says "10 seconds" before it ends.
     public func makeWorkout(from settings: WorkoutSettings) -> Workout {
         let prepare = Phase(kind: .prepare, duration: settings.prepare)
@@ -84,7 +85,11 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
             return Workout(phases: Self.droppingZero([prepare, Phase(kind: .work, duration: settings.work)]))
         case .openRounds:
             let round = [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: settings.rest)]
-            return Workout(phases: [], repeatingRound: Self.droppingZero(round), warnsBeforeRestEnds: true)
+            return Workout(
+                phases: Self.droppingZero([prepare]),
+                repeatingRound: Self.droppingZero(round),
+                warnsBeforeRestEnds: true
+            )
         }
     }
 

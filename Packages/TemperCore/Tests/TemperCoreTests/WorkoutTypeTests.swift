@@ -26,7 +26,7 @@ struct WorkoutTypeTests {
     @Test func `Each Workout Type has its setup rows, top to bottom`() {
         #expect(WorkoutType.intervals.values == [.prepare, .rounds, .work, .rest, .cooldown])
         #expect(WorkoutType.stopwatch.values == [.prepare, .work])
-        #expect(WorkoutType.openRounds.values == [.rest])
+        #expect(WorkoutType.openRounds.values == [.prepare, .rest])
     }
 
     @Test func `The raw values are the ones remembered as the last-used Workout Type`() {
@@ -54,19 +54,19 @@ struct WorkoutTypeTests {
         #expect(settings.work == .seconds(600))
     }
 
-    @Test func `Open Rounds first launches at Rest 01:00`() {
+    @Test func `Open Rounds first launches at Prepare Off and Rest 01:00`() {
+        #expect(WorkoutType.openRounds.firstLaunch.prepare == .zero)
         #expect(WorkoutType.openRounds.firstLaunch.rest == .seconds(60))
     }
 
-    private func openRounds(rest: Duration) -> Workout {
-        // Prepare, Rounds, Work and Cooldown are set to show Open Rounds ignores them.
+    private func openRounds(prepare: Duration = .zero, rest: Duration) -> Workout {
+        // Rounds, Work and Cooldown are set to show Open Rounds ignores them.
         WorkoutType.openRounds.makeWorkout(
-            from: WorkoutSettings(
-                prepare: .seconds(10), rounds: 8, work: .seconds(40), rest: rest, cooldown: .seconds(60))
+            from: WorkoutSettings(prepare: prepare, rounds: 8, work: .seconds(40), rest: rest, cooldown: .seconds(60))
         )
     }
 
-    @Test func `Open Rounds repeats an open Work and its Rest until Stop, with no Prepare`() {
+    @Test func `With Prepare Off, Open Rounds repeats an open Work and its Rest until Stop`() {
         let expected = Workout(
             phases: [],
             repeatingRound: [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: .seconds(60))],
@@ -84,6 +84,28 @@ struct WorkoutTypeTests {
         )
 
         #expect(openRounds(rest: .zero) == expected)
+    }
+
+    @Test func `Open Rounds runs its Prepare once, before the first Round`() {
+        let expected = Workout(
+            phases: [Phase(kind: .prepare, duration: .seconds(10))],
+            repeatingRound: [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: .seconds(60))],
+            warnsBeforeRestEnds: true
+        )
+
+        #expect(openRounds(prepare: .seconds(10), rest: .seconds(60)) == expected)
+    }
+
+    @Test func `After its Prepare, Open Rounds numbers the first Work as Round 1`() {
+        let workout = openRounds(prepare: .seconds(10), rest: .seconds(60))
+
+        let expected = [
+            Phase(kind: .prepare, duration: .seconds(10)),
+            Phase(kind: .work, length: .open, round: 1),
+            Phase(kind: .rest, duration: .seconds(60), round: 1),
+            Phase(kind: .work, length: .open, round: 2),
+        ]
+        #expect(Array(workout.phasesInOrder.prefix(4)) == expected)
     }
 
     @Test(arguments: [WorkoutType.intervals, .stopwatch])
