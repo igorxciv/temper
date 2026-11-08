@@ -26,7 +26,7 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         let token: CueToken
     }
 
-    private let timeline: Timeline
+    private var timeline: Timeline
     private let clock: EngineClock
     private let audio: any AudioOutput<Instant>
     private let isDipOn: Bool
@@ -119,6 +119,14 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
                 session = .released
             }
         }
+        handOverNextCue()
+    }
+
+    /// Done has placed the Phases after the open one, so the next Cue is worked out again, as on Resume. The Cue
+    /// Done brings is due at the tap, and its lead has passed, so it's armed at once and plays only if audio can
+    /// start it within `lateLimit` of the tap, like any late Cue.
+    func done(timeline: Timeline) {
+        self.timeline = timeline
         handOverNextCue()
     }
 

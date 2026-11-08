@@ -21,8 +21,9 @@ public nonisolated struct UpcomingCue: Equatable, Sendable {
 
 /// Where a Workout is at any active time, the time spent running and not Paused.
 ///
-/// An open Phase's end isn't known until it is marked Done, so nothing after an open Phase is placed. Until then
-/// the position stays in that Phase, with no time left and no Cue upcoming.
+/// A Phase's end becomes known when the Phase before it ends: at its set length, or at the Done that ended an open
+/// Phase. So nothing after an open Phase is placed until it is marked Done. Until then the position stays in that
+/// Phase, with no time left and no Cue upcoming.
 public nonisolated struct Timeline: Sendable {
     /// Where the Workout is at one active time.
     public struct Position: Equatable, Sendable {
@@ -51,29 +52,47 @@ public nonisolated struct Timeline: Sendable {
         }
     }
 
+    private let phases: [Phase]
+    /// The active time each open Phase was marked Done, in the order the Phases were reached.
+    private let doneTimes: [Duration]
     private let spans: [Span]
     private let cues: [UpcomingCue]
 
     public init(workout: Workout) {
+        self.init(phases: workout.phases, doneTimes: [])
+    }
+
+    private init(phases: [Phase], doneTimes: [Duration]) {
         var start = Duration.zero
         var spans: [Span] = []
         var cues: [UpcomingCue] = []
-        for phase in workout.phases {
+        var dones = doneTimes[...]
+        for phase in phases {
             if let cue = Cue(entering: phase.kind) {
                 cues.append(UpcomingCue(cue: cue, due: start))
             }
-            guard let duration = phase.duration else {
+            guard let end = phase.duration.map({ start + $0 }) ?? dones.popFirst() else {
                 spans.append(Span(phase: phase, start: start, end: nil))
                 break
             }
-            spans.append(Span(phase: phase, start: start, end: start + duration))
-            start += duration
+            spans.append(Span(phase: phase, start: start, end: end))
+            start = end
         }
         if spans.last?.end != nil || spans.isEmpty {
             cues.append(UpcomingCue(cue: .workoutComplete, due: start))
         }
+        self.phases = phases
+        self.doneTimes = doneTimes
         self.spans = spans
         self.cues = cues
+    }
+
+    /// Ends the open Phase still waiting for Done at `activeTime`, which places every following Phase and its Cue
+    /// up to the next open Phase. It's `nil` if `activeTime` isn't in that Phase, so a Done during a Phase with a
+    /// set length, or a second Done that lands in the Phase after, ends nothing.
+    func markingDone(at activeTime: Duration) -> Timeline? {
+        guard let waiting = spans.last, waiting.end == nil, activeTime >= waiting.start else { return nil }
+        return Timeline(phases: phases, doneTimes: doneTimes + [activeTime])
     }
 
     /// A Phase's end is the start of the next Phase, and the Workout's end is its finish.
