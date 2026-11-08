@@ -32,6 +32,9 @@ final class WorkoutRunner {
     let health: HealthSaves
     /// The UUID of the Workout last started, made at Start, until its Health save begins.
     @ObservationIgnored private var healthWorkoutID: UUID?
+    /// The running Workout's fixed start point as a wall-clock date, or `nil` until the engine sets it. A Watch
+    /// session that starts at or after it belongs to the running Workout.
+    @ObservationIgnored private(set) var startDate: Date?
 
     #if DEBUG
         @ObservationIgnored private var timingLog: TimingLog?
@@ -49,6 +52,7 @@ final class WorkoutRunner {
         self.workout = workout
         self.workoutType = workoutType
         healthWorkoutID = UUID()
+        startDate = nil
         let audio = AudioAdapter(cues: cues, application: .shared)
         let engine = WorkoutEngine(
             workout: workout,
@@ -65,7 +69,9 @@ final class WorkoutRunner {
         #endif
         Task { [cues] in
             await cues.waitForRendering(atMost: renderingWaitLimit)
-            await engine.start()
+            if let start = await engine.start() {
+                startDate = ClockAnchor.now.date(of: start)
+            }
             for await snapshot in engine.snapshots {
                 show(snapshot)
             }
@@ -148,11 +154,19 @@ final class WorkoutRunner {
 // MARK: - Health
 
 extension WorkoutRunner {
-    /// Hands the Workout to Health the first time an ended snapshot arrives, before the screens let go of anything,
-    /// so the save's background task begins while the app is surely running.
+    /// Builds the Workout's Health record and hands it to Health the first time an ended snapshot arrives, before the
+    /// screens let go of anything, so the save's background task begins while the app is surely running. The record
+    /// is `nil` for a Workout too short to save.
     fileprivate func saveToHealth(_ snapshot: Snapshot) {
         guard let record = snapshot.record, let workoutID = healthWorkoutID.take() else { return }
-        health.save(record, of: workoutType, workoutID: workoutID, at: .now, date: .now)
+        health.save(HealthRecord(record, of: workoutType, workoutID: workoutID, attempt: 1, anchor: .now))
+    }
+}
+
+extension ClockAnchor<ContinuousClock.Instant> {
+    /// The engine clock and the wall clock, read together now.
+    fileprivate static var now: Self {
+        Self(instant: ContinuousClock.now, date: Date.now)
     }
 }
 

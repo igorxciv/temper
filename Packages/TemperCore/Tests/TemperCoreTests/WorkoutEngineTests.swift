@@ -43,6 +43,13 @@ nonisolated struct WorkoutEngineTests {
         #expect(await snapshots.next() == running(prepare, endsAt: 17))
     }
 
+    @Test func `Start returns its fixed start point`() async {
+        let engine = makeEngine()
+        clock.advance(by: .seconds(7))
+
+        #expect(await engine.start() == at(7))
+    }
+
     @Test func `Starting twice changes nothing`() async {
         let engine = makeEngine()
         var snapshots = engine.snapshots.makeAsyncIterator()
@@ -50,7 +57,7 @@ nonisolated struct WorkoutEngineTests {
         _ = await snapshots.next()
         clock.advanceWhileSuspended(by: .seconds(3))
 
-        await engine.start()
+        #expect(await engine.start() == nil)
         await engine.pause(at: clock.now)
 
         #expect(await snapshots.next() == Snapshot(progress: .paused(phase: prepare, timeLeft: .seconds(7)), rounds: 2))
@@ -889,5 +896,212 @@ extension WorkoutEngineTests {
 
         #expect(await snapshots.next()?.wasStopped == true)
         #expect(await snapshots.next() == nil)
+    }
+}
+
+// MARK: Taps from two remotes
+
+/// The Live Activity's taps arrive at once, and the Watch's arrive dated a little in the past, so a Watch tap can be
+/// dated before something the engine already applied. Each test applies one tap at once, then sends one dated earlier.
+extension WorkoutEngineTests {
+    /// An engine started at 0, with a Done applied at once at `seconds` and its snapshots read up to that point. It's
+    /// `makeDoneEngine()`'s unless another is given.
+    nonisolated private func engine(
+        doneAt seconds: Double, of engine: WorkoutEngine<ManualClock>? = nil
+    ) async -> (WorkoutEngine<ManualClock>, AsyncStream<Snapshot>.Iterator) {
+        let engine = engine ?? makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: seconds)
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+        return (engine, snapshots)
+    }
+
+    @Test func `A Pause dated before the last Resume holds the time left at the Resume`() async {
+        var (engine, snapshots) = await engine(runFor: .seconds(4))
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+        advance(to: 14)
+        await engine.resume(at: clock.now)
+        _ = await snapshots.next()
+        clock.advanceWhileSuspended(by: .milliseconds(500))
+
+        await engine.pause(at: at(13))
+
+        #expect(await snapshots.next() == Snapshot(progress: .paused(phase: prepare, timeLeft: .seconds(6)), rounds: 2))
+    }
+
+    @Test func `A Pause dated before the last Done holds the Phase the Done began, with its full length left`() async {
+        var (engine, snapshots) = await engine(doneAt: 40)
+        clock.advanceWhileSuspended(by: .milliseconds(300))
+
+        await engine.pause(at: at(39.5))
+
+        #expect(
+            await snapshots.next()
+                == Snapshot(
+                    progress: .paused(phase: doneRest, timeLeft: .seconds(30)),
+                    rounds: nil,
+                    previousOpenPhaseTime: .seconds(40)
+                )
+        )
+    }
+
+    @Test func `A Pause dated before the start point holds the first Phase with its full length left`() async {
+        let engine = makeEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        advance(to: 7)
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advanceWhileSuspended(by: .milliseconds(500))
+
+        await engine.pause(at: at(6))
+
+        #expect(
+            await snapshots.next() == Snapshot(progress: .paused(phase: prepare, timeLeft: .seconds(10)), rounds: 2))
+    }
+
+    @Test func `A Pause dated after now is placed at now`() async {
+        var (engine, snapshots) = await engine(runFor: .seconds(4))
+
+        await engine.pause(at: at(5))
+
+        #expect(await snapshots.next() == Snapshot(progress: .paused(phase: prepare, timeLeft: .seconds(6)), rounds: 2))
+    }
+
+    @Test func `A Resume dated before the last Pause leaves a Pause of no length`() async {
+        var (engine, snapshots) = await engine(runFor: .seconds(4))
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+        clock.advanceWhileSuspended(by: .milliseconds(200))
+
+        await engine.resume(at: at(3.5))
+
+        #expect(await snapshots.next() == running(prepare, endsAt: 10))
+    }
+
+    @Test func `A Resume dated after now is placed at now`() async {
+        var (engine, snapshots) = await engine(runFor: .seconds(4))
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+        advance(to: 14)
+
+        await engine.resume(at: at(15))
+
+        #expect(await snapshots.next() == running(prepare, endsAt: 20))
+    }
+
+    @Test func `A Resume dated before the start of the Phase a Done began never runs the Phase before it`() async {
+        var (engine, snapshots) = await engine(doneAt: 40)
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+        advance(to: 45)
+
+        await engine.resume(at: at(39))
+
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 70, workTime: 40))
+    }
+
+    @Test func `A Done dated before the last Resume ends the open Work at the Resume`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: 20)
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+        advance(to: 25)
+        await engine.resume(at: clock.now)
+        _ = await snapshots.next()
+        clock.advanceWhileSuspended(by: .milliseconds(300))
+
+        await engine.done(at: at(24))
+
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 55, workTime: 20))
+    }
+
+    @Test func `A Done dated before the start point ends an opening open Work at the start point`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        advance(to: 7)
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advanceWhileSuspended(by: .milliseconds(300))
+
+        await engine.done(at: at(6))
+
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 37, workTime: 0))
+    }
+
+    @Test func `A Done dated after now ends the open Work at now`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: 40)
+
+        await engine.done(at: at(41))
+
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 70, workTime: 40))
+    }
+
+    /// With a Rest of zero, the Live Activity's Done begins the next Round's open Work, so the Watch's Done for the
+    /// same Work arrives during it, dated a little before the Live Activity's or, with the Watch's clock ahead, after
+    /// now.
+    @Test(arguments: [39.8, 41.2])
+    func `A Done from each remote for the same Work gives one Done`(watchTap: Double) async {
+        var (engine, snapshots) = await engine(doneAt: 40, of: makeOpenRoundsEngine(rest: 0))
+        clock.advanceWhileSuspended(by: .milliseconds(300))
+
+        await engine.done(at: at(watchTap))
+        advance(to: 45)
+        await engine.pause(at: clock.now)
+
+        let work = Phase(kind: .work, length: .open, round: 2)
+        #expect(
+            await snapshots.next()
+                == Snapshot(
+                    progress: .pausedOpen(phase: work, elapsed: .seconds(5)),
+                    rounds: nil,
+                    previousOpenPhaseTime: .seconds(40)
+                )
+        )
+    }
+
+    @Test func `A Stop dated before the last Done ends the Workout at the Done`() async {
+        var (engine, snapshots) = await engine(doneAt: 40)
+        clock.advanceWhileSuspended(by: .milliseconds(300))
+
+        await engine.stop(at: at(39.5))
+
+        #expect(await snapshots.next()?.record?.end == at(40))
+    }
+
+    @Test func `A Stop dated before the start point ends the Workout at the start point`() async {
+        let engine = makeEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        advance(to: 7)
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advanceWhileSuspended(by: .milliseconds(500))
+
+        await engine.stop(at: at(6))
+
+        #expect(await snapshots.next()?.record?.end == at(7))
+    }
+
+    @Test(arguments: [false, true])
+    func `A Stop dated after now ends the Workout at now`(isPaused: Bool) async {
+        var (engine, snapshots) = await engine(runFor: .seconds(4))
+        if isPaused {
+            await engine.pause(at: clock.now)
+            _ = await snapshots.next()
+        }
+
+        await engine.stop(at: at(5))
+
+        #expect(await snapshots.next()?.record?.end == at(4))
     }
 }

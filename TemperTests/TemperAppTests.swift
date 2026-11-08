@@ -1,4 +1,5 @@
 import Foundation
+import HealthKit
 import TemperCore
 import Testing
 import UIKit
@@ -30,14 +31,25 @@ struct TemperAppTests {
         #expect(widgets.bundleIdentifier == "\(appID).widgets")
     }
 
-    /// Temper only writes workouts to Health and reads nothing, so it has no read string.
-    @Test func `The app needs HealthKit and explains why it writes to Health`() {
+    @Test func `The app needs HealthKit and explains why it writes to Health and what it reads`() {
         let info = Bundle.main.infoDictionary ?? [:]
 
         #expect(
             info["NSHealthUpdateUsageDescription"] as? String == "Temper saves each Workout to Health when it ends.")
-        #expect(info["NSHealthShareUsageDescription"] == nil)
+        #expect(
+            info["NSHealthShareUsageDescription"] as? String
+                == "Temper reads your heart rate during a Workout on Apple Watch, and your date of birth and resting "
+                + "heart rate to work out heart-rate zones.")
         #expect((info["UIRequiredDeviceCapabilities"] as? [String])?.contains("healthkit") == true)
+    }
+
+    /// The set is fixed, whether or not a Watch is paired, so the Watch never has to ask.
+    @Test func `Settings asks to share workouts and read heart rate, resting heart rate and date of birth`() {
+        #expect(HealthKitWorkouts.shareTypes == [.workoutType()])
+        #expect(
+            HealthKitWorkouts.readTypes == [
+                HKQuantityType(.heartRate), HKQuantityType(.restingHeartRate), HKCharacteristicType(.dateOfBirth),
+            ])
     }
 
     /// Force-quitting, or iOS ending the app, ends the Workout, because nothing about it is saved.

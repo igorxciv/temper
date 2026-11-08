@@ -1,60 +1,53 @@
 import SwiftUI
 
-/// The one place Temper asks to write to Health. It never asks at Start or at the end, so Start stays one tap and
-/// training never waits on Health. Its row follows the write status, read again whenever Temper comes to the front,
-/// so a change made in the Health app shows here.
+/// The one place Temper asks for Health permission, for the iPhone and the Watch together. It never asks at Start or at
+/// the end, so Start stays one tap and training never waits on Health. Its row follows the write status and whether
+/// the full set would prompt, read again whenever Temper comes to the front, so a change made in the Health app shows
+/// here.
 struct AppleHealthSection: View {
     let health: HealthSaves
     let colors: InkColors
 
     @Environment(\.scenePhase) private var scenePhase
 
-    private let savesText = "Saves each Workout of 1 minute or more when it ends."
-
     var body: some View {
-        Group {
-            switch health.writeStatus {
-            case .notDetermined:
-                section(footer: savesText) {
-                    Button("Save Workouts to Health") {
-                        Task { await health.requestPermission() }
+        Section {
+            Group {
+                switch health.row {
+                case .saveWorkouts:
+                    Button("Save Workouts to Health", action: requestPermission)
+                        .foregroundStyle(colors.accent)
+                case .allowHeartRate:
+                    LabeledContent("Saving to Health") {
+                        Button("Allow Heart Rate", action: requestPermission)
+                            .foregroundStyle(colors.accent)
                     }
-                    .foregroundStyle(colors.accent)
-                }
-            case .allowed:
-                section(footer: "\(savesText) Turn this off in the Health app.") {
+                case .saving:
                     LabeledContent("Saving to Health") {
                         Image(systemName: "checkmark")
                             .foregroundStyle(colors.accent)
                             .accessibilityHidden(true)
                     }
-                }
-            case .denied:
-                section(footer: "Allow Temper under Settings › Health › Data Access & Devices.") {
+                case .notAllowed:
                     Text("Not allowed")
-                }
-            case nil:
-                section(footer: savesText) {
+                case nil:
                     EmptyView()
                 }
             }
+            .listRowBackground(colors.raised)
+        } header: {
+            Text("Apple Health").foregroundStyle(colors.secondary)
+        } footer: {
+            Text((health.row ?? .saveWorkouts).footer).foregroundStyle(colors.secondary)
         }
-        .onAppear { health.refreshStatus() }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active {
-                health.refreshStatus()
+        .task(id: scenePhase) {
+            if scenePhase == .active {
+                await health.refreshStatus()
             }
         }
     }
 
-    private func section(footer: String, @ViewBuilder row: () -> some View) -> some View {
-        Section {
-            row()
-                .listRowBackground(colors.raised)
-        } header: {
-            Text("Apple Health").foregroundStyle(colors.secondary)
-        } footer: {
-            Text(footer).foregroundStyle(colors.secondary)
-        }
+    private func requestPermission() {
+        Task { await health.requestPermission() }
     }
 }

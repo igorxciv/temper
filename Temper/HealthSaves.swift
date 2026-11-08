@@ -3,7 +3,8 @@ import Observation
 import TemperCore
 import UIKit
 
-/// Saves each ended Workout to Health, at most once, and asks for permission when Settings says to.
+/// Saves each ended Workout to Health, at most once, and asks for permission when Settings says to. The one request
+/// covers everything the Watch will need as well, so the Watch never asks.
 ///
 /// A save counts as done only when Health returns the workout. A locked iPhone can return nothing and save nothing,
 /// so until then the save stays pending in `UserDefaults`, and it's tried again with its sync version raised by 1
@@ -16,8 +17,8 @@ final class HealthSaves {
     /// works. The limit keeps a save Health never confirms from being tried forever.
     static let attemptLimit = 3
 
-    /// The write status as last read, or `nil` before the first read.
-    private(set) var writeStatus: HealthWriteStatus?
+    /// Settings' Apple Health row, from the statuses as last read, or `nil` before the first read.
+    private(set) var row: AppleHealthRow?
 
     #if DEBUG
         /// Where each attempt's result is logged: the Workout's own log, or a new one for a retry with none.
@@ -42,40 +43,31 @@ final class HealthSaves {
         self.isProtectedDataAvailable = isProtectedDataAvailable
     }
 
-    func refreshStatus() {
-        writeStatus = store.writeStatus
+    func refreshStatus() async {
+        let requestStatus = await store.requestStatus
+        row = AppleHealthRow(writeStatus: store.writeStatus, requestStatus: requestStatus)
     }
 
     func requestPermission() async {
         await store.requestPermission()
-        refreshStatus()
+        await refreshStatus()
     }
 
-    /// Saves the Health workout of an ended Workout, if writing is allowed and it ran long enough.
+    /// Saves the Health workout of an ended Workout, if writing is allowed. `record` is the first attempt's, or `nil`
+    /// for a Workout that ran for less than ``HealthRecord/minimumActiveTime`` and so saves nothing.
     ///
     /// The background task and the pending save are in place before this returns, so the save can finish, or be
-    /// tried again later, even if the app is suspended straight after. `instant` and `date` are read together, on
-    /// the engine's clock and the wall clock.
+    /// tried again later, even if the app is suspended straight after.
     @discardableResult
-    func save<Instant>(
-        _ record: WorkoutRecord<Instant>,
-        of workoutType: WorkoutType,
-        workoutID: UUID,
-        at instant: Instant,
-        date: Date
-    ) -> Task<Void, Never> where Instant.Duration == Duration {
+    func save(_ record: HealthRecord?) -> Task<Void, Never> {
         let backgroundTask = BackgroundTask(named: "Health")
-        guard
-            let health = HealthRecord(
-                record, of: workoutType, workoutID: workoutID, attempt: 1, at: instant, date: date),
-            store.writeStatus == .allowed
-        else {
+        guard let record, store.writeStatus == .allowed else {
             backgroundTask.end()
             return Task {}
         }
-        pending.put(PendingHealthSave(record: health, countedAttempts: 0))
+        pending.put(PendingHealthSave(record: record, countedAttempts: 0))
         return Task {
-            await attempt(workoutID)
+            await attempt(record.workoutID)
             backgroundTask.end()
         }
     }

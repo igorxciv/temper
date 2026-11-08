@@ -4,10 +4,11 @@ import Testing
 
 @testable import Temper
 
-/// Stands in for HealthKit: it answers with the write status and outcomes it's given, and keeps every record it was
-/// asked to save.
+/// Stands in for HealthKit: it answers with the statuses and outcomes it's given, and keeps every record it was asked
+/// to save.
 private final class FakeHealthStore: HealthWorkoutStore {
     var writeStatus: HealthWriteStatus = .allowed
+    var requestStatus: HealthRequestStatus = .unnecessary
     /// The outcome of each save in turn. Once they run out, every save is confirmed.
     var outcomes: [HealthSaveOutcome] = []
     private(set) var saved: [HealthRecord] = []
@@ -61,13 +62,16 @@ private final class Harness {
 private let start = ContinuousClock.now
 private let startDate = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
-/// A Stopwatch's Work that ran for `seconds` from Start, with no Prepare.
-private func stopwatch(seconds: Int) -> WorkoutRecord<ContinuousClock.Instant> {
+/// The Health record of a Stopwatch's Work that ran for `seconds` from Start, with no Prepare, or `nil` if it ran for
+/// less than a minute.
+private func stopwatch(seconds: Int, workoutID: UUID = UUID()) -> HealthRecord? {
     let end = start + .seconds(seconds)
-    return WorkoutRecord(
+    let record = WorkoutRecord(
         start: start, end: end, pauses: [],
         phases: [.init(kind: .work, round: nil, start: start, end: end)]
     )
+    return HealthRecord(
+        record, of: .stopwatch, workoutID: workoutID, attempt: 1, anchor: ClockAnchor(instant: start, date: startDate))
 }
 
 @MainActor
@@ -77,8 +81,7 @@ struct HealthSavesTests {
         let health = harness.launch()
         let workoutID = UUID()
 
-        await health.save(stopwatch(seconds: 60), of: .stopwatch, workoutID: workoutID, at: start, date: startDate)
-            .value
+        await health.save(stopwatch(seconds: 60, workoutID: workoutID)).value
 
         #expect(harness.store.saved.count == 1)
         #expect(harness.store.saved.first?.syncIdentifier == workoutID.uuidString)
@@ -93,8 +96,7 @@ struct HealthSavesTests {
         let harness = try Harness()
         let workoutID = UUID()
 
-        let saving = harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: workoutID, at: start, date: startDate)
+        let saving = harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID))
 
         #expect(harness.store.saved.isEmpty)
         #expect(PendingHealthSaves(defaults: harness.defaults)[workoutID: workoutID]?.record.syncVersion == 1)
@@ -110,10 +112,7 @@ struct HealthSavesTests {
             storedDuringSave = PendingHealthSaves(defaults: defaults)[workoutID: workoutID]?.record.syncVersion
         }
 
-        await harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: workoutID, at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID)).value
 
         #expect(storedDuringSave == 2)
     }
@@ -126,7 +125,7 @@ struct HealthSavesTests {
             await health.retryPending()
         }
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
 
         #expect(harness.store.saved.map(\.syncVersion) == [1])
     }
@@ -134,10 +133,7 @@ struct HealthSavesTests {
     @Test func `A Workout of less than a minute saves nothing`() async throws {
         let harness = try Harness()
 
-        await harness.launch().save(
-            stopwatch(seconds: 59), of: .stopwatch, workoutID: UUID(), at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 59)).value
 
         #expect(harness.store.saved.isEmpty)
     }
@@ -149,10 +145,7 @@ struct HealthSavesTests {
         let harness = try Harness()
         harness.store.writeStatus = status
 
-        await harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 90)).value
         harness.store.writeStatus = .allowed
         await harness.launch().retryPending()
 
@@ -167,10 +160,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [outcome]
         let workoutID = UUID()
 
-        await harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: workoutID, at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID)).value
         await harness.launch().retryPending()
         await harness.launch().retryPending()
 
@@ -184,7 +174,7 @@ struct HealthSavesTests {
         harness.store.outcomes = Array(repeating: .unverified, count: 5)
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         for _ in 1...3 {
             await health.retryPending()
         }
@@ -200,7 +190,7 @@ struct HealthSavesTests {
         let health = harness.launch()
         harness.isProtectedDataAvailable = false
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         await health.retryPending()
         harness.isProtectedDataAvailable = true
         for _ in 1...4 {
@@ -215,7 +205,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [.notAllowed]
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         await health.retryPending()
 
         #expect(harness.store.saved.count == 1)
@@ -226,7 +216,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [.unverified]
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         harness.store.writeStatus = .denied
         await health.retryPending()
         harness.store.writeStatus = .allowed
@@ -245,10 +235,7 @@ struct HealthSavesTests {
         let harness = try Harness()
         harness.store.outcomes = [outcome]
 
-        await harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 90)).value
 
         #expect(harness.logged == [logged])
     }
@@ -258,7 +245,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [.unverified, .failed, .unverified]
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         await health.retryPending()
         await health.retryPending()
 
@@ -272,8 +259,8 @@ struct HealthSavesTests {
         let first = UUID()
         let second = UUID()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: first, at: start, date: startDate).value
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: second, at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90, workoutID: first)).value
+        await health.save(stopwatch(seconds: 90, workoutID: second)).value
         await health.retryPending()
         await health.retryPending()
 
@@ -281,17 +268,61 @@ struct HealthSavesTests {
         #expect(harness.store.saved.map(\.syncVersion) == [1, 1, 2])
     }
 
-    @Test func `Asking for permission reads the write status again`() async throws {
+    @Test(arguments: [
+        (HealthWriteStatus.notDetermined, HealthRequestStatus.shouldRequest, AppleHealthRow.saveWorkouts),
+        (.allowed, .shouldRequest, .allowHeartRate),
+        (.allowed, .unnecessary, .saving),
+        (.denied, .shouldRequest, .notAllowed),
+        (.denied, .unnecessary, .notAllowed),
+    ])
+    func `Settings shows the row for the write status and whether the full set would prompt`(
+        writeStatus: HealthWriteStatus, requestStatus: HealthRequestStatus, row: AppleHealthRow
+    ) async throws {
         let harness = try Harness()
-        harness.store.writeStatus = .notDetermined
+        harness.store.writeStatus = writeStatus
+        harness.store.requestStatus = requestStatus
         let health = harness.launch()
-        health.refreshStatus()
-        #expect(health.writeStatus == .notDetermined)
+        #expect(health.row == nil)
 
-        harness.store.duringPermissionRequest = { harness.store.writeStatus = .allowed }
+        await health.refreshStatus()
+
+        #expect(health.row == row)
+    }
+
+    /// "Allow Heart Rate" still saves workouts, so its footer keeps the saves sentence and adds what the Watch does.
+    @Test(arguments: [
+        (
+            AppleHealthRow.saveWorkouts,
+            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch."
+        ),
+        (
+            .allowHeartRate,
+            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch. "
+                + "Apple Watch shows your heart rate and saves it to Health."
+        ),
+        (
+            .saving,
+            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch. "
+                + "Turn this off in the Health app."
+        ),
+        (.notAllowed, "Allow Temper under Settings › Health › Data Access & Devices."),
+    ])
+    func `Each row has its footer`(row: AppleHealthRow, footer: String) {
+        #expect(row.footer == footer)
+    }
+
+    /// Anyone who allowed workouts in the shipped build is asked once more, and the row settles on the checkmark.
+    @Test func `Asking for permission reads both statuses again`() async throws {
+        let harness = try Harness()
+        harness.store.requestStatus = .shouldRequest
+        let health = harness.launch()
+        await health.refreshStatus()
+        try #require(health.row == .allowHeartRate)
+
+        harness.store.duringPermissionRequest = { harness.store.requestStatus = .unnecessary }
         await health.requestPermission()
 
         #expect(harness.store.permissionRequests == 1)
-        #expect(health.writeStatus == .allowed)
+        #expect(health.row == .saving)
     }
 }
