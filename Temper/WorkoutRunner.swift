@@ -74,6 +74,12 @@ final class WorkoutRunner {
         Task { [engine] in await engine?.resume(at: tap) }
     }
 
+    /// Ends the open Work at the tap. The engine ignores it outside a running open Work.
+    func done() {
+        let tap = ContinuousClock.now
+        Task { [engine] in await engine?.done(at: tap) }
+    }
+
     func stop() {
         let tap = ContinuousClock.now
         Task { [engine] in await engine?.stop(at: tap) }

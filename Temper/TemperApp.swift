@@ -44,6 +44,7 @@ struct RootView: View {
                         phase: phase,
                         pause: runner.pause,
                         resume: runner.resume,
+                        done: runner.done,
                         stop: runner.stop
                     )
                 } else {

@@ -7,6 +7,7 @@ struct RunningScreen: View {
     let phase: Phase
     let pause: () -> Void
     let resume: () -> Void
+    let done: () -> Void
     let stop: () -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -28,8 +29,15 @@ struct RunningScreen: View {
                 .padding(10)
             RingLineView(line: display.line, colors: colors)
             Spacer(minLength: 0)
-            RunningControls(isPaused: snapshot.isPaused, pause: pause, resume: resume, stop: stop)
-                .padding(.bottom, 8)
+            RunningControls(
+                isPaused: snapshot.isPaused,
+                doneButton: display.doneButton,
+                pause: pause,
+                resume: resume,
+                done: done,
+                stop: stop
+            )
+            .padding(.bottom, 8)
         }
         .padding(.horizontal, 16)
         .background(colors.background.ignoresSafeArea())
@@ -62,7 +70,8 @@ private struct TimeRing: View {
                         .font(.system(size: 180, weight: .semibold).monospacedDigit())
                         .foregroundStyle(colors.text)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.4)
+                        // Low enough for "72:15" in the ring Open Rounds' Done leaves on an iPhone SE.
+                        .minimumScaleFactor(0.3)
                         .padding(.horizontal, 24)
                         // Read only when focus lands on it. The `updatesFrequently` trait would announce it as it
                         // changes, and the Cues already speak every Phase change.
@@ -121,43 +130,84 @@ private struct CaptionText: View {
     }
 }
 
+/// Pause or Resume, and Stop, with Done above them in Open Rounds. The Phase name, ring and line above give up height
+/// to Done, so the ring shrinks to make room for it.
 private struct RunningControls: View {
     let isPaused: Bool
+    let doneButton: WorkoutRunner.Display.DoneButton?
     let pause: () -> Void
     let resume: () -> Void
+    let done: () -> Void
     let stop: () -> Void
 
     @State private var isConfirmingStop = false
 
     var body: some View {
         GlassEffectContainer {
-            HStack(spacing: 12) {
-                Button(action: isPaused ? resume : pause) {
-                    Label(isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill")
-                        .font(.title.bold())
-                        .frame(maxWidth: .infinity, minHeight: 72)
+            VStack(spacing: 12) {
+                if let doneButton {
+                    DoneControl(isEnabled: doneButton == .enabled, done: done)
                 }
-                .buttonStyle(.glass)
-                .accessibilityShowsLargeContentViewer()
+                HStack(spacing: 12) {
+                    Button(action: isPaused ? resume : pause) {
+                        Label(isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill")
+                            .font(.title.bold())
+                            .frame(maxWidth: .infinity, minHeight: 72)
+                    }
+                    .buttonStyle(.glass)
+                    .accessibilityShowsLargeContentViewer()
 
-                Button {
-                    isConfirmingStop = true
-                } label: {
-                    Image(systemName: "stop.fill")
-                        .font(.title.bold())
-                        .frame(width: 72, height: 72)
-                }
-                .buttonStyle(.glass)
-                .accessibilityLabel("Stop")
-                // Asking doesn't Pause: the timer and Cues carry on while the dialog is open. If the Workout
-                // finishes, the complete screen replaces this one and the dialog goes with it.
-                .confirmationDialog("End this Workout?", isPresented: $isConfirmingStop, titleVisibility: .visible) {
-                    Button("End Workout", role: .destructive, action: stop)
-                    Button("Keep Going", role: .cancel) {}
+                    Button {
+                        isConfirmingStop = true
+                    } label: {
+                        Image(systemName: "stop.fill")
+                            .font(.title.bold())
+                            .frame(width: 72, height: 72)
+                    }
+                    .buttonStyle(.glass)
+                    .accessibilityLabel("Stop")
+                    // Asking doesn't Pause: the timer and Cues carry on while the dialog is open. If the Workout
+                    // finishes, the complete screen replaces this one and the dialog goes with it.
+                    .confirmationDialog(
+                        "End this Workout?", isPresented: $isConfirmingStop, titleVisibility: .visible
+                    ) {
+                        Button("End Workout", role: .destructive, action: stop)
+                        Button("Keep Going", role: .cancel) {}
+                    }
                 }
             }
         }
         // The time is the point of this screen, so the buttons can't grow into it.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+/// Open Rounds' Done, in Work's ring color. No tap-anywhere, because a phone on a bench can be brushed. Disabled, it
+/// stays in place and dims, and VoiceOver reads it as dimmed.
+private struct DoneControl: View {
+    let isEnabled: Bool
+    let done: () -> Void
+
+    @Environment(\.colorSchemeContrast) private var contrast
+    @State private var taps = 0
+
+    var body: some View {
+        let work = PhaseColors(kind: .work, contrast: contrast)
+
+        Button {
+            taps += 1
+            done()
+        } label: {
+            Text("Done")
+                .font(.title.bold())
+                // Dark on Work's ring color, and the system's dimmed style once disabled takes the tint away.
+                .foregroundStyle(isEnabled ? AnyShapeStyle(work.background) : AnyShapeStyle(.secondary))
+                .frame(maxWidth: .infinity, minHeight: 88)
+        }
+        .buttonStyle(.glassProminent)
+        .tint(work.ring)
+        .disabled(!isEnabled)
+        .accessibilityShowsLargeContentViewer()
+        .sensoryFeedback(.impact(weight: .light), trigger: taps)
     }
 }

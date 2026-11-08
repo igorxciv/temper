@@ -1,9 +1,11 @@
 import AppIntents
 
-/// The running Workout's Pause and Resume, as the Live Activity's buttons reach them.
+/// The running Workout's Pause, Resume and Done, as the Live Activity's buttons reach them. Each reads the clock when
+/// it runs, because a Live Activity press can't carry its tap time.
 protocol WorkoutControls: AnyObject {
     func pause()
     func resume()
+    func done()
 }
 
 /// Where the Live Activity's buttons find the Workout.

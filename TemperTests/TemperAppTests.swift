@@ -46,6 +46,7 @@ struct LiveActivityButtonTests {
 
         func pause() { taps.append("pause") }
         func resume() { taps.append("resume") }
+        func done() { taps.append("done") }
     }
 
     /// The system may launch the app to run a button, so the runner is set at launch.
