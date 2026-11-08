@@ -601,6 +601,23 @@ nonisolated struct WorkoutEngineTests {
         )
     }
 
+    @Test func `Done does nothing in a Stopwatch's Work`() async throws {
+        let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
+        let work = try #require(workout.phases.first { $0.kind == .work })
+        let engine = WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: 10)
+        _ = await snapshots.next()
+
+        advance(to: 30)
+        await engine.done(at: clock.now)
+        await engine.pause(at: clock.now)
+
+        #expect(await snapshots.next() == Snapshot(progress: .paused(phase: work, timeLeft: .seconds(580)), rounds: 0))
+    }
+
     @Test func `A Done tapped before an open Phase began does nothing, even if it arrives once it has`() async {
         let engine = makeEngine([prepare, openWork, doneRest])
         var snapshots = engine.snapshots.makeAsyncIterator()
@@ -821,6 +838,28 @@ extension WorkoutEngineTests {
         await engine.done(at: clock.now)
 
         #expect(await snapshots.next() == openRoundsWork(round: 3, since: clock.now, workTime: .seconds(1)))
+    }
+
+    @Test func `A Done well into a Rest does nothing, and the next Work still waits for its own Done`() async {
+        let engine = makeOpenRoundsEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: 25)
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+
+        advance(to: 30)
+        await engine.done(at: clock.now)
+        advance(to: 85)
+        #expect(await snapshots.next() == openRoundsWork(round: 2, since: clock.now))
+
+        advance(to: 90)
+        await engine.pause(at: clock.now)
+        let work = Phase(kind: .work, length: .open, round: 2)
+        #expect(
+            await snapshots.next() == Snapshot(progress: .pausedOpen(phase: work, elapsed: .seconds(5)), rounds: nil)
+        )
     }
 
     @Test func `The Rest after Done carries the Work time just ended, leaving out its Pause`() async {

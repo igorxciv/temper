@@ -89,6 +89,24 @@ nonisolated struct HealthRecordTests {
         #expect(later.end == date(250))
     }
 
+    @Test func `The Health workout spans the whole Workout, Prepare and Cooldown included`() throws {
+        let record = Record(
+            start: at(0),
+            end: at(100),
+            pauses: [],
+            phases: [
+                phase(.prepare, from: 0, to: 10),
+                phase(.work, from: 10, to: 40),
+                phase(.cooldown, from: 40, to: 100),
+            ]
+        )
+
+        let health = try #require(healthRecord(record))
+
+        #expect(health.start == date(0))
+        #expect(health.end == date(100))
+    }
+
     // MARK: Pauses
 
     @Test func `Each Pause saves as a pause and resume pair`() throws {

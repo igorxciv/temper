@@ -126,6 +126,13 @@ nonisolated struct TimelineTests {
         #expect(openTimeline.position(at: .seconds(100_000)).nextCue == nil)
     }
 
+    @Test func `A repeating Round is numbered after the Rounds that run before it`() {
+        let repeating = Workout(
+            phases: [firstWork, rest], repeatingRound: [Phase(kind: .work, length: .open, round: 7)])
+
+        #expect(Timeline(workout: repeating).position(at: .seconds(50)).phase?.round == 2)
+    }
+
     // MARK: The "10 seconds" Cue
 
     /// Open Rounds with a Rest of `rest` seconds, its first Work marked Done at 40 s.

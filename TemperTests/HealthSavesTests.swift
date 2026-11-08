@@ -15,6 +15,8 @@ private final class FakeHealthStore: HealthWorkoutStore {
 
     /// Called when asked for permission, as the system sheet would be shown.
     var duringPermissionRequest: () -> Void = {}
+    /// Called during each save, before Health answers.
+    var duringSave: () -> Void = {}
 
     func requestPermission() async {
         permissionRequests += 1
@@ -23,6 +25,7 @@ private final class FakeHealthStore: HealthWorkoutStore {
 
     func save(_ record: HealthRecord) async -> HealthSaveOutcome {
         saved.append(record)
+        duringSave()
         return outcomes.isEmpty ? .saved : outcomes.removeFirst()
     }
 }
@@ -85,6 +88,24 @@ struct HealthSavesTests {
         #expect(harness.store.saved.count == 1)
     }
 
+    @Test func `The pending save, and the next attempt's, are stored before Health is asked`() async throws {
+        let harness = try Harness()
+        let pending = PendingHealthSaves(defaults: harness.defaults)
+        let workoutID = UUID()
+        var pendingDuringSave: PendingHealthSave?
+        harness.store.duringSave = { pendingDuringSave = pending[workoutID: workoutID] }
+
+        let saving = harness.launch().save(
+            stopwatch(seconds: 60), of: .stopwatch, workoutID: workoutID, at: start, date: startDate
+        )
+        #expect(pending[workoutID: workoutID]?.record.syncVersion == 1)
+        await saving.value
+
+        #expect(harness.store.saved.first?.syncVersion == 1)
+        #expect(pendingDuringSave?.record.syncVersion == 2)
+        #expect(pendingDuringSave?.countedAttempts == 1)
+    }
+
     @Test func `A Workout of less than a minute saves nothing`() async throws {
         let harness = try Harness()
 
@@ -97,7 +118,7 @@ struct HealthSavesTests {
     }
 
     @Test(arguments: [HealthWriteStatus.notDetermined, .denied])
-    func `Unless writing is allowed, an ended Workout saves nothing and leaves nothing to retry`(
+    func `Unless writing is allowed, an ended Workout saves nothing, asks nothing and leaves nothing to retry`(
         status: HealthWriteStatus
     ) async throws {
         let harness = try Harness()
@@ -111,6 +132,8 @@ struct HealthSavesTests {
         await harness.launch().retryPending()
 
         #expect(harness.store.saved.isEmpty)
+        // Only Settings asks, so a Workout's end never puts the system sheet in the owner's way.
+        #expect(harness.store.permissionRequests == 0)
     }
 
     @Test(arguments: [HealthSaveOutcome.unverified, .failed])

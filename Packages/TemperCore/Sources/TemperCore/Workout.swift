@@ -1,6 +1,7 @@
 /// A single period within a Workout, which ends at its set length or, if it is open, when the owner marks it Done.
 public nonisolated struct Phase: Equatable, Sendable {
-    /// The raw value is what a Live Activity stores, so renaming a case breaks one that's showing.
+    /// The raw value is what a Live Activity stores, and what a Health workout's activities keep as `TemperPhase`,
+    /// so renaming a case breaks a Live Activity that's showing and splits the Phase's name in Health.
     public enum Kind: String, Codable, Equatable, Sendable {
         case prepare, work, rest, cooldown
 
@@ -19,7 +20,9 @@ public nonisolated struct Phase: Equatable, Sendable {
     public enum Length: Equatable, Sendable {
         /// It ends once this much active time has passed.
         case set(Duration)
-        /// It has no set length, and ends only when the owner marks it Done.
+        /// It has no set length, and ends only when the owner marks it Done. It has no cap like a time value's 30:00,
+        /// so a forgotten Workout keeps counting until Stop rather than ending on its own. A locked iPhone has been
+        /// seen to play every Cue after an open Work of over 30 minutes.
         case open
     }
 

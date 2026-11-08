@@ -38,6 +38,29 @@ nonisolated struct WorkoutRecordTests {
         return nil
     }
 
+    // MARK: Any Workout Type that finishes
+
+    /// The Live Activity's complete state shows the record's active time, and the complete screen shows the
+    /// Workout's length, so a finished Workout's two must agree.
+    @Test(arguments: [WorkoutType.intervals, .stopwatch])
+    func `A finished Workout's active time is its length, with its Pause left out`(type: WorkoutType) async {
+        let workout = type.makeWorkout(from: type.firstLaunch)
+        let engine = makeEngine(workout)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: 5)
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+        advance(to: 65)
+        await engine.resume(at: clock.now)
+
+        advance(to: 10_000)
+
+        let record = await record(of: snapshots)
+        #expect(record?.activeTime == workout.totalDuration)
+    }
+
     // MARK: Intervals
 
     /// Prepare 0:10, then Work 0:30, Rest 0:15, Work 0:30, and Cooldown 1:00, finishing after 2:25 of active time.

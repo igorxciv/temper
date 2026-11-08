@@ -11,7 +11,7 @@ struct TemperApp: App {
         health.retryWhenPossible()
         let runner = WorkoutRunner(health: health)
         _runner = State(initialValue: runner)
-        // The Live Activity's Pause and Resume run in this process, and may be what launched it, so the runner
+        // The Live Activity's Pause, Resume and Done run in this process, and may be what launched it, so the runner
         // is set before any of them can run.
         LiveActivityControls.workout = runner
     }
