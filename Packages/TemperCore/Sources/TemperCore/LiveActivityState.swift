@@ -68,8 +68,7 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
 
 extension RunningDisplay {
     /// The Live Activity's state at `now`, which reads `date` on the wall clock, or `nil` when a Stop should end
-    /// it at once, as in Intervals and Stopwatch. A Stopped Open Rounds shows the complete state, as a finished
-    /// Workout does.
+    /// it at once, as in Intervals and Stopwatch. An ended Workout with a complete screen shows the complete state.
     ///
     /// The engine's clock keeps counting while the iPhone sleeps, and the wall clock can be changed, so the dates
     /// are worked out from the time left, or the time elapsed in an open Phase, at `now` rather than kept from
@@ -92,20 +91,18 @@ extension RunningDisplay {
                     button: liveButton
                 )
             )
-        case .finished(let record):
-            return complete(record)
-        case .stopped(let record):
-            return workoutType == .openRounds ? complete(record) : nil
+        case .finished(let record), .stopped(let record):
+            return completion == nil ? nil : complete(record)
         }
     }
 
+    /// Done while the running screen's Done is enabled, and nothing while it's dimmed, since a Workout with Done
+    /// keeps Pause in the app. Otherwise Pause, or Resume while Paused.
     private nonisolated var liveButton: LivePhase.Button? {
-        switch (workoutType, snapshot.progress) {
-        case (.openRounds, .runningOpen): .done
-        case (.openRounds, _): nil
-        case (_, .paused), (_, .pausedOpen): .resume
-        case (_, _): .pause
+        if let doneButton {
+            return doneButton == .enabled ? .done : nil
         }
+        return snapshot.isPaused ? .resume : .pause
     }
 
     private nonisolated func complete(_ record: WorkoutRecord<Instant>) -> LiveActivityState {

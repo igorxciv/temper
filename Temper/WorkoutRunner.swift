@@ -111,14 +111,13 @@ final class WorkoutRunner {
             logTiming(of: snapshot)
         #endif
         saveToHealth(snapshot)
-        // Open Rounds ends only at Stop, so its Stop keeps the snapshot for the complete screen. In Intervals and
-        // Stopwatch, Stop returns to setup.
-        if case .stopped = snapshot.progress, workoutType != .openRounds {
+        let display = Display(workoutType: workoutType, workout: workout, snapshot: snapshot)
+        // An ended Workout with no complete screen, as after a Stop in Intervals and Stopwatch, returns to setup.
+        if snapshot.phase == nil, display.completion == nil {
             finish()
             return
         }
         self.snapshot = snapshot
-        let display = Display(workoutType: workoutType, workout: workout, snapshot: snapshot)
         liveActivity?.show(display.liveActivityState(at: .now, date: .now))
     }
 

@@ -214,6 +214,27 @@ nonisolated struct RunningDisplayTests {
 
         #expect(display.line == nil)
     }
+
+    // MARK: Complete screen
+
+    @Test(arguments: [WorkoutType.intervals, .stopwatch])
+    func `A finished Workout opens the complete screen with its total length`(type: WorkoutType) {
+        let workout = type == .intervals ? intervals : stopwatch
+        let display = Display(
+            workoutType: type, workout: workout, snapshot: Snapshot(progress: .finished(.lasting(0)), rounds: 8))
+
+        #expect(display.completion == .total(workout.totalDuration))
+    }
+
+    @Test func `A Stop in Intervals and Stopwatch returns to setup, with no complete screen`() {
+        #expect(intervals(.stopped(.lasting(100))).completion == nil)
+        #expect(stopwatch(.stopped(.lasting(100))).completion == nil)
+    }
+
+    @Test func `A running Workout has no complete screen`() {
+        #expect(intervals(running(work, endsAt: 100)).completion == nil)
+        #expect(stopwatch(.paused(phase: stopwatchWork, timeLeft: .seconds(5))).completion == nil)
+    }
 }
 
 /// Open Rounds: an open Work counting up, then a Rest counting down, Round after Round.
@@ -317,6 +338,17 @@ nonisolated struct RunningDisplayOpenRoundsTests {
 
     @Test func `A stopped Open Rounds has no line`() {
         #expect(display(.stopped(.lasting(130))).line == nil)
+    }
+
+    @Test func `A Stop opens the Rounds complete screen for the record`() {
+        let record = WorkoutRecord<ManualClock.Instant>.lasting(130)
+
+        #expect(display(.stopped(record)).completion == .rounds(RoundsSummary(record: record)))
+    }
+
+    @Test func `A running Open Rounds has no complete screen`() {
+        #expect(display(.runningOpen(phase: work, startedAt: at(0))).completion == nil)
+        #expect(display(.paused(phase: rest, timeLeft: .seconds(5)), workTime: .seconds(40)).completion == nil)
     }
 
     // MARK: Done

@@ -36,23 +36,30 @@ struct RootView: View {
     var body: some View {
         Group {
             if let snapshot = runner.snapshot {
+                let display = RunningDisplay(
+                    workoutType: runner.workoutType,
+                    workout: runner.workout,
+                    snapshot: snapshot
+                )
                 if let phase = snapshot.phase {
                     RunningScreen(
-                        display: RunningDisplay(
-                            workoutType: runner.workoutType,
-                            workout: runner.workout,
-                            snapshot: snapshot
-                        ),
+                        display: display,
                         phase: phase,
                         pause: runner.pause,
                         resume: runner.resume,
                         done: runner.done,
                         stop: runner.stop
                     )
-                } else if runner.workoutType == .openRounds, let record = snapshot.record {
-                    RoundsCompleteScreen(summary: RoundsSummary(record: record), done: runner.finish)
                 } else {
-                    CompleteScreen(total: runner.workout.totalDuration, done: runner.finish)
+                    // The runner keeps only an ended snapshot with a complete screen.
+                    switch display.completion {
+                    case .rounds(let summary):
+                        RoundsCompleteScreen(summary: summary, done: runner.finish)
+                    case .total(let total):
+                        CompleteScreen(total: total, done: runner.finish)
+                    case nil:
+                        EmptyView()
+                    }
                 }
             } else {
                 // The system Liquid Glass tab bar, with no background of its own.
