@@ -19,7 +19,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
 
     private let continuation: AsyncStream<Snapshot>.Continuation
     private let clock: EngineClock
-    private let timeline: Timeline
+    private var timeline: Timeline
     private let rounds: Int?
     private let cueRules: CueRules<EngineClock>
     private var state = State.ready
@@ -71,6 +71,18 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         let held = heldFor + since.duration(to: tap)
         state = .running(start: start, heldFor: held)
         await cueRules.resume(from: start.advanced(by: held))
+        await recalculate()
+    }
+
+    /// Done keeps the time of the tap, so the next Phase starts when the owner ended the open one, not when the
+    /// tap arrived. It applies only to a running open Phase. A Done during a Phase with a set length, a second tap
+    /// of a double tap, or one after Stop or the finish does nothing.
+    public func done(at tap: Instant) async {
+        guard case .running(let start, let heldFor) = state,
+            let marked = timeline.markingDone(at: start.duration(to: tap) - heldFor)
+        else { return }
+        timeline = marked
+        await cueRules.done(timeline: marked)
         await recalculate()
     }
 

@@ -457,4 +457,131 @@ nonisolated struct WorkoutEngineTests {
 
         #expect(await snapshots.next() == runningOpen(since: 40))
     }
+
+    // MARK: Done
+
+    private let doneRest = Phase(kind: .rest, duration: .seconds(30), round: 1)
+    private let lastWork = Phase(kind: .work, duration: .seconds(30), round: 2)
+
+    /// An open Work, then a Rest of 0:30, then a Work of 0:30.
+    private func makeDoneEngine() -> WorkoutEngine<ManualClock> {
+        makeEngine([openWork, doneRest, lastWork])
+    }
+
+    private func runningAfterDone(_ phase: Phase, endsAt end: Double) -> Snapshot {
+        Snapshot(progress: .running(phase: phase, endsAt: at(end)), rounds: nil)
+    }
+
+    @Test func `An open Work publishes nothing until Done, however far the clock advances`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        #expect(await snapshots.next() == runningOpen(since: 0))
+
+        clock.advance(by: .seconds(10_000))
+        await engine.done(at: clock.now)
+
+        // Had the engine published anything for the wait, it would arrive ahead of the Rest.
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 10_030))
+    }
+
+    @Test func `Done ends the open Work at the tap, however late the engine hears of it`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(40))
+        let tap = clock.now
+
+        clock.advanceWhileSuspended(by: .milliseconds(400))
+        await engine.done(at: tap)
+
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 70))
+    }
+
+    @Test func `The Phase after the Rest starts at the Rest's exact end, and the Workout finishes after it`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(40))
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(30))
+        #expect(await snapshots.next() == runningAfterDone(lastWork, endsAt: 100))
+
+        clock.advance(by: .seconds(30))
+        #expect(await snapshots.next() == Snapshot(progress: .finished, rounds: nil))
+    }
+
+    @Test func `A second Done that lands in the Rest does nothing`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(40))
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+
+        clock.advance(by: .milliseconds(200))
+        await engine.done(at: clock.now)
+        clock.advance(by: .seconds(5))
+        await engine.pause(at: clock.now)
+
+        #expect(
+            await snapshots.next()
+                == Snapshot(progress: .paused(phase: doneRest, timeLeft: .milliseconds(24_800)), rounds: nil)
+        )
+    }
+
+    @Test func `Done does nothing during a Phase with a set length`() async {
+        let engine = makeEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(10))
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(5))
+        await engine.done(at: clock.now)
+        await engine.pause(at: clock.now)
+
+        #expect(
+            await snapshots.next() == Snapshot(progress: .paused(phase: firstWork, timeLeft: .seconds(25)), rounds: 2)
+        )
+    }
+
+    @Test func `A Done tapped before an open Phase began does nothing, even if it arrives once it has`() async {
+        let engine = makeEngine([prepare, openWork, doneRest])
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .milliseconds(9_800))
+        let tap = clock.now
+        clock.advance(by: .milliseconds(400))
+        #expect(await snapshots.next() == runningOpen(since: 10))
+
+        await engine.done(at: tap)
+        await engine.pause(at: clock.now)
+
+        #expect(
+            await snapshots.next()
+                == Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .milliseconds(200)), rounds: nil)
+        )
+    }
+
+    @Test func `Done after Stop does nothing`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(40))
+        await engine.stop()
+
+        await engine.done(at: clock.now)
+
+        #expect(await snapshots.next() == Snapshot(progress: .stopped, rounds: nil))
+        #expect(await snapshots.next() == nil)
+    }
 }
