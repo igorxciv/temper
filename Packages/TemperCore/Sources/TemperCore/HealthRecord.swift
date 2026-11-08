@@ -70,7 +70,9 @@ public nonisolated struct HealthRecord: Codable, Hashable, Sendable {
     public static let minimumActiveTime = Duration.seconds(60)
 
     public let activityType: ActivityType
-    /// The Start, which is also the start of the Prepare if there is one.
+    /// The Start, which is also the start of the Prepare if there is one. The Health workout spans the whole Workout,
+    /// Prepare and Cooldown included, rather than starting at the first Work, so its duration matches the active time
+    /// Temper shows.
     public let start: Date
     /// The finish, or the Stop.
     public let end: Date

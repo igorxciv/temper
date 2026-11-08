@@ -12,6 +12,8 @@ import UIKit
 /// available, or once writing isn't allowed. Nothing on screen reports a save.
 @Observable
 final class HealthSaves {
+    /// A locked iPhone can return nothing whether or not the save landed, so only attempts made with protected data
+    /// available count, and a save Health never confirms isn't tried forever.
     static let attemptLimit = 3
 
     /// The write status as last read, or `nil` before the first read.

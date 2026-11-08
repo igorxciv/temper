@@ -1,6 +1,7 @@
 /// The kind of Workout picked before Start, which decides its shape and its values.
 ///
-/// The raw value is what's remembered as the last-used Workout Type, so renaming a case forgets it.
+/// The raw value is what's remembered as the last-used Workout Type, and it names the type's remembered values and
+/// Presets, so renaming a case forgets them.
 public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiable, Sendable {
     /// A Prepare, then Rounds of Work and Rest, then a Cooldown.
     case intervals
