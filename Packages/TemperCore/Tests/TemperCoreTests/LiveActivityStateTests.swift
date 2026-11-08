@@ -159,6 +159,7 @@ nonisolated struct LiveActivityStateOpenRoundsTests {
         #expect(phase.kind == .work)
         #expect(phase.start == date.addingTimeInterval(-30))
         #expect(phase.end == nil)
+        #expect(phase.interval == date.addingTimeInterval(-30)...Date.distantFuture)
         #expect(phase.countsUp)
         #expect(!phase.hasBar)
         #expect(!phase.isPaused)

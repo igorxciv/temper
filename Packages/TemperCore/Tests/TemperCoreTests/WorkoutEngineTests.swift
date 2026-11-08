@@ -788,6 +788,28 @@ extension WorkoutEngineTests {
         }
     }
 
+    /// The next Round's Work is the open Phase waiting for Done, so a Done in the Rest before it mustn't end it.
+    @Test func `A Done well into the Rest does nothing, and the next Work still runs open`() async {
+        let engine = makeOpenRoundsEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: 25)
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+
+        advance(to: 50)
+        await engine.done(at: clock.now)
+        advance(to: 85)
+        #expect(await snapshots.next() == openRoundsWork(round: 2, since: clock.now))
+
+        advance(to: 95)
+        await engine.pause(at: clock.now)
+        let work = Phase(kind: .work, length: .open, round: 2)
+        #expect(
+            await snapshots.next() == Snapshot(progress: .pausedOpen(phase: work, elapsed: .seconds(10)), rounds: nil))
+    }
+
     @Test func `With a Rest of zero, Done goes straight to the next Round's open Work`() async {
         let engine = makeOpenRoundsEngine(rest: 0)
         var snapshots = engine.snapshots.makeAsyncIterator()
@@ -838,28 +860,6 @@ extension WorkoutEngineTests {
         await engine.done(at: clock.now)
 
         #expect(await snapshots.next() == openRoundsWork(round: 3, since: clock.now, workTime: .seconds(1)))
-    }
-
-    @Test func `A Done well into a Rest does nothing, and the next Work still waits for its own Done`() async {
-        let engine = makeOpenRoundsEngine()
-        var snapshots = engine.snapshots.makeAsyncIterator()
-        await engine.start()
-        _ = await snapshots.next()
-        advance(to: 25)
-        await engine.done(at: clock.now)
-        _ = await snapshots.next()
-
-        advance(to: 30)
-        await engine.done(at: clock.now)
-        advance(to: 85)
-        #expect(await snapshots.next() == openRoundsWork(round: 2, since: clock.now))
-
-        advance(to: 90)
-        await engine.pause(at: clock.now)
-        let work = Phase(kind: .work, length: .open, round: 2)
-        #expect(
-            await snapshots.next() == Snapshot(progress: .pausedOpen(phase: work, elapsed: .seconds(5)), rounds: nil)
-        )
     }
 
     @Test func `The Rest after Done carries the Work time just ended, leaving out its Pause`() async {
