@@ -300,8 +300,9 @@ nonisolated struct RunningDisplayOpenRoundsTests {
         )
     }
 
-    /// With Rest Off, the next Work starts at Done and carries the Work time just ended, which only a Rest shows.
-    @Test func `An open Work after a Work with Rest Off shows only its Round`() {
+    /// With a Rest of zero, the next Work starts at Done and carries the Work time just ended, which only a Rest
+    /// shows.
+    @Test func `An open Work after a Rest of zero shows only its Round`() {
         #expect(
             display(.runningOpen(phase: work, startedAt: at(0)), workTime: .seconds(40)).line
                 == .value("3", caption: .before("Round"), spoken: "Round 3")

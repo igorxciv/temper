@@ -80,7 +80,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     /// Done keeps the time of the tap, so the next Phase starts when the owner ended the open one, not when the
     /// tap arrived. It applies only to a running open Phase. A Done during a Phase with a set length, a second tap
     /// of a double tap, or one after Stop or the finish does nothing. So does a Done while Paused, so the owner
-    /// resumes before ending a set and a stray tap can't end it.
+    /// resumes before ending a Work and a stray tap can't end it.
     public func done(at tap: Instant) async {
         guard case .running(let start, let heldFor) = state,
             let marked = timeline.markingDone(at: start.duration(to: tap) - heldFor)

@@ -23,7 +23,8 @@ public nonisolated struct Phase: Equatable, Sendable {
         /// It ends once this much active time has passed.
         case set(Duration)
         /// It has no set length, and ends only when the owner marks it Done. Unlike a set time, which stops at 30:00,
-        /// it has no cap, so a forgotten Workout keeps counting until Stop rather than ending by itself.
+        /// it has no cap, so a forgotten Workout keeps counting until Stop rather than ending by itself. A locked iPhone
+        /// has been seen to keep an open Work running past 30 minutes.
         case open
     }
 

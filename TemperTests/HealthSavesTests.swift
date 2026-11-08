@@ -88,7 +88,7 @@ struct HealthSavesTests {
         #expect(harness.store.saved.count == 1)
     }
 
-    /// So the save is tried again later even if Temper is suspended before its first attempt runs.
+    /// A save Temper is suspended before attempting is still tried again later.
     @Test func `The pending save is stored before save returns`() async throws {
         let harness = try Harness()
         let workoutID = UUID()
@@ -101,7 +101,7 @@ struct HealthSavesTests {
         await saving.value
     }
 
-    /// So a save cut off midway, which may still land, is tried again with a higher version that replaces it.
+    /// A save cut off midway may still land, so the retry needs a higher version to replace it.
     @Test func `The next version is stored before an attempt is made`() async throws {
         let harness = try Harness()
         let workoutID = UUID()
