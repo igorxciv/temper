@@ -67,7 +67,7 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
         let prepare = Phase(kind: .prepare, duration: settings.prepare)
         switch self {
         case .intervals:
-            precondition(settings.work > .zero, "A Workout always has a Work")
+            precondition(settings.work > .zero, "Intervals and Stopwatch always have a Work")
             precondition(settings.rounds > 0, "Intervals has at least one Round")
             var phases = [prepare]
             for round in 1...settings.rounds {
@@ -79,7 +79,7 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
             phases.append(Phase(kind: .cooldown, duration: settings.cooldown))
             return Workout(phases: Self.droppingZero(phases))
         case .stopwatch:
-            precondition(settings.work > .zero, "A Workout always has a Work")
+            precondition(settings.work > .zero, "Intervals and Stopwatch always have a Work")
             return Workout(phases: Self.droppingZero([prepare, Phase(kind: .work, duration: settings.work)]))
         case .openRounds:
             let round = [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: settings.rest)]

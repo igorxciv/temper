@@ -59,7 +59,9 @@ final class RememberedValues {
         openRounds = Self.restore(.openRounds, from: defaults)
         presetLists = Dictionary(
             uniqueKeysWithValues: WorkoutType.allCases.map { ($0, Self.restorePresets(of: $0, from: defaults)) })
-        lastUsed = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init) ?? .intervals
+        // A type with no tab can't be selected, so it opens on Intervals instead.
+        let stored = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init)
+        lastUsed = stored.flatMap { RootTab.workoutTypes.contains($0) ? $0 : nil } ?? .intervals
         isDipOn = defaults.object(forKey: Self.dipKey) as? Bool ?? true
     }
 

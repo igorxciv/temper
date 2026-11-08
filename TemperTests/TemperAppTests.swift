@@ -208,6 +208,14 @@ struct RememberedValuesTests {
         }
     }
 
+    @Test func `A last-used Workout Type with no tab falls back to Intervals`() throws {
+        try withThrowawayDefaults { defaults in
+            defaults.set("openRounds", forKey: "workoutType")
+
+            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.intervals))
+        }
+    }
+
     @Test func `Dip turned off restores as off`() throws {
         try withThrowawayDefaults { defaults in
             RememberedValues(defaults: defaults).isDipOn = false

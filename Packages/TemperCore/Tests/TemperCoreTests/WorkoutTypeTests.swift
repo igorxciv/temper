@@ -20,6 +20,7 @@ struct WorkoutTypeTests {
         #expect(WorkoutType.stopwatch.title == "Stopwatch")
         #expect(WorkoutType.stopwatch.systemImage == "stopwatch")
         #expect(WorkoutType.openRounds.title == "Open Rounds")
+        #expect(WorkoutType.openRounds.systemImage == "dumbbell")
     }
 
     @Test func `Each Workout Type has its setup rows, top to bottom`() {

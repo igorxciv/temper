@@ -1040,39 +1040,20 @@ nonisolated struct CueRulesTests {
     }
 }
 
+// MARK: Open Rounds
+
 /// The Cues of Open Rounds: "Work" as each Round's open Work starts, "Rest" at Done, and nothing on Stop.
-@Suite(.timeLimit(.minutes(1)))
-nonisolated struct OpenRoundsCueTests {
-    private typealias Call = FakeAudioOutput.Call
-
-    private let clock = ManualClock()
-    private let audio = FakeAudioOutput()
-
+extension CueRulesTests {
     /// Open Rounds with a Rest of `rest` seconds.
-    private func makeEngine(rest: Int = 60, isDipOn: Bool = false) -> WorkoutEngine<ManualClock> {
+    private func makeOpenRoundsEngine(rest: Int = 60, isDipOn: Bool = false) -> WorkoutEngine<ManualClock> {
         var settings = WorkoutType.openRounds.firstLaunch
         settings[.rest] = rest
         let workout = WorkoutType.openRounds.makeWorkout(from: settings)
         return WorkoutEngine(workout: workout, clock: clock, audio: audio, isDipOn: isDipOn)
     }
 
-    private func at(_ seconds: Double) -> ManualClock.Instant {
-        ManualClock.Instant(offset: .seconds(seconds))
-    }
-
-    private func advance(to seconds: Double) {
-        clock.advance(by: clock.now.duration(to: at(seconds)))
-    }
-
-    private func letAudioSettle() async {
-        for _ in 0..<100 {
-            _ = await audio.history
-            await Task.yield()
-        }
-    }
-
-    @Test func `With Dip on, Start activates ducked and says Work at zero, with no Prepare`() async {
-        let engine = makeEngine(isDipOn: true)
+    @Test func `With Dip on, Open Rounds activates ducked and says Work at zero, with no Prepare`() async {
+        let engine = makeOpenRoundsEngine(isDipOn: true)
         var calls = audio.calls.makeAsyncIterator()
 
         await engine.start()
@@ -1082,7 +1063,7 @@ nonisolated struct OpenRoundsCueTests {
     }
 
     @Test func `Done says Rest, and each Rest ends into the next Work's Cue, handed over 1.5s ahead`() async {
-        let engine = makeEngine()
+        let engine = makeOpenRoundsEngine()
         var calls = audio.calls.makeAsyncIterator()
         await engine.start()
         #expect(await calls.next() == .activate(ducking: false))
@@ -1102,7 +1083,7 @@ nonisolated struct OpenRoundsCueTests {
     }
 
     @Test func `With a Rest of zero, Done says Work`() async {
-        let engine = makeEngine(rest: 0)
+        let engine = makeOpenRoundsEngine(rest: 0)
         var calls = audio.calls.makeAsyncIterator()
         await engine.start()
         #expect(await calls.next() == .activate(ducking: false))
@@ -1116,8 +1097,8 @@ nonisolated struct OpenRoundsCueTests {
     }
 
     @Test(arguments: [false, true])
-    func `Stop ends the Workout with no Workout complete Cue`(duringRest: Bool) async {
-        let engine = makeEngine()
+    func `Stop ends Open Rounds with no Workout complete Cue`(duringRest: Bool) async {
+        let engine = makeOpenRoundsEngine()
         var calls = audio.calls.makeAsyncIterator()
         var snapshots = engine.snapshots.makeAsyncIterator()
         await engine.start()
