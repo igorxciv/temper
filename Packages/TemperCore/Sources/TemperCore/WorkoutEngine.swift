@@ -25,8 +25,8 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     private var state = State.ready
     /// Each Pause that has been Resumed, from its tap to its Resume, kept for the Workout record.
     private var pauses: [Range<Instant>] = []
-    /// The start point, or the last Pause, Resume or Done the engine applied, as placed. No tap lands before it.
-    private var lastApplied: Instant?
+    /// The earliest a tap can land: the start point, or the last Pause, Resume or Done the engine applied, as placed.
+    private var earliestTap: Instant?
     private var latest: Snapshot?
     private var wake: Task<Void, Never>?
 
@@ -49,7 +49,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         guard case .starting = state else { return nil }
         let start = clock.now
         state = .running(start: start, heldFor: .zero)
-        lastApplied = start
+        earliestTap = start
         await cueRules.run(from: start)
         await recalculate()
         return start
@@ -66,7 +66,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         }
         wake?.cancel()
         state = .paused(start: start, heldFor: heldFor, since: tap)
-        lastApplied = tap
+        earliestTap = tap
         let progress: Snapshot.Progress =
             phase.isOpen
             ? .pausedOpen(phase: phase, elapsed: position.elapsed)
@@ -81,7 +81,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         let tap = place(tap)
         let held = heldFor + since.duration(to: tap)
         pauses.append(since..<tap)
-        lastApplied = tap
+        earliestTap = tap
         state = .running(start: start, heldFor: held)
         await cueRules.resume(from: start.advanced(by: held))
         await recalculate()
@@ -98,7 +98,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
             let marked = timeline.markingDone(at: start.duration(to: tap) - heldFor)
         else { return }
         timeline = marked
-        lastApplied = tap
+        earliestTap = tap
         await cueRules.done(timeline: marked)
         await recalculate()
     }
@@ -130,7 +130,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     /// A Phase that began at a Done starts at that Done, so no tap lands before it. A Phase that began on its own at
     /// its set end is no limit: a tap just before that end lands in the Phase the owner saw.
     private func place(_ tap: Instant) -> Instant {
-        min(max(tap, lastApplied ?? tap), clock.now)
+        min(max(tap, earliestTap ?? tap), clock.now)
     }
 
     /// For returning to the front: works out where the Workout is and always publishes it, because a

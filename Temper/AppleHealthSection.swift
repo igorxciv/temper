@@ -10,36 +10,35 @@ struct AppleHealthSection: View {
 
     @Environment(\.scenePhase) private var scenePhase
 
-    private let savesText = "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch."
-
     var body: some View {
-        Group {
-            switch health.row {
-            case .saveWorkouts:
-                section(footer: savesText) {
-                    requestButton("Save Workouts to Health")
-                }
-            case .allowHeartRate:
-                section(footer: "Apple Watch shows your heart rate and saves it to Health.") {
-                    requestButton("Allow Heart Rate")
-                }
-            case .saving:
-                section(footer: "\(savesText) Turn this off in the Health app.") {
+        Section {
+            Group {
+                switch health.row {
+                case .saveWorkouts:
+                    Button("Save Workouts to Health", action: requestPermission)
+                        .foregroundStyle(colors.accent)
+                case .allowHeartRate:
+                    LabeledContent("Saving to Health") {
+                        Button("Allow Heart Rate", action: requestPermission)
+                            .foregroundStyle(colors.accent)
+                    }
+                case .saving:
                     LabeledContent("Saving to Health") {
                         Image(systemName: "checkmark")
                             .foregroundStyle(colors.accent)
                             .accessibilityHidden(true)
                     }
-                }
-            case .notAllowed:
-                section(footer: "Allow Temper under Settings › Health › Data Access & Devices.") {
+                case .notAllowed:
                     Text("Not allowed")
-                }
-            case nil:
-                section(footer: savesText) {
+                case nil:
                     EmptyView()
                 }
             }
+            .listRowBackground(colors.raised)
+        } header: {
+            Text("Apple Health").foregroundStyle(colors.secondary)
+        } footer: {
+            Text((health.row ?? .saveWorkouts).footer).foregroundStyle(colors.secondary)
         }
         .task(id: scenePhase) {
             if scenePhase == .active {
@@ -48,21 +47,7 @@ struct AppleHealthSection: View {
         }
     }
 
-    private func requestButton(_ title: LocalizedStringKey) -> some View {
-        Button(title) {
-            Task { await health.requestPermission() }
-        }
-        .foregroundStyle(colors.accent)
-    }
-
-    private func section(footer: String, @ViewBuilder row: () -> some View) -> some View {
-        Section {
-            row()
-                .listRowBackground(colors.raised)
-        } header: {
-            Text("Apple Health").foregroundStyle(colors.secondary)
-        } footer: {
-            Text(footer).foregroundStyle(colors.secondary)
-        }
+    private func requestPermission() {
+        Task { await health.requestPermission() }
     }
 }

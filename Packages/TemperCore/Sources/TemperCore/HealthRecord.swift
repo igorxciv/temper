@@ -95,28 +95,24 @@ public nonisolated struct HealthRecord: Codable, Hashable, Sendable {
     /// The Health workout for `record`, or `nil` if it ran for less than ``minimumActiveTime`` of active time and so
     /// isn't saved.
     ///
-    /// The engine's instants become dates through one pair read together at the end: `instant` on the engine clock
-    /// and `date` on the wall clock. The engine's clock keeps counting while the iPhone sleeps, so the pair places
-    /// every instant of the Workout.
+    /// The engine's instants become dates through `anchor`, read at the end.
     public init?<Instant>(
         _ record: WorkoutRecord<Instant>,
         of workoutType: WorkoutType,
         workoutID: UUID,
         attempt: Int,
-        at instant: Instant,
-        date: Date
-    ) where Instant.Duration == Duration {
+        anchor: ClockAnchor<Instant>
+    ) {
         precondition(attempt >= 1, "Attempts are numbered from 1")
         guard record.activeTime >= Self.minimumActiveTime else { return nil }
-        func dateOf(_ other: Instant) -> Date {
-            date.addingTimeInterval(instant.duration(to: other) / .seconds(1))
-        }
         activityType = ActivityType(workoutType)
-        start = dateOf(record.start)
-        end = dateOf(record.end)
-        pauses = record.pauses.map { Pause(start: dateOf($0.lowerBound), end: dateOf($0.upperBound)) }
+        start = anchor.date(of: record.start)
+        end = anchor.date(of: record.end)
+        pauses = record.pauses.map { Pause(start: anchor.date(of: $0.lowerBound), end: anchor.date(of: $0.upperBound)) }
         activities = record.phases.filter { $0.start < $0.end }.map { phase in
-            Activity(phase: phase.kind, round: phase.round, start: dateOf(phase.start), end: dateOf(phase.end))
+            Activity(
+                phase: phase.kind, round: phase.round, start: anchor.date(of: phase.start),
+                end: anchor.date(of: phase.end))
         }
         self.workoutID = workoutID
         syncVersion = attempt

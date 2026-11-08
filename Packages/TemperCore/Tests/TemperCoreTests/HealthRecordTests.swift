@@ -9,14 +9,16 @@ nonisolated struct HealthRecordTests {
     private let workoutID = UUID(uuidString: "6F9619FF-8B86-D011-B42D-00C04FC964FF")!
 
     /// The engine instant read at the end, and the wall clock at that moment.
-    private let anchorInstant = ManualClock.Instant(offset: .seconds(1_000))
-    private let anchorDate = Date(timeIntervalSinceReferenceDate: 800_000_000)
+    private let anchor = ClockAnchor(
+        instant: ManualClock.Instant(offset: .seconds(1_000)),
+        date: Date(timeIntervalSinceReferenceDate: 800_000_000)
+    )
 
     private func at(_ seconds: Double) -> ManualClock.Instant {
         ManualClock.Instant(offset: .seconds(seconds))
     }
 
-    /// The wall-clock date of an instant `seconds` into the engine clock, given the anchor pair.
+    /// The wall-clock date of an instant `seconds` into the engine clock, given the anchor.
     private func date(_ seconds: Double) -> Date {
         Date(timeIntervalSinceReferenceDate: 800_000_000 - 1_000 + seconds)
     }
@@ -33,7 +35,7 @@ nonisolated struct HealthRecordTests {
         attempt: Int = 1
     ) -> HealthRecord? {
         HealthRecord(
-            record, of: workoutType, workoutID: workoutID, attempt: attempt, at: anchorInstant, date: anchorDate)
+            record, of: workoutType, workoutID: workoutID, attempt: attempt, anchor: anchor)
     }
 
     /// A Stopwatch's Work from `start` to `end` with no Prepare and no Pause.
@@ -82,7 +84,9 @@ nonisolated struct HealthRecordTests {
     @Test func `An anchor read later than the end places the dates the same`() throws {
         let record = stopwatch(from: 100, to: 250)
         let later = try #require(
-            HealthRecord(record, of: .intervals, workoutID: workoutID, attempt: 1, at: at(1_600), date: date(1_600))
+            HealthRecord(
+                record, of: .intervals, workoutID: workoutID, attempt: 1,
+                anchor: ClockAnchor(instant: at(1_600), date: date(1_600)))
         )
 
         #expect(later.start == date(100))
