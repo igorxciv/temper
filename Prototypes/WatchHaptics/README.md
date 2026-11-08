@@ -3,6 +3,10 @@
 Throwaway. It lives only on the `prototype/watch-haptics` branch and is never merged. It answers
 [Which wrist haptic marks each Cue kind?](https://github.com/igorxciv/temper/issues/112)
 
+## Verdict
+
+Accepted without wrist testing on 2026-11-08, by the owner's call: **scheme B** with a 0.7 s gap, and Rest's haptic after the owner's own Done. Nobody wore it through real sets, so that check moves to the build's device check. The [resolution](https://github.com/igorxciv/temper/issues/112#issuecomment-6725528676) gives the reasons and what to check.
+
 ## The Cue kinds
 
 The ticket lists a Phase change, the end of the Workout, and Rest about to end. `TemperCore` narrows that to five Cues, and the prototype fires only these:
