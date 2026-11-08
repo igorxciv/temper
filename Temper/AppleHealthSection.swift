@@ -8,32 +8,35 @@ struct AppleHealthSection: View {
 
     @Environment(\.scenePhase) private var scenePhase
 
+    private let savesText = "Saves each Workout of 1 minute or more when it ends."
+
     var body: some View {
-        Section {
+        Group {
             switch health.writeStatus {
             case .notDetermined:
-                Button("Save Workouts to Health") {
-                    Task { await health.requestPermission() }
+                section(footer: savesText) {
+                    Button("Save Workouts to Health") {
+                        Task { await health.requestPermission() }
+                    }
+                    .foregroundStyle(colors.accent)
                 }
-                .foregroundStyle(colors.accent)
-                .listRowBackground(colors.raised)
             case .allowed:
-                LabeledContent("Saving to Health") {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(colors.accent)
-                        .accessibilityHidden(true)
+                section(footer: "\(savesText) Turn this off in the Health app.") {
+                    LabeledContent("Saving to Health") {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(colors.accent)
+                            .accessibilityHidden(true)
+                    }
                 }
-                .listRowBackground(colors.raised)
             case .denied:
-                Text("Not allowed")
-                    .listRowBackground(colors.raised)
+                section(footer: "Allow Temper under Settings › Health › Data Access & Devices.") {
+                    Text("Not allowed")
+                }
             case nil:
-                EmptyView()
+                section(footer: savesText) {
+                    EmptyView()
+                }
             }
-        } header: {
-            Text("Apple Health").foregroundStyle(colors.secondary)
-        } footer: {
-            Text(footer).foregroundStyle(colors.secondary)
         }
         .onAppear { health.refreshStatus() }
         .onChange(of: scenePhase) { _, newPhase in
@@ -43,11 +46,14 @@ struct AppleHealthSection: View {
         }
     }
 
-    private var footer: String {
-        switch health.writeStatus {
-        case .notDetermined, nil: "Saves each Workout of 1 minute or more when it ends."
-        case .allowed: "Saves each Workout of 1 minute or more when it ends. Turn this off in the Health app."
-        case .denied: "Allow Temper under Settings › Health › Data Access & Devices."
+    private func section(footer: String, @ViewBuilder row: () -> some View) -> some View {
+        Section {
+            row()
+                .listRowBackground(colors.raised)
+        } header: {
+            Text("Apple Health").foregroundStyle(colors.secondary)
+        } footer: {
+            Text(footer).foregroundStyle(colors.secondary)
         }
     }
 }
