@@ -4,10 +4,11 @@ import Testing
 
 @testable import Temper
 
-/// Stands in for HealthKit: it answers with the write status and outcomes it's given, and keeps every record it was
-/// asked to save.
+/// Stands in for HealthKit: it answers with the statuses and outcomes it's given, and keeps every record it was asked
+/// to save.
 private final class FakeHealthStore: HealthWorkoutStore {
     var writeStatus: HealthWriteStatus = .allowed
+    var requestStatus: HealthRequestStatus = .unnecessary
     /// The outcome of each save in turn. Once they run out, every save is confirmed.
     var outcomes: [HealthSaveOutcome] = []
     private(set) var saved: [HealthRecord] = []
@@ -281,17 +282,39 @@ struct HealthSavesTests {
         #expect(harness.store.saved.map(\.syncVersion) == [1, 1, 2])
     }
 
-    @Test func `Asking for permission reads the write status again`() async throws {
+    @Test(arguments: [
+        (HealthWriteStatus.notDetermined, HealthRequestStatus.shouldRequest, AppleHealthRow.saveWorkouts),
+        (.allowed, .shouldRequest, .allowHeartRate),
+        (.allowed, .unnecessary, .saving),
+        (.denied, .shouldRequest, .notAllowed),
+        (.denied, .unnecessary, .notAllowed),
+    ])
+    func `Settings shows the row for the write status and whether the full set would prompt`(
+        writeStatus: HealthWriteStatus, requestStatus: HealthRequestStatus, row: AppleHealthRow
+    ) async throws {
         let harness = try Harness()
-        harness.store.writeStatus = .notDetermined
+        harness.store.writeStatus = writeStatus
+        harness.store.requestStatus = requestStatus
         let health = harness.launch()
-        health.refreshStatus()
-        #expect(health.writeStatus == .notDetermined)
+        #expect(health.row == nil)
 
-        harness.store.duringPermissionRequest = { harness.store.writeStatus = .allowed }
+        await health.refreshStatus()
+
+        #expect(health.row == row)
+    }
+
+    /// Anyone who allowed workouts in the shipped build is asked once more, and the row settles on the checkmark.
+    @Test func `Asking for permission reads both statuses again`() async throws {
+        let harness = try Harness()
+        harness.store.requestStatus = .shouldRequest
+        let health = harness.launch()
+        await health.refreshStatus()
+        #expect(health.row == .allowHeartRate)
+
+        harness.store.duringPermissionRequest = { harness.store.requestStatus = .unnecessary }
         await health.requestPermission()
 
         #expect(harness.store.permissionRequests == 1)
-        #expect(health.writeStatus == .allowed)
+        #expect(health.row == .saving)
     }
 }

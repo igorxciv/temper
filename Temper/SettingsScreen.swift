@@ -28,7 +28,7 @@ struct SettingsScreen: View {
             Section {
                 LabeledContent("Version", value: version)
                     .listRowBackground(colors.raised)
-                Text("Temper keeps everything on this device, and saves Workouts to Apple Health only if you allow it.")
+                Text("Temper keeps everything on this device, and uses Apple Health only if you allow it.")
                     .listRowBackground(colors.raised)
             } header: {
                 Text("About").foregroundStyle(colors.secondary)
