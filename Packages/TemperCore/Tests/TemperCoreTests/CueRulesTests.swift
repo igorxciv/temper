@@ -1038,4 +1038,63 @@ nonisolated struct CueRulesTests {
         await audio.finishSpeaking()
         #expect(await calls.next() == .activate(ducking: false))
     }
+
+    /// Starts an open Work with Dip on and lets its "Work" Cue finish, so the lift shows it has ended.
+    private func startOpenWorkWithDipLifted(_ engine: WorkoutEngine<ManualClock>) async -> AsyncStream<Call>.Iterator {
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        _ = await calls.next()
+        _ = await calls.next()
+        await audio.finishSpeaking()
+        #expect(await calls.next() == .activate(ducking: false))
+        return calls
+    }
+
+    @Test func `Pause in an open Work releases the session, and a Done while Paused sends nothing to audio`() async {
+        let engine = makeDoneEngine(isDipOn: true)
+        var calls = await startOpenWorkWithDipLifted(engine)
+        advance(to: 20)
+
+        await engine.pause(at: clock.now)
+        #expect(await calls.next() == .deactivate)
+
+        advance(to: 50)
+        await engine.done(at: clock.now)
+        await letAudioSettle()
+
+        #expect(
+            await audio.history == [
+                .activate(ducking: true), .schedule(.work, at: at(0)), .activate(ducking: false), .deactivate,
+            ]
+        )
+    }
+
+    @Test func `Resume in an open Work restarts audio with no Cue upcoming, and a later Done brings "Rest" at the tap`()
+        async
+    {
+        let engine = makeDoneEngine(isDipOn: true)
+        var calls = await startOpenWorkWithDipLifted(engine)
+        advance(to: 20)
+        await engine.pause(at: clock.now)
+        _ = await calls.next()
+
+        advance(to: 60)
+        await engine.resume(at: clock.now)
+        #expect(await calls.next() == .activate(ducking: false))
+
+        advance(to: 10_000)
+        await letAudioSettle()
+        #expect(await audio.history.count == 5)
+
+        await engine.done(at: clock.now)
+        #expect(await calls.next() == .activate(ducking: true))
+        #expect(await calls.next() == .schedule(.rest, at: at(10_000)))
+        #expect(await audio.latestStarts.last == at(10_001))
+
+        await audio.finishSpeaking()
+        #expect(await calls.next() == .activate(ducking: false))
+        advance(to: 10_028.5)
+        #expect(await calls.next() == .activate(ducking: true))
+        #expect(await calls.next() == .schedule(.work, at: at(10_030)))
+    }
 }
