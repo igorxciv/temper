@@ -783,6 +783,46 @@ extension WorkoutEngineTests {
         #expect(await snapshots.next() == openRoundsWork(round: 2, since: clock.now, workTime: .seconds(40)))
     }
 
+    @Test func `With a Rest of zero, a second Done within 1s of the first does nothing`() async {
+        let engine = makeOpenRoundsEngine(rest: 0)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: 40)
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+
+        advance(to: 40.2)
+        await engine.done(at: clock.now)
+        advance(to: 45)
+        await engine.pause(at: clock.now)
+
+        let work = Phase(kind: .work, length: .open, round: 2)
+        #expect(
+            await snapshots.next()
+                == Snapshot(
+                    progress: .pausedOpen(phase: work, elapsed: .seconds(5)),
+                    rounds: nil,
+                    previousOpenPhaseTime: .seconds(40)
+                )
+        )
+    }
+
+    @Test func `With a Rest of zero, a Done 1s after the last one ends the next Round's Work`() async {
+        let engine = makeOpenRoundsEngine(rest: 0)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        advance(to: 40)
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+
+        advance(to: 41)
+        await engine.done(at: clock.now)
+
+        #expect(await snapshots.next() == openRoundsWork(round: 3, since: at(41), workTime: .seconds(1)))
+    }
+
     @Test func `The Rest after Done carries the Work time just ended, leaving out its Pause`() async {
         let engine = makeOpenRoundsEngine()
         var snapshots = engine.snapshots.makeAsyncIterator()
