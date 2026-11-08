@@ -28,12 +28,18 @@ final class WorkoutRunner {
     @ObservationIgnored private let cues = CueBank()
     @ObservationIgnored private var liveActivity: LiveActivityAdapter?
 
+    /// Saves each ended Workout to Health, and asks for permission from Settings.
+    let health: HealthSaves
+    /// The UUID of the Workout last started, made at Start, until its Health save begins.
+    @ObservationIgnored private var healthWorkoutID: UUID?
+
     #if DEBUG
         @ObservationIgnored private var timingLog: TimingLog?
     #endif
 
     /// Rendering begins here, at launch, so the Cues are usually ready before the first Start.
-    init() {
+    init(health: HealthSaves = HealthSaves()) {
+        self.health = health
         cues.render()
         Task { await LiveActivityAdapter.endLeftovers() }
     }
@@ -42,6 +48,7 @@ final class WorkoutRunner {
         guard engine == nil else { return }
         self.workout = workout
         self.workoutType = workoutType
+        healthWorkoutID = UUID()
         let audio = AudioAdapter(cues: cues, application: .shared)
         let engine = WorkoutEngine(
             workout: workout,
@@ -53,6 +60,7 @@ final class WorkoutRunner {
         liveActivity = LiveActivityAdapter()
         #if DEBUG
             timingLog = audio.timingLog
+            health.timingLog = audio.timingLog
             timingLog?.write("dip", ["dip": isDipOn])
         #endif
         Task { [cues] in
@@ -102,6 +110,7 @@ final class WorkoutRunner {
         #if DEBUG
             logTiming(of: snapshot)
         #endif
+        saveToHealth(snapshot)
         // Open Rounds ends only at Stop, so its Stop keeps the snapshot for the complete screen. In Intervals and
         // Stopwatch, Stop returns to setup.
         if case .stopped = snapshot.progress, workoutType != .openRounds {
@@ -135,6 +144,17 @@ final class WorkoutRunner {
             }
         }
     #endif
+}
+
+// MARK: - Health
+
+extension WorkoutRunner {
+    /// Hands the Workout to Health the first time an ended snapshot arrives, before the screens let go of anything,
+    /// so the save's background task begins while the app is surely running.
+    fileprivate func saveToHealth(_ snapshot: Snapshot) {
+        guard let record = snapshot.record, let workoutID = healthWorkoutID.take() else { return }
+        health.save(record, of: workoutType, workoutID: workoutID, at: .now, date: .now)
+    }
 }
 
 extension WorkoutRunner: WorkoutControls {}

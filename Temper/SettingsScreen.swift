@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsScreen: View {
     @Bindable var remembered: RememberedValues
+    let health: HealthSaves
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -23,10 +24,11 @@ struct SettingsScreen: View {
                 Text("Lowers other audio while a Cue speaks. Music never pauses.")
                     .foregroundStyle(colors.secondary)
             }
+            AppleHealthSection(health: health, colors: colors)
             Section {
                 LabeledContent("Version", value: version)
                     .listRowBackground(colors.raised)
-                Text("Temper keeps everything on this device.")
+                Text("Temper keeps everything on this device, and saves Workouts to Apple Health only if you allow it.")
                     .listRowBackground(colors.raised)
             } header: {
                 Text("About").foregroundStyle(colors.secondary)
