@@ -42,6 +42,12 @@ nonisolated struct RunningDisplayTests {
         #expect(!intervals(running(work, endsAt: 100)).countsUp)
     }
 
+    @Test func `Intervals and Stopwatch have no Done button`() {
+        #expect(intervals(running(work, endsAt: 100)).doneButton == nil)
+        #expect(stopwatch(running(stopwatchWork, endsAt: 610)).doneButton == nil)
+        #expect(stopwatch(.paused(phase: stopwatchWork, timeLeft: .seconds(5))).doneButton == nil)
+    }
+
     // MARK: Counting down
 
     @Test func `Counting down shows the time left, rounding up`() {
@@ -311,5 +317,18 @@ nonisolated struct RunningDisplayOpenRoundsTests {
 
     @Test func `A stopped Open Rounds has no line`() {
         #expect(display(.stopped(.lasting(130))).line == nil)
+    }
+
+    // MARK: Done
+
+    @Test func `Done is enabled only in a running open Work`() {
+        #expect(display(.runningOpen(phase: work, startedAt: at(0))).doneButton == .enabled)
+    }
+
+    /// It stays in place, so nothing moves under the owner's thumb.
+    @Test func `Done stays in place, disabled, in Rest and while Paused`() {
+        #expect(display(.running(phase: rest, endsAt: at(160)), workTime: .seconds(40)).doneButton == .disabled)
+        #expect(display(.paused(phase: rest, timeLeft: .seconds(5)), workTime: .seconds(40)).doneButton == .disabled)
+        #expect(display(.pausedOpen(phase: work, elapsed: .seconds(5))).doneButton == .disabled)
     }
 }

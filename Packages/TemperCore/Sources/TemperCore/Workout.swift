@@ -68,8 +68,10 @@ public nonisolated struct Workout: Equatable, Sendable {
     /// The Phases of the Round that repeats after `phases` until Stop, or none. Their own Round is ignored, since
     /// each time they repeat they're numbered as the next Round.
     public let repeatingRound: [Phase]
+    /// Whether a Rest long enough says "10 seconds" before it ends, as in Open Rounds.
+    public let warnsBeforeRestEnds: Bool
 
-    public init(phases: [Phase], repeatingRound: [Phase] = []) {
+    public init(phases: [Phase], repeatingRound: [Phase] = [], warnsBeforeRestEnds: Bool = false) {
         // Without an open Phase to wait on, a repeating Round would place Phases forever.
         precondition(
             repeatingRound.isEmpty || repeatingRound.contains(where: \.isOpen),
@@ -77,6 +79,7 @@ public nonisolated struct Workout: Equatable, Sendable {
         )
         self.phases = phases
         self.repeatingRound = repeatingRound
+        self.warnsBeforeRestEnds = warnsBeforeRestEnds
     }
 
     /// The length of all its Phases, not counting any Pause, or `nil` if a Phase is open or Rounds repeat, and so

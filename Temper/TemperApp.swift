@@ -46,8 +46,11 @@ struct RootView: View {
                         phase: phase,
                         pause: runner.pause,
                         resume: runner.resume,
+                        done: runner.done,
                         stop: runner.stop
                     )
+                } else if runner.workoutType == .openRounds, let record = snapshot.record {
+                    RoundsCompleteScreen(summary: RoundsSummary(record: record), done: runner.finish)
                 } else {
                     CompleteScreen(total: runner.workout.totalDuration, done: runner.finish)
                 }
