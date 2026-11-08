@@ -3,45 +3,6 @@ import Observation
 import TemperCore
 import UIKit
 
-/// Whether Temper may write workouts to Health.
-enum HealthWriteStatus {
-    /// The owner hasn't been asked.
-    case notDetermined
-    case allowed
-    /// The owner said no, or the device has no Health.
-    case denied
-}
-
-/// What one attempt at saving a Health workout came to.
-enum HealthSaveOutcome {
-    /// Health returned the workout.
-    case saved
-    /// Health returned neither a workout nor an error. A save while locked can do this and still land, or not.
-    case unverified
-    case failed
-    /// Health refused because Temper isn't allowed to write.
-    case notAllowed
-}
-
-/// The one line the timing log gets for an attempt at saving a Health workout, or for a pending save dropped once
-/// writing isn't allowed.
-enum HealthAttemptResult: String {
-    case saved
-    case unverified
-    case failed
-    /// The pending save was removed without being confirmed: Health refused it as not allowed, or it used up its
-    /// last attempt.
-    case dropped
-}
-
-/// Where Health workouts are saved: HealthKit in the app, and a fake in tests.
-protocol HealthWorkoutStore {
-    var writeStatus: HealthWriteStatus { get }
-    /// Shows the system sheet asking to write workouts, if the owner hasn't answered it yet.
-    func requestPermission() async
-    func save(_ record: HealthRecord) async -> HealthSaveOutcome
-}
-
 /// Saves each ended Workout to Health, at most once, and asks for permission when Settings says to.
 ///
 /// A save counts as done only when Health returns the workout. A locked iPhone can return nothing and save nothing,
@@ -188,22 +149,5 @@ final class HealthSaves {
             timingLog?.write("health", ["outcome": result.rawValue, "version": record.syncVersion])
             didLog(result)
         #endif
-    }
-}
-
-/// Keeps the app running for a save after it leaves the front, until `end()`, or until iOS calls time.
-private final class BackgroundTask {
-    private var identifier = UIBackgroundTaskIdentifier.invalid
-
-    init(named name: String) {
-        identifier = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
-            self?.end()
-        }
-    }
-
-    func end() {
-        guard identifier != .invalid else { return }
-        UIApplication.shared.endBackgroundTask(identifier)
-        identifier = .invalid
     }
 }
