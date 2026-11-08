@@ -69,14 +69,26 @@ struct WorkoutTypeTests {
     @Test func `Open Rounds repeats an open Work and its Rest until Stop, with no Prepare`() {
         let expected = Workout(
             phases: [],
-            repeatingRound: [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: .seconds(60))]
+            repeatingRound: [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: .seconds(60))],
+            warnsBeforeRestEnds: true
         )
 
         #expect(openRounds(rest: .seconds(60)) == expected)
     }
 
     @Test func `A zero Rest is dropped, so Open Rounds repeats the open Work alone`() {
-        #expect(openRounds(rest: .zero) == Workout(phases: [], repeatingRound: [Phase(kind: .work, length: .open)]))
+        let expected = Workout(
+            phases: [],
+            repeatingRound: [Phase(kind: .work, length: .open)],
+            warnsBeforeRestEnds: true
+        )
+
+        #expect(openRounds(rest: .zero) == expected)
+    }
+
+    @Test(arguments: [WorkoutType.intervals, .stopwatch])
+    func `Only Open Rounds warns before a Rest ends`(type: WorkoutType) {
+        #expect(!type.makeWorkout(from: type.firstLaunch).warnsBeforeRestEnds)
     }
 
     @Test func `Open Rounds has no total length and no set number of Rounds`() {
