@@ -53,31 +53,21 @@ final class HealthSaves {
         await refreshStatus()
     }
 
-    /// Saves the Health workout of an ended Workout, if writing is allowed and it ran long enough.
+    /// Saves the Health workout of an ended Workout, if writing is allowed. `record` is the first attempt's, or `nil`
+    /// for a Workout that ran for less than ``HealthRecord/minimumActiveTime`` and so saves nothing.
     ///
     /// The background task and the pending save are in place before this returns, so the save can finish, or be
-    /// tried again later, even if the app is suspended straight after. `instant` and `date` are read together, on
-    /// the engine's clock and the wall clock.
+    /// tried again later, even if the app is suspended straight after.
     @discardableResult
-    func save<Instant>(
-        _ record: WorkoutRecord<Instant>,
-        of workoutType: WorkoutType,
-        workoutID: UUID,
-        at instant: Instant,
-        date: Date
-    ) -> Task<Void, Never> where Instant.Duration == Duration {
+    func save(_ record: HealthRecord?) -> Task<Void, Never> {
         let backgroundTask = BackgroundTask(named: "Health")
-        guard
-            let health = HealthRecord(
-                record, of: workoutType, workoutID: workoutID, attempt: 1, at: instant, date: date),
-            store.writeStatus == .allowed
-        else {
+        guard let record, store.writeStatus == .allowed else {
             backgroundTask.end()
             return Task {}
         }
-        pending.put(PendingHealthSave(record: health, countedAttempts: 0))
+        pending.put(PendingHealthSave(record: record, countedAttempts: 0))
         return Task {
-            await attempt(workoutID)
+            await attempt(record.workoutID)
             backgroundTask.end()
         }
     }

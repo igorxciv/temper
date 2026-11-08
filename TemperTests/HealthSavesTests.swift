@@ -62,13 +62,15 @@ private final class Harness {
 private let start = ContinuousClock.now
 private let startDate = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
-/// A Stopwatch's Work that ran for `seconds` from Start, with no Prepare.
-private func stopwatch(seconds: Int) -> WorkoutRecord<ContinuousClock.Instant> {
+/// The Health record of a Stopwatch's Work that ran for `seconds` from Start, with no Prepare, or `nil` if it ran for
+/// less than a minute.
+private func stopwatch(seconds: Int, workoutID: UUID = UUID()) -> HealthRecord? {
     let end = start + .seconds(seconds)
-    return WorkoutRecord(
+    let record = WorkoutRecord(
         start: start, end: end, pauses: [],
         phases: [.init(kind: .work, round: nil, start: start, end: end)]
     )
+    return HealthRecord(record, of: .stopwatch, workoutID: workoutID, attempt: 1, at: start, date: startDate)
 }
 
 @MainActor
@@ -78,8 +80,7 @@ struct HealthSavesTests {
         let health = harness.launch()
         let workoutID = UUID()
 
-        await health.save(stopwatch(seconds: 60), of: .stopwatch, workoutID: workoutID, at: start, date: startDate)
-            .value
+        await health.save(stopwatch(seconds: 60, workoutID: workoutID)).value
 
         #expect(harness.store.saved.count == 1)
         #expect(harness.store.saved.first?.syncIdentifier == workoutID.uuidString)
@@ -94,8 +95,7 @@ struct HealthSavesTests {
         let harness = try Harness()
         let workoutID = UUID()
 
-        let saving = harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: workoutID, at: start, date: startDate)
+        let saving = harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID))
 
         #expect(harness.store.saved.isEmpty)
         #expect(PendingHealthSaves(defaults: harness.defaults)[workoutID: workoutID]?.record.syncVersion == 1)
@@ -111,10 +111,7 @@ struct HealthSavesTests {
             storedDuringSave = PendingHealthSaves(defaults: defaults)[workoutID: workoutID]?.record.syncVersion
         }
 
-        await harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: workoutID, at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID)).value
 
         #expect(storedDuringSave == 2)
     }
@@ -127,7 +124,7 @@ struct HealthSavesTests {
             await health.retryPending()
         }
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
 
         #expect(harness.store.saved.map(\.syncVersion) == [1])
     }
@@ -135,10 +132,7 @@ struct HealthSavesTests {
     @Test func `A Workout of less than a minute saves nothing`() async throws {
         let harness = try Harness()
 
-        await harness.launch().save(
-            stopwatch(seconds: 59), of: .stopwatch, workoutID: UUID(), at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 59)).value
 
         #expect(harness.store.saved.isEmpty)
     }
@@ -150,10 +144,7 @@ struct HealthSavesTests {
         let harness = try Harness()
         harness.store.writeStatus = status
 
-        await harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 90)).value
         harness.store.writeStatus = .allowed
         await harness.launch().retryPending()
 
@@ -168,10 +159,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [outcome]
         let workoutID = UUID()
 
-        await harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: workoutID, at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID)).value
         await harness.launch().retryPending()
         await harness.launch().retryPending()
 
@@ -185,7 +173,7 @@ struct HealthSavesTests {
         harness.store.outcomes = Array(repeating: .unverified, count: 5)
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         for _ in 1...3 {
             await health.retryPending()
         }
@@ -201,7 +189,7 @@ struct HealthSavesTests {
         let health = harness.launch()
         harness.isProtectedDataAvailable = false
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         await health.retryPending()
         harness.isProtectedDataAvailable = true
         for _ in 1...4 {
@@ -216,7 +204,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [.notAllowed]
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         await health.retryPending()
 
         #expect(harness.store.saved.count == 1)
@@ -227,7 +215,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [.unverified]
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         harness.store.writeStatus = .denied
         await health.retryPending()
         harness.store.writeStatus = .allowed
@@ -246,10 +234,7 @@ struct HealthSavesTests {
         let harness = try Harness()
         harness.store.outcomes = [outcome]
 
-        await harness.launch().save(
-            stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate
-        )
-        .value
+        await harness.launch().save(stopwatch(seconds: 90)).value
 
         #expect(harness.logged == [logged])
     }
@@ -259,7 +244,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [.unverified, .failed, .unverified]
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90)).value
         await health.retryPending()
         await health.retryPending()
 
@@ -273,8 +258,8 @@ struct HealthSavesTests {
         let first = UUID()
         let second = UUID()
 
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: first, at: start, date: startDate).value
-        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: second, at: start, date: startDate).value
+        await health.save(stopwatch(seconds: 90, workoutID: first)).value
+        await health.save(stopwatch(seconds: 90, workoutID: second)).value
         await health.retryPending()
         await health.retryPending()
 
