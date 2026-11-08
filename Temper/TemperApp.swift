@@ -68,7 +68,7 @@ struct RootView: View {
                     }
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
                         NavigationStack {
-                            SettingsScreen(remembered: remembered)
+                            SettingsScreen(remembered: remembered, health: runner.health)
                         }
                     }
                 }
