@@ -585,3 +585,84 @@ nonisolated struct WorkoutEngineTests {
         #expect(await snapshots.next() == nil)
     }
 }
+
+// MARK: Open Rounds
+
+/// Open Rounds, run end to end: an open Work, a Rest, and the next Round's Work by itself, until Stop.
+extension WorkoutEngineTests {
+    /// Open Rounds with a Rest of `rest` seconds.
+    private func makeOpenRoundsEngine(rest: Int = 60) -> WorkoutEngine<ManualClock> {
+        var settings = WorkoutType.openRounds.firstLaunch
+        settings[.rest] = rest
+        let workout = WorkoutType.openRounds.makeWorkout(from: settings)
+        return WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+    }
+
+    private func openRoundsWork(round: Int, since start: ManualClock.Instant) -> Snapshot {
+        let phase = Phase(kind: .work, length: .open, round: round)
+        return Snapshot(progress: .runningOpen(phase: phase, startedAt: start), rounds: nil)
+    }
+
+    private func openRoundsRest(round: Int, endsAt end: ManualClock.Instant) -> Snapshot {
+        let phase = Phase(kind: .rest, duration: .seconds(60), round: round)
+        return Snapshot(progress: .running(phase: phase, endsAt: end), rounds: nil)
+    }
+
+    @Test func `Open Rounds starts straight into Round 1's open Work, with no set number of Rounds`() async {
+        let engine = makeOpenRoundsEngine()
+        clock.advance(by: .seconds(7))
+        var snapshots = engine.snapshots.makeAsyncIterator()
+
+        await engine.start()
+
+        #expect(await snapshots.next() == openRoundsWork(round: 1, since: clock.now))
+    }
+
+    @Test func `Each Rest ends into the next Round's open Work, and the Rounds keep counting`() async {
+        let engine = makeOpenRoundsEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+
+        for round in 1...20 {
+            clock.advance(by: .seconds(25))
+            await engine.done(at: clock.now)
+            let restEnd = clock.now.advanced(by: .seconds(60))
+            #expect(await snapshots.next() == openRoundsRest(round: round, endsAt: restEnd))
+
+            clock.advance(by: .seconds(60))
+            #expect(await snapshots.next() == openRoundsWork(round: round + 1, since: clock.now))
+        }
+    }
+
+    @Test func `With a Rest of zero, Done goes straight to the next Round's open Work`() async {
+        let engine = makeOpenRoundsEngine(rest: 0)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(40))
+        await engine.done(at: clock.now)
+
+        #expect(await snapshots.next() == openRoundsWork(round: 2, since: clock.now))
+    }
+
+    @Test(arguments: [false, true])
+    func `Stop during an open Work or a Rest ends Open Rounds`(duringRest: Bool) async {
+        let engine = makeOpenRoundsEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(40))
+        if duringRest {
+            await engine.done(at: clock.now)
+            _ = await snapshots.next()
+            clock.advance(by: .seconds(20))
+        }
+
+        await engine.stop()
+
+        #expect(await snapshots.next() == Snapshot(progress: .stopped, rounds: nil))
+        #expect(await snapshots.next() == nil)
+    }
+}

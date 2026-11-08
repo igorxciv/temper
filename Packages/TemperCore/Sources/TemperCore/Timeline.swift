@@ -52,22 +52,22 @@ public nonisolated struct Timeline: Sendable {
         }
     }
 
-    private let phases: [Phase]
+    private let workout: Workout
     /// The active time each open Phase was marked Done, in the order the Phases were reached.
     private let doneTimes: [Duration]
     private let spans: [Span]
     private let cues: [UpcomingCue]
 
     public init(workout: Workout) {
-        self.init(phases: workout.phases, doneTimes: [])
+        self.init(workout: workout, doneTimes: [])
     }
 
-    private init(phases: [Phase], doneTimes: [Duration]) {
+    private init(workout: Workout, doneTimes: [Duration]) {
         var start = Duration.zero
         var spans: [Span] = []
         var cues: [UpcomingCue] = []
         var dones = doneTimes[...]
-        for phase in phases {
+        for phase in workout.phasesInOrder {
             if let cue = Cue(entering: phase.kind) {
                 cues.append(UpcomingCue(cue: cue, due: start))
             }
@@ -81,7 +81,7 @@ public nonisolated struct Timeline: Sendable {
         if spans.last?.end != nil || spans.isEmpty {
             cues.append(UpcomingCue(cue: .workoutComplete, due: start))
         }
-        self.phases = phases
+        self.workout = workout
         self.doneTimes = doneTimes
         self.spans = spans
         self.cues = cues
@@ -92,7 +92,7 @@ public nonisolated struct Timeline: Sendable {
     /// set length, or a second Done that lands in the Phase after, ends nothing.
     func markingDone(at activeTime: Duration) -> Timeline? {
         guard let waiting = spans.last, waiting.end == nil, activeTime >= waiting.start else { return nil }
-        return Timeline(phases: phases, doneTimes: doneTimes + [activeTime])
+        return Timeline(workout: workout, doneTimes: doneTimes + [activeTime])
     }
 
     /// A Phase's end is the start of the next Phase, and the Workout's end is its finish.

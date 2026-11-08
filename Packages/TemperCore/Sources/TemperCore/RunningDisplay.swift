@@ -70,7 +70,7 @@ where Instant.Duration == Duration {
         guard let phase = snapshot.phase else { return nil }
         if snapshot.isPaused { return .paused }
         switch workoutType {
-        case .intervals: return roundLine(in: phase)
+        case .intervals, .openRounds: return roundLine(in: phase)
         case .stopwatch: return lengthLine(in: phase)
         }
     }

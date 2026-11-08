@@ -52,7 +52,7 @@ struct RootView: View {
             } else {
                 // The system Liquid Glass tab bar, with no background of its own.
                 TabView(selection: $remembered.selectedTab) {
-                    ForEach(WorkoutType.allCases) { workoutType in
+                    ForEach(RootTab.workoutTypes) { workoutType in
                         Tab(
                             workoutType.title, systemImage: workoutType.systemImage,
                             value: RootTab.workoutType(workoutType)

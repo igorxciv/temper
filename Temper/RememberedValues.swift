@@ -2,10 +2,13 @@ import Foundation
 import Observation
 import TemperCore
 
-/// A tab in the tab bar: one per Workout Type, then Settings.
+/// A tab in the tab bar: one per Workout Type that has its screens, then Settings.
 enum RootTab: Hashable {
     case workoutType(WorkoutType)
     case settings
+
+    /// The Workout Types with a tab, in tab order. Open Rounds has none until its screens can mark Work Done.
+    static let workoutTypes: [WorkoutType] = [.intervals, .stopwatch]
 }
 
 /// Each Workout Type's last-used values and Presets, the last-used Workout Type, and the Dip setting. Each change
@@ -19,6 +22,10 @@ final class RememberedValues {
 
     private var stopwatch: WorkoutSettings {
         didSet { save(stopwatch, oldValue, of: .stopwatch) }
+    }
+
+    private var openRounds: WorkoutSettings {
+        didSet { save(openRounds, oldValue, of: .openRounds) }
     }
 
     /// Each type's Presets, which save whole whenever that type's list changes. They sit in `UserDefaults` beside
@@ -49,9 +56,12 @@ final class RememberedValues {
         self.defaults = defaults
         intervals = Self.restore(.intervals, from: defaults)
         stopwatch = Self.restore(.stopwatch, from: defaults)
+        openRounds = Self.restore(.openRounds, from: defaults)
         presetLists = Dictionary(
             uniqueKeysWithValues: WorkoutType.allCases.map { ($0, Self.restorePresets(of: $0, from: defaults)) })
-        lastUsed = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init) ?? .intervals
+        // A type with no tab can't be selected, so it opens on Intervals instead.
+        let stored = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init)
+        lastUsed = stored.flatMap { RootTab.workoutTypes.contains($0) ? $0 : nil } ?? .intervals
         isDipOn = defaults.object(forKey: Self.dipKey) as? Bool ?? true
     }
 
@@ -61,12 +71,14 @@ final class RememberedValues {
             switch workoutType {
             case .intervals: intervals
             case .stopwatch: stopwatch
+            case .openRounds: openRounds
             }
         }
         set {
             switch workoutType {
             case .intervals: intervals = newValue
             case .stopwatch: stopwatch = newValue
+            case .openRounds: openRounds = newValue
             }
         }
     }

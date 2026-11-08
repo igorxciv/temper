@@ -1039,3 +1039,87 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .activate(ducking: false))
     }
 }
+
+// MARK: Open Rounds
+
+/// The Cues of Open Rounds: "Work" as each Round's open Work starts, "Rest" at Done, and nothing on Stop.
+extension CueRulesTests {
+    /// Open Rounds with a Rest of `rest` seconds.
+    private func makeOpenRoundsEngine(rest: Int = 60, isDipOn: Bool = false) -> WorkoutEngine<ManualClock> {
+        var settings = WorkoutType.openRounds.firstLaunch
+        settings[.rest] = rest
+        let workout = WorkoutType.openRounds.makeWorkout(from: settings)
+        return WorkoutEngine(workout: workout, clock: clock, audio: audio, isDipOn: isDipOn)
+    }
+
+    @Test func `With Dip on, Open Rounds activates ducked and says Work at zero, with no Prepare`() async {
+        let engine = makeOpenRoundsEngine(isDipOn: true)
+        var calls = audio.calls.makeAsyncIterator()
+
+        await engine.start()
+
+        #expect(await calls.next() == .activate(ducking: true))
+        #expect(await calls.next() == .schedule(.work, at: at(0)))
+    }
+
+    @Test func `Done says Rest, and each Rest ends into the next Work's Cue, handed over 1.5s ahead`() async {
+        let engine = makeOpenRoundsEngine()
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .schedule(.work, at: at(0)))
+
+        for round in 0..<3 {
+            let roundStart = Double(round) * 100
+            await audio.finishSpeaking()
+            advance(to: roundStart + 40)
+            await engine.done(at: clock.now)
+            #expect(await calls.next() == .schedule(.rest, at: at(roundStart + 40)))
+
+            await audio.finishSpeaking()
+            advance(to: roundStart + 98.5)
+            #expect(await calls.next() == .schedule(.work, at: at(roundStart + 100)))
+        }
+    }
+
+    @Test func `With a Rest of zero, Done says Work`() async {
+        let engine = makeOpenRoundsEngine(rest: 0)
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .schedule(.work, at: at(0)))
+        await audio.finishSpeaking()
+        advance(to: 40)
+
+        await engine.done(at: clock.now)
+
+        #expect(await calls.next() == .schedule(.work, at: at(40)))
+    }
+
+    @Test(arguments: [false, true])
+    func `Stop ends Open Rounds with no Workout complete Cue`(duringRest: Bool) async {
+        let engine = makeOpenRoundsEngine()
+        var calls = audio.calls.makeAsyncIterator()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .schedule(.work, at: at(0)))
+        await audio.finishSpeaking()
+        advance(to: 40)
+        if duringRest {
+            await engine.done(at: clock.now)
+            #expect(await calls.next() == .schedule(.rest, at: at(40)))
+            await audio.finishSpeaking()
+            advance(to: 70)
+        }
+
+        await engine.stop()
+        await letAudioSettle()
+
+        var last: WorkoutSnapshot<ManualClock.Instant>?
+        while let snapshot = await snapshots.next() { last = snapshot }
+        #expect(last?.progress == .stopped)
+        #expect(await audio.history.last == .deactivate)
+        #expect(await !audio.history.contains { if case .schedule(.workoutComplete, _) = $0 { true } else { false } })
+    }
+}

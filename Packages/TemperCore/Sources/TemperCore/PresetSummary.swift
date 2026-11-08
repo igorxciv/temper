@@ -9,6 +9,8 @@ extension PresetList {
             return "\(settings.rounds) × \(Self.shortClockText(settings.work)) / \(rest)"
         case .stopwatch:
             return Self.shortClockText(settings.work)
+        case .openRounds:
+            return "Rest \(settings.rest > .zero ? Self.shortClockText(settings.rest) : "Off")"
         }
     }
 
