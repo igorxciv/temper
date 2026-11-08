@@ -1,0 +1,12 @@
+// PROBE, throwaway. The iPhone side: starts the Watch app, holds the mirrored session, beeps on Watch taps.
+#include "Probe.xcconfig"
+
+SDKROOT = iphoneos
+SUPPORTED_PLATFORMS = iphoneos iphonesimulator
+TARGETED_DEVICE_FAMILY = 1
+IPHONEOS_DEPLOYMENT_TARGET = 27.0
+INFOPLIST_FILE = Phone-Info.plist
+INFOPLIST_KEY_CFBundleDisplayName = Link Probe
+INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES
+INFOPLIST_KEY_UILaunchScreen_Generation = YES
+PRODUCT_BUNDLE_IDENTIFIER = $(PHONE_BUNDLE_ID)

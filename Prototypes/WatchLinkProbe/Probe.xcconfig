@@ -1,0 +1,23 @@
+// PROBE, throwaway. Settings both targets share. Answers whether an iPhone-started, mirrored workout session holds
+// up on iOS 27.2 with a watchOS 26.5 Series 8 (issue #107).
+SWIFT_VERSION = 6.0
+SWIFT_APPROACHABLE_CONCURRENCY = YES
+SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor
+ALWAYS_SEARCH_USER_PATHS = NO
+ENABLE_USER_SCRIPT_SANDBOXING = YES
+GENERATE_INFOPLIST_FILE = YES
+PRODUCT_NAME = $(TARGET_NAME)
+MARKETING_VERSION = 0.1
+CURRENT_PROJECT_VERSION = 1
+CODE_SIGN_ENTITLEMENTS = Probe.entitlements
+INFOPLIST_KEY_NSHealthShareUsageDescription = The link probe reads heart rate during a test session.
+INFOPLIST_KEY_NSHealthUpdateUsageDescription = The link probe saves its test sessions to Health.
+
+// Real values live in Temper's ignored Config/Local.xcconfig.
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM =
+BUNDLE_ID_PREFIX = org.example
+PHONE_BUNDLE_ID = $(BUNDLE_ID_PREFIX).temper.linkprobe
+#include? "../../Config/Local.xcconfig"
+// A signed Watch app can't be stripped while it's embedded, so skip the strip and its warning, as Temper does.
+COPY_PHASE_STRIP = NO
