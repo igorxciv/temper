@@ -33,7 +33,7 @@ nonisolated struct WorkoutSnapshotTests {
         #expect(snapshot.timeLeft(at: at(9_000)) == .seconds(12))
     }
 
-    @Test(arguments: [Snapshot.Progress.finished, .stopped])
+    @Test(arguments: [Snapshot.Progress.finished(.lasting(0)), .stopped(.lasting(0))])
     private func `An ended Workout has no time left`(progress: Snapshot.Progress) {
         #expect(Snapshot(progress: progress, rounds: 8).timeLeft(at: at(1)) == .zero)
     }
@@ -63,7 +63,7 @@ nonisolated struct WorkoutSnapshotTests {
     }
 
     @Test func `An ended Workout's ring is empty`() {
-        #expect(Snapshot(progress: .finished, rounds: 8).fractionLeft(at: at(1)) == 0)
+        #expect(Snapshot(progress: .finished(.lasting(0)), rounds: 8).fractionLeft(at: at(1)) == 0)
     }
 
     // MARK: Time spent
@@ -76,7 +76,7 @@ nonisolated struct WorkoutSnapshotTests {
     }
 
     @Test func `An ended Workout has spent no time in a Phase`() {
-        #expect(Snapshot(progress: .finished, rounds: 8).elapsed(at: at(1)) == .zero)
+        #expect(Snapshot(progress: .finished(.lasting(0)), rounds: 8).elapsed(at: at(1)) == .zero)
     }
 
     // MARK: Open Phases
@@ -122,7 +122,7 @@ nonisolated struct WorkoutSnapshotTests {
     }
 
     @Test func `The screen sleeps normally once the Workout has ended`() {
-        #expect(!Snapshot(progress: .finished, rounds: 8).keepsScreenAwake)
-        #expect(!Snapshot(progress: .stopped, rounds: 8).keepsScreenAwake)
+        #expect(!Snapshot(progress: .finished(.lasting(0)), rounds: 8).keepsScreenAwake)
+        #expect(!Snapshot(progress: .stopped(.lasting(0)), rounds: 8).keepsScreenAwake)
     }
 }

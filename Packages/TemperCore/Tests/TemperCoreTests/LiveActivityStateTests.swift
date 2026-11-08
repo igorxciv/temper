@@ -92,7 +92,7 @@ nonisolated struct LiveActivityStateTests {
     }
 
     @Test func `A finished Workout shows its total length`() {
-        let state = intervals(.finished).liveActivityState(at: at(0), date: date)
+        let state = intervals(.finished(.lasting(530))).liveActivityState(at: at(0), date: date)
 
         #expect(state == .complete(total: "08:50", spokenTotal: "8 minutes 50 seconds"))
     }
@@ -112,13 +112,14 @@ nonisolated struct LiveActivityStateTests {
     @Test func `A finished Workout with no total length shows none`() {
         let workout = Workout(phases: [Phase(kind: .work, length: .open, round: 1)])
         let display = Display(
-            workoutType: .intervals, workout: workout, snapshot: Snapshot(progress: .finished, rounds: nil))
+            workoutType: .intervals, workout: workout, snapshot: Snapshot(progress: .finished(.lasting(0)), rounds: nil)
+        )
 
         #expect(display.liveActivityState(at: at(0), date: date) == .complete(total: nil, spokenTotal: nil))
     }
 
     @Test func `A stopped Workout has no Live Activity`() {
-        #expect(intervals(.stopped).liveActivityState(at: at(0), date: date) == nil)
+        #expect(intervals(.stopped(.lasting(0))).liveActivityState(at: at(0), date: date) == nil)
     }
 
     @Test func `The state survives encoding, as the system stores it`() throws {

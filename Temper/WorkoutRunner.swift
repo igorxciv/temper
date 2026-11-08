@@ -75,7 +75,8 @@ final class WorkoutRunner {
     }
 
     func stop() {
-        Task { [engine] in await engine?.stop() }
+        let tap = ContinuousClock.now
+        Task { [engine] in await engine?.stop(at: tap) }
     }
 
     /// For returning to the front, so the screen shows the correct Phase or the complete screen.

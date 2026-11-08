@@ -215,7 +215,7 @@ nonisolated struct InterruptionTests {
 
         await engine.refresh()
 
-        #expect(await snapshots.next()?.progress == .finished)
+        #expect(await snapshots.next()?.hasFinished == true)
         #expect(await calls.next() == .deactivate)
         await letAudioSettle()
         #expect(await audio.history.contains(.schedule(.workoutComplete, at: at(30))) == false)
@@ -347,7 +347,7 @@ nonisolated struct InterruptionTests {
         #expect(await calls.next() == .schedule(.workoutComplete, at: at(30)))
         _ = await snapshots.next()
         advance(to: 30.5)
-        #expect(await snapshots.next()?.progress == .finished)
+        #expect(await snapshots.next()?.hasFinished == true)
 
         audio.send(.interrupted)
 
@@ -578,7 +578,7 @@ nonisolated struct InterruptionTests {
         audio.send(.interrupted)
         await letAudioSettle()
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
         #expect(await calls.next() == .deactivate)
     }

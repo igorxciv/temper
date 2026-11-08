@@ -38,7 +38,7 @@ nonisolated struct RunningDisplayTests {
         #expect(stopwatch(running(stopwatchWork, endsAt: 610)).countsUp)
         #expect(stopwatch(.paused(phase: stopwatchWork, timeLeft: .seconds(5))).countsUp)
         #expect(!stopwatch(running(prepare, endsAt: 10)).countsUp)
-        #expect(!stopwatch(.finished).countsUp)
+        #expect(!stopwatch(.finished(.lasting(0))).countsUp)
         #expect(!intervals(running(work, endsAt: 100)).countsUp)
     }
 
@@ -75,7 +75,7 @@ nonisolated struct RunningDisplayTests {
     }
 
     @Test func `An ended Workout's ring is empty, with no time left`() {
-        let ring = intervals(.finished).ring(at: at(1))
+        let ring = intervals(.finished(.lasting(0))).ring(at: at(1))
 
         #expect(ring == .init(time: "00:00", spokenTime: "0 seconds left", fill: 0))
     }
@@ -203,7 +203,8 @@ nonisolated struct RunningDisplayTests {
     @Test(arguments: [WorkoutType.intervals, .stopwatch])
     func `An ended Workout has no line`(type: WorkoutType) {
         let workout = type == .intervals ? intervals : stopwatch
-        let display = Display(workoutType: type, workout: workout, snapshot: Snapshot(progress: .finished, rounds: 8))
+        let display = Display(
+            workoutType: type, workout: workout, snapshot: Snapshot(progress: .finished(.lasting(0)), rounds: 8))
 
         #expect(display.line == nil)
     }

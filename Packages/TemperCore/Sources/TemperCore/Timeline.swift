@@ -95,6 +95,23 @@ public nonisolated struct Timeline: Sendable {
         return Timeline(workout: workout, doneTimes: doneTimes + [activeTime])
     }
 
+    /// The active time the Workout finishes, or `nil` while it waits on an open Phase.
+    var finish: Duration? {
+        guard let last = spans.last else { return .zero }
+        return last.end
+    }
+
+    /// Each Phase reached by `activeTime`, with the active time it started: every Phase up to the one the Workout is
+    /// in at `activeTime`, or every Phase once it has finished. A Phase starting exactly then is reached.
+    func phasesReached(by activeTime: Duration) -> [(phase: Phase, start: Duration)] {
+        var reached: [(phase: Phase, start: Duration)] = []
+        for span in spans where span.start <= activeTime {
+            reached.append((span.phase, span.start))
+            if span.contains(activeTime) { break }
+        }
+        return reached
+    }
+
     /// A Phase's end is the start of the next Phase, and the Workout's end is its finish.
     public func position(at activeTime: Duration) -> Position {
         let nextCue = cues.first { $0.due >= activeTime }

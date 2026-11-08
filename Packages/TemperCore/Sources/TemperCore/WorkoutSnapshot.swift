@@ -11,8 +11,10 @@ where Instant.Duration == Duration {
         case paused(phase: Phase, timeLeft: Duration)
         /// An open Phase, held with `elapsed` spent in it.
         case pausedOpen(phase: Phase, elapsed: Duration)
-        case finished
-        case stopped
+        /// The Workout ran to its end.
+        case finished(WorkoutRecord<Instant>)
+        /// The owner Stopped the Workout.
+        case stopped(WorkoutRecord<Instant>)
     }
 
     public let progress: Progress
@@ -22,6 +24,14 @@ where Instant.Duration == Duration {
     public init(progress: Progress, rounds: Int?) {
         self.progress = progress
         self.rounds = rounds
+    }
+
+    /// What the Workout ended as, once it has finished or been Stopped, or `nil` before then.
+    public var record: WorkoutRecord<Instant>? {
+        switch progress {
+        case .finished(let record), .stopped(let record): record
+        case .running, .runningOpen, .paused, .pausedOpen: nil
+        }
     }
 
     /// The current Phase, or `nil` once the Workout has ended.

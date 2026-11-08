@@ -104,7 +104,7 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .schedule(.workoutComplete, at: at(610)))
         advance(to: 610)
         #expect(await snapshots.next()?.phase?.kind == .work)
-        #expect(await snapshots.next()?.progress == .finished)
+        #expect(await snapshots.next()?.hasFinished == true)
         await audio.finishSpeaking()
         #expect(await calls.next() == .deactivate)
         await letAudioSettle()
@@ -685,7 +685,7 @@ nonisolated struct CueRulesTests {
         advance(to: 10.5)
         _ = await calls.next()
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
         #expect(await calls.next() == .cancel)
         #expect(await calls.next() == .deactivate)
@@ -698,7 +698,7 @@ nonisolated struct CueRulesTests {
         _ = await calls.next()
         advance(to: 4)
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
         #expect(await calls.next() == .deactivate)
 
         advance(to: 1_000)
@@ -714,7 +714,7 @@ nonisolated struct CueRulesTests {
         await engine.pause(at: clock.now)
         _ = await calls.next()
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
         await letAudioSettle()
         #expect(await audio.history == [.activate(ducking: false), .deactivate])
@@ -723,7 +723,7 @@ nonisolated struct CueRulesTests {
     @Test func `Stop before Start touches no audio`() async {
         let engine = makeEngine()
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
         #expect(await audio.history.isEmpty)
     }
@@ -737,10 +737,10 @@ nonisolated struct CueRulesTests {
         let start = Task { await engine.start() }
         _ = await calls.next()
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
         await start.value
 
-        #expect(await snapshots.next()?.progress == .stopped)
+        #expect(await snapshots.next()?.wasStopped == true)
         #expect(await snapshots.next() == nil)
         #expect(await calls.next() == .deactivate)
         await audio.release()
@@ -755,7 +755,7 @@ nonisolated struct CueRulesTests {
         advance(to: 8.5)
         _ = await calls.next()
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
         #expect(await calls.next() == .cancel)
         #expect(await calls.next() == .deactivate)
         await audio.release(failing: true)
@@ -786,7 +786,7 @@ nonisolated struct CueRulesTests {
         var snapshots = engine.snapshots.makeAsyncIterator()
         _ = await snapshots.next()
         advance(to: 30)
-        #expect(await snapshots.next()?.progress == .finished)
+        #expect(await snapshots.next()?.hasFinished == true)
         return calls
     }
 
@@ -797,7 +797,7 @@ nonisolated struct CueRulesTests {
         _ = await snapshots.next()
 
         advance(to: 30)
-        #expect(await snapshots.next()?.progress == .finished)
+        #expect(await snapshots.next()?.hasFinished == true)
         #expect(await snapshots.next() == nil)
         await letAudioSettle()
         #expect(await audio.history.contains(.deactivate) == false)
@@ -883,7 +883,7 @@ nonisolated struct CueRulesTests {
         advance(to: 28.5)
         _ = await calls.next()
         advance(to: 30)
-        #expect(await snapshots.next()?.progress == .finished)
+        #expect(await snapshots.next()?.hasFinished == true)
 
         await audio.release(failing: true)
 
@@ -906,7 +906,7 @@ nonisolated struct CueRulesTests {
         advance(to: 28.5)
         _ = await calls.next()
         advance(to: 31.25)
-        #expect(await snapshots.next()?.progress == .finished)
+        #expect(await snapshots.next()?.hasFinished == true)
 
         await audio.release()
 
@@ -924,7 +924,7 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .deactivate)
 
         await audio.finishSpeaking()
-        await engine.stop()
+        await engine.stop(at: clock.now)
         await letAudioSettle()
 
         #expect(await audio.history.filter { $0 == .deactivate }.count == 1)
@@ -953,7 +953,7 @@ nonisolated struct CueRulesTests {
         await letAudioSettle()
         #expect(await audio.history == [.activate(ducking: false), .schedule(.work, at: at(0))])
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
         #expect(await calls.next() == .deactivate)
     }
 
@@ -1203,12 +1203,12 @@ extension CueRulesTests {
             advance(to: 70)
         }
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
         await letAudioSettle()
 
         var last: WorkoutSnapshot<ManualClock.Instant>?
         while let snapshot = await snapshots.next() { last = snapshot }
-        #expect(last?.progress == .stopped)
+        #expect(last?.wasStopped == true)
         #expect(await audio.history.last == .deactivate)
         #expect(await !audio.history.contains { if case .schedule(.workoutComplete, _) = $0 { true } else { false } })
     }

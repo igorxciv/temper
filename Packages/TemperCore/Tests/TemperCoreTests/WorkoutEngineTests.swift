@@ -83,7 +83,7 @@ nonisolated struct WorkoutEngineTests {
 
         clock.advance(by: .seconds(30))
 
-        #expect(await snapshots.next() == Snapshot(progress: .finished, rounds: 1))
+        #expect(await snapshots.next()?.hasFinished == true)
         #expect(await snapshots.next() == nil)
     }
 
@@ -164,7 +164,7 @@ nonisolated struct WorkoutEngineTests {
 
         clock.advance(by: .seconds(1_000))
 
-        #expect(await snapshots.next() == Snapshot(progress: .finished, rounds: 2))
+        #expect(await snapshots.next()?.hasFinished == true)
         #expect(await snapshots.next() == nil)
     }
 
@@ -289,9 +289,9 @@ nonisolated struct WorkoutEngineTests {
         _ = await snapshots.next()
 
         clock.advance(by: .seconds(1_000))
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
-        #expect(await snapshots.next() == Snapshot(progress: .stopped, rounds: 2))
+        #expect(await snapshots.next()?.wasStopped == true)
     }
 
     @Test func `Phases carry on from a Resume with the Pause left out`() async {
@@ -330,7 +330,7 @@ nonisolated struct WorkoutEngineTests {
 
         await engine.pause(at: clock.now)
 
-        #expect(await snapshots.next() == Snapshot(progress: .finished, rounds: 2))
+        #expect(await snapshots.next()?.hasFinished == true)
         #expect(await snapshots.next() == nil)
     }
 
@@ -340,9 +340,9 @@ nonisolated struct WorkoutEngineTests {
     func `Stop ends the Workout in every Phase`(active: Duration) async {
         var (engine, snapshots) = await engine(runFor: active)
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
-        #expect(await snapshots.next() == Snapshot(progress: .stopped, rounds: 2))
+        #expect(await snapshots.next()?.wasStopped == true)
         #expect(await snapshots.next() == nil)
     }
 
@@ -351,15 +351,15 @@ nonisolated struct WorkoutEngineTests {
         await engine.pause(at: clock.now)
         _ = await snapshots.next()
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
-        #expect(await snapshots.next() == Snapshot(progress: .stopped, rounds: 2))
+        #expect(await snapshots.next()?.wasStopped == true)
         #expect(await snapshots.next() == nil)
     }
 
     @Test func `No Phase changes after Stop, and later calls do nothing`() async {
         var (engine, snapshots) = await engine(runFor: .seconds(4))
-        await engine.stop()
+        await engine.stop(at: clock.now)
         _ = await snapshots.next()
 
         clock.advance(by: .seconds(1_000))
@@ -367,7 +367,7 @@ nonisolated struct WorkoutEngineTests {
         await engine.pause(at: clock.now)
         await engine.resume(at: clock.now)
         await engine.refresh()
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
         #expect(await snapshots.next() == nil)
     }
@@ -378,10 +378,10 @@ nonisolated struct WorkoutEngineTests {
         await engine.start()
         _ = await snapshots.next()
         clock.advance(by: .seconds(30))
-        #expect(await snapshots.next() == Snapshot(progress: .finished, rounds: 1))
+        #expect(await snapshots.next()?.hasFinished == true)
 
         await engine.pause(at: clock.now)
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
         #expect(await snapshots.next() == nil)
     }
@@ -422,7 +422,7 @@ nonisolated struct WorkoutEngineTests {
 
         await engine.refresh()
 
-        #expect(await snapshots.next() == Snapshot(progress: .finished, rounds: 2))
+        #expect(await snapshots.next()?.hasFinished == true)
         #expect(await snapshots.next() == nil)
     }
 
@@ -552,7 +552,7 @@ nonisolated struct WorkoutEngineTests {
         #expect(await snapshots.next() == runningAfterDone(lastWork, endsAt: 100))
 
         clock.advance(by: .seconds(30))
-        #expect(await snapshots.next() == Snapshot(progress: .finished, rounds: nil))
+        #expect(await snapshots.next()?.hasFinished == true)
     }
 
     @Test func `A second Done that lands in the Rest does nothing`() async {
@@ -696,11 +696,11 @@ nonisolated struct WorkoutEngineTests {
         await engine.start()
         _ = await snapshots.next()
         clock.advance(by: .seconds(40))
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
         await engine.done(at: clock.now)
 
-        #expect(await snapshots.next() == Snapshot(progress: .stopped, rounds: nil))
+        #expect(await snapshots.next()?.wasStopped == true)
         #expect(await snapshots.next() == nil)
     }
 }
@@ -779,9 +779,9 @@ extension WorkoutEngineTests {
             clock.advance(by: .seconds(20))
         }
 
-        await engine.stop()
+        await engine.stop(at: clock.now)
 
-        #expect(await snapshots.next() == Snapshot(progress: .stopped, rounds: nil))
+        #expect(await snapshots.next()?.wasStopped == true)
         #expect(await snapshots.next() == nil)
     }
 }

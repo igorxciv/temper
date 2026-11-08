@@ -23,6 +23,8 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     private let rounds: Int?
     private let cueRules: CueRules<EngineClock>
     private var state = State.ready
+    /// Each Pause that has been Resumed, from its tap to its Resume, kept for the Workout record.
+    private var pauses: [Range<Instant>] = []
     private var latest: Snapshot?
     private var wake: Task<Void, Never>?
 
@@ -52,7 +54,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         guard case .running(let start, let heldFor) = state else { return }
         let position = timeline.position(at: start.duration(to: tap) - heldFor)
         guard let phase = position.phase else {
-            await end(.finished)
+            await finish(start: start, heldFor: heldFor)
             return
         }
         wake?.cancel()
@@ -69,6 +71,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     public func resume(at tap: Instant) async {
         guard case .paused(let start, let heldFor, let since) = state else { return }
         let held = heldFor + since.duration(to: tap)
+        pauses.append(since..<tap)
         state = .running(start: start, heldFor: held)
         await cueRules.resume(from: start.advanced(by: held))
         await recalculate()
@@ -86,10 +89,24 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         await recalculate()
     }
 
-    public func stop() async {
+    /// Stop keeps the time of the tap, so the Workout record ends where the owner Stopped it: a Phase cut short and a
+    /// Pause still on both end at the tap. A tap that arrives after the Workout's finish ends it at the finish.
+    public func stop(at tap: Instant) async {
         switch state {
-        case .ready, .starting, .running, .paused: await end(.stopped)
-        case .ended: break
+        case .ready, .starting:
+            await end(.stopped(WorkoutRecord(start: tap, end: tap, pauses: [], phases: [])))
+        case .running(let start, let heldFor):
+            // A tap can't land before the Resume the engine already heard, nor past the finish.
+            var end = max(tap, pauses.last?.upperBound ?? start)
+            if let finish = timeline.finish, start.duration(to: end) - heldFor > finish {
+                end = start.advanced(by: finish + heldFor)
+            }
+            await self.end(.stopped(record(start: start, pauses: pauses, end: end)))
+        case .paused(let start, _, let since):
+            let end = max(tap, since)
+            await self.end(.stopped(record(start: start, pauses: pauses + [since..<end], end: end)))
+        case .ended:
+            break
         }
     }
 
@@ -116,7 +133,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         let now = clock.now
         let position = timeline.position(at: start.duration(to: now) - heldFor)
         guard let phase = position.phase else {
-            await end(.finished)
+            await finish(start: start, heldFor: heldFor)
             return
         }
         guard !phase.isOpen else {
@@ -143,6 +160,16 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         guard snapshot != latest else { return }
         latest = snapshot
         continuation.yield(snapshot)
+    }
+
+    /// Ends the Workout at its finish, however late the engine notices it.
+    private func finish(start: Instant, heldFor: Duration) async {
+        let end = start.advanced(by: (timeline.finish ?? .zero) + heldFor)
+        await self.end(.finished(record(start: start, pauses: pauses, end: end)))
+    }
+
+    private func record(start: Instant, pauses: [Range<Instant>], end: Instant) -> WorkoutRecord<Instant> {
+        WorkoutRecord(timeline: timeline, start: start, pauses: pauses, end: end)
     }
 
     private func end(_ progress: Snapshot.Progress) async {

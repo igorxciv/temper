@@ -13,7 +13,8 @@ private enum PreviewStates {
         .intervals, .paused(phase: Phase(kind: .rest, duration: .seconds(20), round: 3), timeLeft: .seconds(12)))
     static let stopwatchWork = state(
         .stopwatch, .running(phase: Phase(kind: .work, duration: .seconds(600)), endsAt: .now + .seconds(380)))
-    static let complete = state(.intervals, .finished)
+    static let complete = state(
+        .intervals, .finished(WorkoutRecord(start: .now, end: .now + .seconds(530), pauses: [], phases: [])))
 
     private static func state(
         _ workoutType: WorkoutType,
