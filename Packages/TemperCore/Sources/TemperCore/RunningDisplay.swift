@@ -32,6 +32,13 @@ where Instant.Duration == Duration {
         public let fill: Double
     }
 
+    /// The running screen's Done button, which only Open Rounds has.
+    public enum DoneButton: Equatable, Sendable {
+        case enabled
+        /// Kept in place but dimmed, so nothing moves under the owner's thumb as Work turns to Rest or is Paused.
+        case disabled
+    }
+
     public let workoutType: WorkoutType
     public let workout: Workout
     public let snapshot: WorkoutSnapshot<Instant>
@@ -46,6 +53,14 @@ where Instant.Duration == Duration {
     public var countsUp: Bool {
         guard let phase = snapshot.phase else { return false }
         return phase.isOpen || (workoutType == .stopwatch && phase.kind == .work)
+    }
+
+    /// Done, enabled only in a running open Work, the only time the engine takes it, or `nil` in Intervals and
+    /// Stopwatch, which have no open Phase.
+    public var doneButton: DoneButton? {
+        guard workoutType == .openRounds else { return nil }
+        if case .runningOpen = snapshot.progress { return .enabled }
+        return .disabled
     }
 
     /// The ring at `now`. Counting down, the time left rounds up and the ring empties. Counting up, the time
