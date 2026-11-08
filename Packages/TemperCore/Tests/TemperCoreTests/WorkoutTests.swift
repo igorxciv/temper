@@ -93,6 +93,16 @@ struct WorkoutTests {
         #expect(workout.rounds == nil)
     }
 
+    @Test func `A Workout that repeats Rounds until Stop has no total length and no set number of Rounds`() {
+        let workout = Workout(
+            phases: [Phase(kind: .prepare, duration: .seconds(10))],
+            repeatingRound: [Phase(kind: .work, length: .open)]
+        )
+
+        #expect(workout.totalDuration == nil)
+        #expect(workout.rounds == nil)
+    }
+
     @Test func `A Workout needs at least one Round`() async {
         await #expect(processExitsWith: .failure) {
             _ = WorkoutType.intervals.makeWorkout(

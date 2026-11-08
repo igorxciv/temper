@@ -40,4 +40,13 @@ struct PresetSummaryTests {
 
         #expect(list.summary(of: Preset(name: "Run", settings: WorkoutType.stopwatch.firstLaunch)) == "10:00")
     }
+
+    @Test func `An Open Rounds summary is its Rest, or Off`() {
+        let list = PresetList(workoutType: .openRounds)
+        var noRest = WorkoutType.openRounds.firstLaunch
+        noRest[.rest] = 0
+
+        #expect(list.summary(of: Preset(name: "Heavy", settings: WorkoutType.openRounds.firstLaunch)) == "Rest 1:00")
+        #expect(list.summary(of: Preset(name: "Circuit", settings: noRest)) == "Rest Off")
+    }
 }

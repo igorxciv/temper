@@ -10,8 +10,8 @@ struct WorkoutTypeTests {
         )
     }
 
-    @Test func `Intervals comes before Stopwatch`() {
-        #expect(WorkoutType.allCases == [.intervals, .stopwatch])
+    @Test func `Intervals comes before Stopwatch, then Open Rounds`() {
+        #expect(WorkoutType.allCases == [.intervals, .stopwatch, .openRounds])
     }
 
     @Test func `Each Workout Type has its title and tab icon`() {
@@ -19,16 +19,19 @@ struct WorkoutTypeTests {
         #expect(WorkoutType.intervals.systemImage == "repeat")
         #expect(WorkoutType.stopwatch.title == "Stopwatch")
         #expect(WorkoutType.stopwatch.systemImage == "stopwatch")
+        #expect(WorkoutType.openRounds.title == "Open Rounds")
     }
 
     @Test func `Each Workout Type has its setup rows, top to bottom`() {
         #expect(WorkoutType.intervals.values == [.prepare, .rounds, .work, .rest, .cooldown])
         #expect(WorkoutType.stopwatch.values == [.prepare, .work])
+        #expect(WorkoutType.openRounds.values == [.rest])
     }
 
     @Test func `The raw values are the ones remembered as the last-used Workout Type`() {
         #expect(WorkoutType(rawValue: "intervals") == .intervals)
         #expect(WorkoutType(rawValue: "stopwatch") == .stopwatch)
+        #expect(WorkoutType(rawValue: "openRounds") == .openRounds)
     }
 
     @Test func `Intervals first launches at Prepare 00:10, 8 Rounds of 00:40 and 00:20, and Cooldown 01:00`() {
@@ -48,6 +51,38 @@ struct WorkoutTypeTests {
 
         #expect(settings.prepare == .seconds(10))
         #expect(settings.work == .seconds(600))
+    }
+
+    @Test func `Open Rounds first launches at Rest 01:00`() {
+        #expect(WorkoutType.openRounds.firstLaunch.rest == .seconds(60))
+    }
+
+    private func openRounds(rest: Duration) -> Workout {
+        // Prepare, Rounds, Work and Cooldown are set to show Open Rounds ignores them.
+        WorkoutType.openRounds.makeWorkout(
+            from: WorkoutSettings(
+                prepare: .seconds(10), rounds: 8, work: .seconds(40), rest: rest, cooldown: .seconds(60))
+        )
+    }
+
+    @Test func `Open Rounds repeats an open Work and its Rest until Stop, with no Prepare`() {
+        let expected = Workout(
+            phases: [],
+            repeatingRound: [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: .seconds(60))]
+        )
+
+        #expect(openRounds(rest: .seconds(60)) == expected)
+    }
+
+    @Test func `A zero Rest is dropped, so Open Rounds repeats the open Work alone`() {
+        #expect(openRounds(rest: .zero) == Workout(phases: [], repeatingRound: [Phase(kind: .work, length: .open)]))
+    }
+
+    @Test func `Open Rounds has no total length and no set number of Rounds`() {
+        let workout = WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch)
+
+        #expect(workout.totalDuration == nil)
+        #expect(workout.rounds == nil)
     }
 
     @Test func `A Stopwatch is a Prepare, then one Work with no Round`() {

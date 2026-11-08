@@ -164,6 +164,23 @@ struct RememberedValuesTests {
         }
     }
 
+    /// Open Rounds has no way yet to mark Work Done, so it gets no tab until it has its screens.
+    @Test func `The tab bar offers only Intervals and Stopwatch`() {
+        #expect(RootTab.workoutTypes == [.intervals, .stopwatch])
+    }
+
+    @Test func `The Open Rounds Rest saves under its own key and restores`() throws {
+        try withThrowawayDefaults { defaults in
+            #expect(RememberedValues(defaults: defaults)[.openRounds] == WorkoutType.openRounds.firstLaunch)
+
+            RememberedValues(defaults: defaults)[.openRounds][.rest] = 90
+
+            #expect(defaults.object(forKey: "openRounds.rest") as? Int == 90)
+            #expect(defaults.object(forKey: "rest") == nil)
+            #expect(RememberedValues(defaults: defaults)[.openRounds].rest == .seconds(90))
+        }
+    }
+
     @Test func `Selecting a Workout Type's tab makes it the type the next launch opens on`() throws {
         try withThrowawayDefaults { defaults in
             RememberedValues(defaults: defaults).selectedTab = .workoutType(.stopwatch)
