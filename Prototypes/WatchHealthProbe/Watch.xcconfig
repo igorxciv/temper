@@ -1,4 +1,4 @@
-// PROBE, throwaway. The Watch side: owns the workout session and mirrors it to the iPhone.
+// PROBE, throwaway. The Watch side: owns the workout session and saves it with heart rate.
 #include "Probe.xcconfig"
 
 SDKROOT = watchos
@@ -7,7 +7,7 @@ TARGETED_DEVICE_FAMILY = 4
 WATCHOS_DEPLOYMENT_TARGET = 26.0
 SKIP_INSTALL = YES
 INFOPLIST_FILE = Watch-Info.plist
-INFOPLIST_KEY_CFBundleDisplayName = Link Probe
+INFOPLIST_KEY_CFBundleDisplayName = Health Probe
 INFOPLIST_KEY_WKApplication = YES
 INFOPLIST_KEY_WKCompanionAppBundleIdentifier = $(PHONE_BUNDLE_ID)
 INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES

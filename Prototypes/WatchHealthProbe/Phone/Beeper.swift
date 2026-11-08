@@ -1,5 +1,5 @@
 // PROBE, throwaway. Keeps a `.playback` session and an engine running, so the app runs while locked as Temper
-// does during a Workout, and plays a short beep when a Watch tap arrives.
+// does during a Workout, and plays a short beep at each stand-in Phase.
 
 import AVFAudio
 

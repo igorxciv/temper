@@ -143,7 +143,7 @@
 				LastSwiftUpdateCheck = 2720;
 				LastUpgradeCheck = 2720;
 			};
-			buildConfigurationList = CC0000000000000000000005 /* Build configuration list for PBXProject "WatchLinkProbe" */;
+			buildConfigurationList = CC0000000000000000000005 /* Build configuration list for PBXProject "WatchHealthProbe" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -239,7 +239,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CC0000000000000000000005 /* Build configuration list for PBXProject "WatchLinkProbe" */ = {
+		CC0000000000000000000005 /* Build configuration list for PBXProject "WatchHealthProbe" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CC0000000000000000000006 /* Debug */,

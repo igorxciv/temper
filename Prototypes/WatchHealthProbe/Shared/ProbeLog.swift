@@ -20,9 +20,9 @@ final class ProbeLog {
 
     init(side: String) {
         self.side = side
-        logger = Logger(subsystem: "probe.watchlink", category: side)
+        logger = Logger(subsystem: "probe.watchhealth", category: side)
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        fileURL = documents.appending(path: "link-probe.log")
+        fileURL = documents.appending(path: "health-probe.log")
     }
 
     static func time(_ date: Date) -> String {
