@@ -30,6 +30,16 @@ struct TemperAppTests {
         #expect(widgets.bundleIdentifier == "\(appID).widgets")
     }
 
+    /// Temper only writes workouts to Health and reads nothing, so it has no read string.
+    @Test func `The app needs HealthKit and explains why it writes to Health`() {
+        let info = Bundle.main.infoDictionary ?? [:]
+
+        #expect(
+            info["NSHealthUpdateUsageDescription"] as? String == "Temper saves each Workout to Health when it ends.")
+        #expect(info["NSHealthShareUsageDescription"] == nil)
+        #expect((info["UIRequiredDeviceCapabilities"] as? [String])?.contains("healthkit") == true)
+    }
+
     /// Force-quitting, or iOS ending the app, ends the Workout, because nothing about it is saved.
     @Test func `A launch opens setup, with no Workout to bring back`() {
         let runner = WorkoutRunner()
@@ -46,6 +56,7 @@ struct LiveActivityButtonTests {
 
         func pause() { taps.append("pause") }
         func resume() { taps.append("resume") }
+        func done() { taps.append("done") }
     }
 
     /// The system may launch the app to run a button, so the runner is set at launch.
@@ -65,6 +76,24 @@ struct LiveActivityButtonTests {
         #expect(fake.taps == ["pause", "resume"])
     }
 
+    @Test func `Done reaches the Workout`() async throws {
+        let app = LiveActivityControls.workout
+        defer { LiveActivityControls.workout = app }
+        let fake = FakeControls()
+        LiveActivityControls.workout = fake
+
+        _ = try await DoneWorkoutIntent().perform()
+
+        #expect(fake.taps == ["done"])
+    }
+
+    /// Shortcuts and Spotlight would offer them with no Live Activity in sight.
+    @Test func `The buttons stay out of Shortcuts and Spotlight`() {
+        #expect(!PauseWorkoutIntent.isDiscoverable)
+        #expect(!ResumeWorkoutIntent.isDiscoverable)
+        #expect(!DoneWorkoutIntent.isDiscoverable)
+    }
+
     /// As in the widget extension, where nothing sets the Workout.
     @Test func `With no Workout to reach, a button does nothing`() async throws {
         let app = LiveActivityControls.workout
@@ -73,6 +102,7 @@ struct LiveActivityButtonTests {
 
         _ = try await PauseWorkoutIntent().perform()
         _ = try await ResumeWorkoutIntent().perform()
+        _ = try await DoneWorkoutIntent().perform()
     }
 }
 
@@ -164,9 +194,60 @@ struct RememberedValuesTests {
         }
     }
 
-    /// Open Rounds has no way yet to mark Work Done, so it gets no tab until it has its screens.
-    @Test func `The tab bar offers only Intervals and Stopwatch`() {
-        #expect(RootTab.workoutTypes == [.intervals, .stopwatch])
+    @Test func `The tab bar offers Intervals, Stopwatch and Open Rounds, in that order`() {
+        #expect(RootTab.workoutTypes == [.intervals, .stopwatch, .openRounds])
+    }
+
+    @Test func `Open Rounds opens on a Rest of 01:00 at first launch`() throws {
+        try withThrowawayDefaults { defaults in
+            #expect(RememberedValues(defaults: defaults)[.openRounds].rest == .seconds(60))
+        }
+    }
+
+    @Test(arguments: [(9000, 1800), (-10, 0), (0, 0)])
+    func `A stored Open Rounds Rest restores clamped, with Off kept`(stored: Int, restored: Int) throws {
+        try withThrowawayDefaults { defaults in
+            defaults.set(stored, forKey: "openRounds.rest")
+
+            #expect(RememberedValues(defaults: defaults)[.openRounds].rest == .seconds(restored))
+        }
+    }
+
+    @Test func `Open Rounds can be the type the next launch opens on`() throws {
+        try withThrowawayDefaults { defaults in
+            RememberedValues(defaults: defaults).selectedTab = .workoutType(.openRounds)
+
+            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.openRounds))
+        }
+    }
+
+    /// An upgrade from a build with no Open Rounds tab finds only these keys.
+    @Test func `An upgrade keeps every key and the last-used Workout Type, and Open Rounds starts fresh`() throws {
+        try withThrowawayDefaults { defaults in
+            let stored: [String: Any] = [
+                "prepare": 0, "rounds": 12, "work": 1800, "rest": 5, "cooldown": 95,
+                "stopwatch.prepare": 20, "stopwatch.work": 300,
+                "workoutType": "stopwatch", "dip": false,
+                "presets.intervals": Data(#"[{"id": "\#(UUID().uuidString)", "name": "Long", "values": {}}]"#.utf8),
+            ]
+            for (key, value) in stored {
+                defaults.set(value, forKey: key)
+            }
+
+            let remembered = RememberedValues(defaults: defaults)
+
+            #expect(remembered.selectedTab == .workoutType(.stopwatch))
+            #expect(remembered[.intervals].rounds == 12)
+            #expect(remembered[.stopwatch].work == .seconds(300))
+            #expect(remembered.presets(of: .intervals).presets.map(\.name) == ["Long"])
+            #expect(!remembered.isDipOn)
+            #expect(remembered[.openRounds] == WorkoutType.openRounds.firstLaunch)
+            #expect(remembered.presets(of: .openRounds).presets.isEmpty)
+            for (key, value) in stored {
+                #expect(defaults.object(forKey: key) as? NSObject == value as? NSObject, "\(key)")
+            }
+            #expect(defaults.object(forKey: "openRounds.rest") == nil)
+        }
     }
 
     @Test func `The Open Rounds Rest saves under its own key and restores`() throws {
@@ -203,14 +284,6 @@ struct RememberedValuesTests {
     @Test func `An unknown last-used Workout Type falls back to Intervals`() throws {
         try withThrowawayDefaults { defaults in
             defaults.set("emom", forKey: "workoutType")
-
-            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.intervals))
-        }
-    }
-
-    @Test func `A last-used Workout Type with no tab falls back to Intervals`() throws {
-        try withThrowawayDefaults { defaults in
-            defaults.set("openRounds", forKey: "workoutType")
 
             #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.intervals))
         }
@@ -449,6 +522,27 @@ struct RememberedPresetsTests {
             #expect(stored.first?["values"] as? [String: Int] == ["prepare": 10, "work": 600])
             #expect(defaults.string(forKey: "pickedPreset.stopwatch") == preset.id.uuidString)
             #expect(defaults.object(forKey: "presets.intervals") == nil)
+        }
+    }
+
+    @Test func `An Open Rounds Preset saves only its Rest, under its own keys, and restores`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            remembered[.openRounds][.rest] = 90
+            try remembered.saveAsNewPreset(named: "Squats", of: .openRounds)
+            let preset = try #require(remembered.presets(of: .openRounds).picked)
+
+            let data = try #require(defaults.data(forKey: "presets.openRounds"))
+            let stored = try #require(try JSONSerialization.jsonObject(with: data) as? [[String: Any]])
+            #expect(stored.first?["name"] as? String == "Squats")
+            #expect(stored.first?["values"] as? [String: Int] == ["rest": 90])
+            #expect(defaults.string(forKey: "pickedPreset.openRounds") == preset.id.uuidString)
+
+            remembered[.openRounds][.rest] = 0
+            let restored = RememberedValues(defaults: defaults)
+            #expect(restored.presets(of: .openRounds).subtitle(for: restored[.openRounds]) == "Squats · Modified")
+            restored.pickPreset(preset.id, of: .openRounds)
+            #expect(RememberedValues(defaults: defaults)[.openRounds].rest == .seconds(90))
         }
     }
 

@@ -125,4 +125,39 @@ nonisolated struct TimelineTests {
         #expect(openTimeline.position(at: .milliseconds(10_001)).nextCue == nil)
         #expect(openTimeline.position(at: .seconds(100_000)).nextCue == nil)
     }
+
+    // MARK: The "10 seconds" Cue
+
+    /// Open Rounds with a Rest of `rest` seconds, its first Work marked Done at 40 s.
+    private func openRounds(rest: Int) -> Timeline? {
+        var settings = WorkoutType.openRounds.firstLaunch
+        settings[.rest] = rest
+        return Timeline(workout: WorkoutType.openRounds.makeWorkout(from: settings)).markingDone(at: .seconds(40))
+    }
+
+    @Test func `In Open Rounds, "10 seconds" is due 10s before the Rest that Done placed ends`() {
+        let timeline = openRounds(rest: 60)
+
+        #expect(timeline?.position(at: .seconds(41)).nextCue == UpcomingCue(cue: .tenSeconds, due: .seconds(90)))
+        #expect(timeline?.position(at: .milliseconds(90_001)).nextCue == UpcomingCue(cue: .work, due: .seconds(100)))
+    }
+
+    @Test func `An Open Rounds Rest of 00:20 has "10 seconds" halfway through`() {
+        #expect(
+            openRounds(rest: 20)?.position(at: .seconds(41)).nextCue == UpcomingCue(cue: .tenSeconds, due: .seconds(50))
+        )
+    }
+
+    @Test func `An Open Rounds Rest under 00:20 has no "10 seconds"`() {
+        #expect(openRounds(rest: 15)?.position(at: .seconds(41)).nextCue == UpcomingCue(cue: .work, due: .seconds(55)))
+    }
+
+    @Test func `Intervals has no "10 seconds", however long its Rest`() {
+        var settings = WorkoutType.intervals.firstLaunch
+        settings[.rest] = 60
+        let timeline = Timeline(workout: WorkoutType.intervals.makeWorkout(from: settings))
+
+        // Round 1's Rest runs from 50 to 110 s.
+        #expect(timeline.position(at: .seconds(51)).nextCue == UpcomingCue(cue: .work, due: .seconds(110)))
+    }
 }

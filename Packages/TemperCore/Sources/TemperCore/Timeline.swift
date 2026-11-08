@@ -1,6 +1,8 @@
-/// The spoken announcement of a Phase change or of the end of the Workout.
+/// The spoken announcement of a Phase change, of the end of the Workout, or that Rest is about to end.
 public nonisolated enum Cue: Equatable, Sendable {
     case work, rest, cooldown, workoutComplete
+    /// "10 seconds", as an Open Rounds Rest is about to end.
+    case tenSeconds
 
     /// The Cue for entering a Phase. Prepare starts silently.
     init?(entering kind: Phase.Kind) {
@@ -12,6 +14,11 @@ public nonisolated enum Cue: Equatable, Sendable {
         }
     }
 }
+
+/// How long before a Rest ends "10 seconds" is due.
+private nonisolated let restWarning = Duration.seconds(10)
+/// A shorter Rest has no room for "10 seconds" after its own Cue.
+private nonisolated let shortestWarnedRest = Duration.seconds(20)
 
 /// A Cue and the active time it is due.
 public nonisolated struct UpcomingCue: Equatable, Sendable {
@@ -37,6 +44,8 @@ public nonisolated struct Timeline: Sendable {
         /// It is `nil` past the finish, and in an open Phase once it has started. Whether a Cue actually plays is
         /// not decided here.
         public let nextCue: UpcomingCue?
+        /// The active time of the Phase just before the current one, if that Phase was open and so ended at Done.
+        public let previousOpenPhaseTime: Duration?
 
         public var isFinished: Bool { phase == nil }
     }
@@ -76,6 +85,9 @@ public nonisolated struct Timeline: Sendable {
                 break
             }
             spans.append(Span(phase: phase, start: start, end: end))
+            if workout.warnsBeforeRestEnds, phase.kind == .rest, end - start >= shortestWarnedRest {
+                cues.append(UpcomingCue(cue: .tenSeconds, due: end - restWarning))
+            }
             start = end
         }
         if spans.last?.end != nil || spans.isEmpty {
@@ -95,17 +107,41 @@ public nonisolated struct Timeline: Sendable {
         return Timeline(workout: workout, doneTimes: doneTimes + [activeTime])
     }
 
+    /// The active time the Workout finishes, or `nil` while it waits on an open Phase.
+    var finish: Duration? {
+        guard let last = spans.last else { return .zero }
+        return last.end
+    }
+
+    /// Each Phase reached by `activeTime`, with the active time it started: every Phase up to the one the Workout is
+    /// in at `activeTime`, or every Phase once it has finished. A Phase starting exactly then hasn't run, so it isn't
+    /// reached.
+    func phasesReached(by activeTime: Duration) -> [(phase: Phase, start: Duration)] {
+        var reached: [(phase: Phase, start: Duration)] = []
+        for span in spans where span.start < activeTime {
+            reached.append((span.phase, span.start))
+            if span.contains(activeTime) { break }
+        }
+        return reached
+    }
+
     /// A Phase's end is the start of the next Phase, and the Workout's end is its finish.
     public func position(at activeTime: Duration) -> Position {
         let nextCue = cues.first { $0.due >= activeTime }
-        guard let span = spans.first(where: { $0.contains(activeTime) }) else {
-            return Position(phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue)
+        guard let index = spans.firstIndex(where: { $0.contains(activeTime) }) else {
+            return Position(phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue, previousOpenPhaseTime: nil)
+        }
+        let span = spans[index]
+        let previous = index > 0 ? spans[index - 1] : nil
+        let previousOpenPhaseTime = previous.flatMap { previous in
+            previous.phase.isOpen ? previous.end.map { $0 - previous.start } : nil
         }
         return Position(
             phase: span.phase,
             timeLeft: span.end.map { $0 - activeTime } ?? .zero,
             elapsed: activeTime - span.start,
-            nextCue: nextCue
+            nextCue: nextCue,
+            previousOpenPhaseTime: previousOpenPhaseTime
         )
     }
 }

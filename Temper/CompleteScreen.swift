@@ -13,14 +13,7 @@ struct CompleteScreen: View {
 
         VStack(spacing: 24) {
             Spacer()
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 96))
-                .foregroundStyle(colors.accent)
-                .accessibilityHidden(true)
-            Text("Workout complete")
-                .font(.largeTitle.weight(.semibold))
-                .foregroundStyle(colors.text)
-                .multilineTextAlignment(.center)
+            CompleteHeading(checkmarkSize: 96)
             if let total {
                 Text(total.clockText)
                     .font(.title2.monospacedDigit())
@@ -28,15 +21,7 @@ struct CompleteScreen: View {
                     .accessibilityLabel(total.spokenText(rounding: .up))
             }
             Spacer()
-            Button(action: done) {
-                Text("Done")
-                    .font(.title2.bold())
-                    .foregroundStyle(colors.onAccent)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-            }
-            .buttonStyle(.glassProminent)
-            .tint(colors.accent)
-            .padding()
+            CompleteDoneButton(done: done)
         }
         .frame(maxWidth: .infinity)
         .background(colors.background.ignoresSafeArea())

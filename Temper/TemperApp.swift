@@ -7,7 +7,9 @@ struct TemperApp: App {
     @State private var remembered = RememberedValues()
 
     init() {
-        let runner = WorkoutRunner()
+        let health = HealthSaves()
+        health.retryWhenPossible()
+        let runner = WorkoutRunner(health: health)
         _runner = State(initialValue: runner)
         // The Live Activity's Pause and Resume run in this process, and may be what launched it, so the runner
         // is set before any of them can run.
@@ -34,20 +36,30 @@ struct RootView: View {
     var body: some View {
         Group {
             if let snapshot = runner.snapshot {
+                let display = RunningDisplay(
+                    workoutType: runner.workoutType,
+                    workout: runner.workout,
+                    snapshot: snapshot
+                )
                 if let phase = snapshot.phase {
                     RunningScreen(
-                        display: RunningDisplay(
-                            workoutType: runner.workoutType,
-                            workout: runner.workout,
-                            snapshot: snapshot
-                        ),
+                        display: display,
                         phase: phase,
                         pause: runner.pause,
                         resume: runner.resume,
+                        done: runner.done,
                         stop: runner.stop
                     )
                 } else {
-                    CompleteScreen(total: runner.workout.totalDuration, done: runner.finish)
+                    // The runner keeps only an ended snapshot with a complete screen.
+                    switch display.completion {
+                    case .rounds(let summary):
+                        RoundsCompleteScreen(summary: summary, done: runner.finish)
+                    case .total(let total):
+                        CompleteScreen(total: total, done: runner.finish)
+                    case nil:
+                        EmptyView()
+                    }
                 }
             } else {
                 // The system Liquid Glass tab bar, with no background of its own.
@@ -66,7 +78,7 @@ struct RootView: View {
                     }
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
                         NavigationStack {
-                            SettingsScreen(remembered: remembered)
+                            SettingsScreen(remembered: remembered, health: runner.health)
                         }
                     }
                 }

@@ -10,8 +10,20 @@ extension Duration {
     /// Minutes and seconds as `00:00`, with no hours. Part of a second rounds up, so a Phase reads
     /// its full length as it starts and `00:00` only once it has ended.
     public nonisolated var clockText: String {
-        let wholeSeconds = wholeSeconds(rounding: .up)
+        clockText(rounding: .up)
+    }
+
+    /// Minutes and seconds as `00:00`, with no hours, with part of a second going the way `rounding` says.
+    public nonisolated func clockText(rounding: SecondsRounding) -> String {
+        let wholeSeconds = wholeSeconds(rounding: rounding)
         return "\(padded(wholeSeconds / 60)):\(padded(wholeSeconds % 60))"
+    }
+
+    /// Minutes and seconds with no leading zero on the minutes, as `1:42`, for a time that isn't a clock face, such
+    /// as a Work time or a Preset's values. There are no hours, so `72:15` reads as it does in `clockText`.
+    public nonisolated func shortClockText(rounding: SecondsRounding) -> String {
+        let wholeSeconds = wholeSeconds(rounding: rounding)
+        return "\(wholeSeconds / 60):\(padded(wholeSeconds % 60))"
     }
 
     /// The time in whole seconds, with a negative time as zero.

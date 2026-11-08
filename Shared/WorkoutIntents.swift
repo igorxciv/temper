@@ -1,9 +1,11 @@
 import AppIntents
 
-/// The running Workout's Pause and Resume, as the Live Activity's buttons reach them.
+/// The running Workout's Pause, Resume and Done, as the Live Activity's buttons reach them. Each reads the clock when
+/// it runs, because a Live Activity press can't carry its tap time.
 protocol WorkoutControls: AnyObject {
     func pause()
     func resume()
+    func done()
 }
 
 /// Where the Live Activity's buttons find the Workout.
@@ -35,6 +37,19 @@ struct ResumeWorkoutIntent: LiveActivityIntent {
 
     @MainActor func perform() async throws -> some IntentResult {
         LiveActivityControls.workout?.resume()
+        return .result()
+    }
+}
+
+/// The Live Activity's Done button, which ends a running open Work and runs the same way as its Pause button. The
+/// Workout reads the clock when it runs. A Done with no running open Work does nothing, so a tap during Rest, while
+/// Paused, or a second quick tap is safe.
+struct DoneWorkoutIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Done with Work"
+    static let isDiscoverable = false
+
+    @MainActor func perform() async throws -> some IntentResult {
+        LiveActivityControls.workout?.done()
         return .result()
     }
 }
