@@ -8,5 +8,12 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<!-- Temper writes workouts to Health and reads nothing, so it has no NSHealthShareUsageDescription. -->
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Temper saves each Workout to Health when it ends.</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>healthkit</string>
+	</array>
 </dict>
 </plist>

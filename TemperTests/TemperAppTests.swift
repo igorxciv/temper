@@ -30,6 +30,16 @@ struct TemperAppTests {
         #expect(widgets.bundleIdentifier == "\(appID).widgets")
     }
 
+    /// Temper only writes workouts to Health and reads nothing, so it has no read string.
+    @Test func `The app needs HealthKit and explains why it writes to Health`() {
+        let info = Bundle.main.infoDictionary ?? [:]
+
+        #expect(
+            info["NSHealthUpdateUsageDescription"] as? String == "Temper saves each Workout to Health when it ends.")
+        #expect(info["NSHealthShareUsageDescription"] == nil)
+        #expect((info["UIRequiredDeviceCapabilities"] as? [String])?.contains("healthkit") == true)
+    }
+
     /// Force-quitting, or iOS ending the app, ends the Workout, because nothing about it is saved.
     @Test func `A launch opens setup, with no Workout to bring back`() {
         let runner = WorkoutRunner()
