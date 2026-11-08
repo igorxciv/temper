@@ -24,6 +24,16 @@ struct ClockTextTests {
         #expect(time.clockText == text)
     }
 
+    @Test(arguments: [
+        (Duration.milliseconds(999), "00:00"),
+        (.milliseconds(4_001), "00:04"),
+        (.milliseconds(59_999), "00:59"),
+        (.seconds(60), "01:00"),
+    ])
+    func `A time elapsed drops part of a second`(time: Duration, text: String) {
+        #expect(time.clockText(rounding: .down) == text)
+    }
+
     @Test func `Long totals keep counting in minutes, with no hours`() {
         #expect(Duration.seconds(7200).clockText == "120:00")
     }

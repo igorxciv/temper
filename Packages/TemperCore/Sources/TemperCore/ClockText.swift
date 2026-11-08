@@ -10,7 +10,12 @@ extension Duration {
     /// Minutes and seconds as `00:00`, with no hours. Part of a second rounds up, so a Phase reads
     /// its full length as it starts and `00:00` only once it has ended.
     public nonisolated var clockText: String {
-        let wholeSeconds = wholeSeconds(rounding: .up)
+        clockText(rounding: .up)
+    }
+
+    /// Minutes and seconds as `00:00`, with no hours, with part of a second going the way `rounding` says.
+    public nonisolated func clockText(rounding: SecondsRounding) -> String {
+        let wholeSeconds = wholeSeconds(rounding: rounding)
         return "\(padded(wholeSeconds / 60)):\(padded(wholeSeconds % 60))"
     }
 

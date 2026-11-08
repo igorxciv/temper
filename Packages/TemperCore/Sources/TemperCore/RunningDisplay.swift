@@ -77,9 +77,9 @@ where Instant.Duration == Duration {
                 fill: fractionLeft
             )
         }
-        let elapsed = Duration.seconds(snapshot.elapsed(at: now).wholeSeconds(rounding: .down))
+        let elapsed = snapshot.elapsed(at: now)
         return Ring(
-            time: elapsed.clockText,
+            time: elapsed.clockText(rounding: .down),
             spokenTime: "\(elapsed.spokenText(rounding: .down)) elapsed",
             fill: snapshot.phase?.isOpen == true ? 0 : 1 - fractionLeft
         )

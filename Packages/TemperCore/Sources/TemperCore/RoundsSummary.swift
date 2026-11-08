@@ -30,9 +30,8 @@ public nonisolated struct RoundsSummary: Equatable, Sendable {
     public let rows: [Row]
 
     public init<Instant>(record: WorkoutRecord<Instant>) {
-        let total = Duration.seconds(record.activeTime.wholeSeconds(rounding: .down))
-        self.total = total.clockText
-        spokenTotal = "Total \(total.spokenText(rounding: .down))"
+        total = record.activeTime.clockText(rounding: .down)
+        spokenTotal = "Total \(record.activeTime.spokenText(rounding: .down))"
         let workTimes = record.workTimes
         countText = workTimes.count == 1 ? "1 Round" : "\(workTimes.count) Rounds"
         rows = workTimes.enumerated().map { index, time in

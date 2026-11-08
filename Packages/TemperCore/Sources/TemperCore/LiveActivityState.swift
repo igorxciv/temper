@@ -106,8 +106,10 @@ extension RunningDisplay {
     }
 
     private nonisolated func complete(_ record: WorkoutRecord<Instant>) -> LiveActivityState {
-        let total = Duration.seconds(record.activeTime.wholeSeconds(rounding: .down))
-        return .complete(total: total.clockText, spokenTotal: total.spokenText(rounding: .down))
+        .complete(
+            total: record.activeTime.clockText(rounding: .down),
+            spokenTotal: record.activeTime.spokenText(rounding: .down)
+        )
     }
 
     /// The running screen's line, except that Open Rounds shows only the Round in both Phases, since its Rest line
