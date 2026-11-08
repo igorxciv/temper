@@ -5,6 +5,10 @@ Throwaway. It lives only on the `prototype/watch-running-screen` branch and is n
 
 It started as the prototype for [How should the Watch running screen look: a large tap target or tap-anywhere?](https://github.com/igorxciv/temper/issues/76). Variant A won there, so the running screen here is A only. B, C and the Crown turn are in this branch's history at `ec745ac`.
 
+## Verdict
+
+The owner picked on 2026-11-08, from the snapshot sheets: **H3** bpm with the five-bar zone meter, **D2** the mark replaces the line, **P1** two wide buttons, **S2** tap Stop again, **L1** the message only, and **C2** with average and max heart rate. The wording stays as prototyped. The app opens with these picks.
+
 ## What's in it
 
 Every screen from "Start on iPhone" to the complete screen, with a pick wherever the map left a choice:

@@ -34,12 +34,12 @@ struct PrototypeHost: View {
     @State private var heard: FakeWorkout?
     @State private var summary: Summary?
 
-    @State private var heart: HeartVariant = .zoneNumber
+    @State private var heart: HeartVariant = .zoneMeter
     @State private var dropout: DropoutVariant = .line
     @State private var controls: ControlsVariant = .stacked
-    @State private var stop: StopVariant = .dialog
+    @State private var stop: StopVariant = .tapAgain
     @State private var late: LateVariant = .message
-    @State private var complete: CompleteVariant = .plain
+    @State private var complete: CompleteVariant = .heart
     @State private var forcesAlwaysOn = false
 
     @State private var page = 1
