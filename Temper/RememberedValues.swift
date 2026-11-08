@@ -7,8 +7,8 @@ enum RootTab: Hashable {
     case workoutType(WorkoutType)
     case settings
 
-    /// The Workout Types with a tab, in tab order. Open Rounds has none until its screens can mark Work Done.
-    static let workoutTypes: [WorkoutType] = [.intervals, .stopwatch]
+    /// The Workout Types with a tab, in tab order.
+    static let workoutTypes: [WorkoutType] = [.intervals, .stopwatch, .openRounds]
 }
 
 /// Each Workout Type's last-used values and Presets, the last-used Workout Type, and the Dip setting. Each change
