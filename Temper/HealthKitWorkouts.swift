@@ -3,8 +3,16 @@ import HealthKit
 import TemperCore
 
 /// Saves Health workouts with HealthKit: one `HKWorkoutBuilder` per attempt, built after the Workout from its record,
-/// with no workout session and no samples. Temper only writes workouts, so it never asks to read anything.
+/// with no workout session and no samples.
+///
+/// It asks for one fixed set, whether or not a Watch is paired: sharing workouts, and reading what the Watch needs for
+/// its heart rate and Zones. The Watch's grant is the iPhone's, so the Watch never asks.
 struct HealthKitWorkouts: HealthWorkoutStore {
+    static let shareTypes: Set<HKSampleType> = [.workoutType()]
+    static let readTypes: Set<HKObjectType> = [
+        HKQuantityType(.heartRate), HKQuantityType(.restingHeartRate), HKCharacteristicType(.dateOfBirth),
+    ]
+
     private let healthStore = HKHealthStore()
 
     var writeStatus: HealthWriteStatus {
@@ -17,10 +25,25 @@ struct HealthKitWorkouts: HealthWorkoutStore {
         }
     }
 
+    /// An unknown status counts as unnecessary, so Settings doesn't offer a tap that might ask for nothing.
+    var requestStatus: HealthRequestStatus {
+        get async {
+            guard HKHealthStore.isHealthDataAvailable(),
+                let status = try? await healthStore.statusForAuthorizationRequest(
+                    toShare: Self.shareTypes, read: Self.readTypes)
+            else { return .unnecessary }
+            switch status {
+            case .shouldRequest: return .shouldRequest
+            case .unnecessary, .unknown: return .unnecessary
+            @unknown default: return .unnecessary
+            }
+        }
+    }
+
     func requestPermission() async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         // The status is read again afterward, so a failure needs nothing more.
-        try? await healthStore.requestAuthorization(toShare: [.workoutType()], read: [])
+        try? await healthStore.requestAuthorization(toShare: Self.shareTypes, read: Self.readTypes)
     }
 
     func save(_ record: HealthRecord) async -> HealthSaveOutcome {

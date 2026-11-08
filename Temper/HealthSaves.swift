@@ -3,7 +3,8 @@ import Observation
 import TemperCore
 import UIKit
 
-/// Saves each ended Workout to Health, at most once, and asks for permission when Settings says to.
+/// Saves each ended Workout to Health, at most once, and asks for permission when Settings says to. The one request
+/// covers everything the Watch will need as well, so the Watch never asks.
 ///
 /// A save counts as done only when Health returns the workout. A locked iPhone can return nothing and save nothing,
 /// so until then the save stays pending in `UserDefaults`, and it's tried again with its sync version raised by 1
@@ -16,8 +17,8 @@ final class HealthSaves {
     /// works. The limit keeps a save Health never confirms from being tried forever.
     static let attemptLimit = 3
 
-    /// The write status as last read, or `nil` before the first read.
-    private(set) var writeStatus: HealthWriteStatus?
+    /// Settings' Apple Health row, from the statuses as last read, or `nil` before the first read.
+    private(set) var row: AppleHealthRow?
 
     #if DEBUG
         /// Where each attempt's result is logged: the Workout's own log, or a new one for a retry with none.
@@ -42,13 +43,14 @@ final class HealthSaves {
         self.isProtectedDataAvailable = isProtectedDataAvailable
     }
 
-    func refreshStatus() {
-        writeStatus = store.writeStatus
+    func refreshStatus() async {
+        let requestStatus = await store.requestStatus
+        row = AppleHealthRow(writeStatus: store.writeStatus, requestStatus: requestStatus)
     }
 
     func requestPermission() async {
         await store.requestPermission()
-        refreshStatus()
+        await refreshStatus()
     }
 
     /// Saves the Health workout of an ended Workout, if writing is allowed. `record` is the first attempt's, or `nil`
