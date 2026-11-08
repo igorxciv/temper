@@ -65,7 +65,7 @@ A hold on the current Phase, requested by the owner, that stops its clock until 
 _Avoid_: Rest, break
 
 **Cue**:
-The spoken announcement of a Phase change or of the end of the Workout.
+The spoken announcement of a Phase change, of the end of the Workout, or that Rest is about to end.
 _Avoid_: Alert, notification, beep
 
 **Dip**:

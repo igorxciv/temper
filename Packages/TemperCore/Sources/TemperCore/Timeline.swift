@@ -1,6 +1,8 @@
-/// The spoken announcement of a Phase change or of the end of the Workout.
+/// The spoken announcement of a Phase change, of the end of the Workout, or that Rest is about to end.
 public nonisolated enum Cue: Equatable, Sendable {
     case work, rest, cooldown, workoutComplete
+    /// "10 seconds", as an Open Rounds Rest is about to end.
+    case tenSeconds
 
     /// The Cue for entering a Phase. Prepare starts silently.
     init?(entering kind: Phase.Kind) {
@@ -12,6 +14,11 @@ public nonisolated enum Cue: Equatable, Sendable {
         }
     }
 }
+
+/// How long before a Rest ends "10 seconds" is due.
+private nonisolated let restWarning = Duration.seconds(10)
+/// A shorter Rest has no room for "10 seconds" after its own Cue.
+private nonisolated let shortestWarnedRest = Duration.seconds(20)
 
 /// A Cue and the active time it is due.
 public nonisolated struct UpcomingCue: Equatable, Sendable {
@@ -78,6 +85,9 @@ public nonisolated struct Timeline: Sendable {
                 break
             }
             spans.append(Span(phase: phase, start: start, end: end))
+            if workout.warnsBeforeRestEnds, phase.kind == .rest, end - start >= shortestWarnedRest {
+                cues.append(UpcomingCue(cue: .tenSeconds, due: end - restWarning))
+            }
             start = end
         }
         if spans.last?.end != nil || spans.isEmpty {

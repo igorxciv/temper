@@ -62,7 +62,7 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
     ///
     /// Intervals is a Prepare, then each Round's Work and Rest with no Rest after the last Work, then a Cooldown.
     /// A Stopwatch is a Prepare, then one Work with no Round. Open Rounds is nothing before a repeating Round of an
-    /// open Work and a Rest.
+    /// open Work and a Rest, and its Rest says "10 seconds" before it ends.
     public func makeWorkout(from settings: WorkoutSettings) -> Workout {
         let prepare = Phase(kind: .prepare, duration: settings.prepare)
         switch self {
@@ -83,7 +83,7 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
             return Workout(phases: Self.droppingZero([prepare, Phase(kind: .work, duration: settings.work)]))
         case .openRounds:
             let round = [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: settings.rest)]
-            return Workout(phases: [], repeatingRound: Self.droppingZero(round))
+            return Workout(phases: [], repeatingRound: Self.droppingZero(round), warnsBeforeRestEnds: true)
         }
     }
 
