@@ -13,7 +13,7 @@ enum HealthWriteStatus {
 }
 
 /// What one attempt at saving a Health workout came to.
-enum HealthSaveOutcome: String {
+enum HealthSaveOutcome {
     /// Health returned the workout.
     case saved
     /// Health returned neither a workout nor an error. A save while locked can do this and still land, or not.
@@ -21,6 +21,17 @@ enum HealthSaveOutcome: String {
     case failed
     /// Health refused because Temper isn't allowed to write.
     case notAllowed
+}
+
+/// The one line the timing log gets for an attempt at saving a Health workout, or for a pending save dropped once
+/// writing isn't allowed.
+enum HealthAttemptResult: String {
+    case saved
+    case unverified
+    case failed
+    /// The pending save was removed without being confirmed: Health refused it as not allowed, or it used up its
+    /// last attempt.
+    case dropped
 }
 
 /// Where Health workouts are saved: HealthKit in the app, and a fake in tests.
@@ -46,8 +57,10 @@ final class HealthSaves {
     private(set) var writeStatus: HealthWriteStatus?
 
     #if DEBUG
-        /// Where each attempt's outcome is logged: the Workout's own log, or a new one for a retry with none.
+        /// Where each attempt's result is logged: the Workout's own log, or a new one for a retry with none.
         @ObservationIgnored var timingLog: TimingLog?
+        /// Called with each result written to the timing log, so tests can read them.
+        @ObservationIgnored var didLog: (HealthAttemptResult) -> Void = { _ in }
     #endif
 
     @ObservationIgnored private let store: any HealthWorkoutStore
@@ -146,31 +159,34 @@ final class HealthSaves {
             countedAttempts: current.countedAttempts + (isProtectedDataAvailable() ? 1 : 0)
         )
         pending.put(next)
-        let outcome = await store.save(current.record)
-        log(outcome.rawValue, current.record)
-        switch outcome {
+        switch await store.save(current.record) {
         case .saved:
             pending.remove(workoutID)
+            log(.saved, current.record)
         case .notAllowed:
             drop(current.record)
-        case .unverified, .failed:
-            if next.countedAttempts >= Self.attemptLimit {
-                drop(current.record)
-            }
+        case .unverified where next.countedAttempts >= Self.attemptLimit,
+            .failed where next.countedAttempts >= Self.attemptLimit:
+            drop(current.record)
+        case .unverified:
+            log(.unverified, current.record)
+        case .failed:
+            log(.failed, current.record)
         }
     }
 
     private func drop(_ record: HealthRecord) {
         pending.remove(record.workoutID)
-        log("dropped", record)
+        log(.dropped, record)
     }
 
-    private func log(_ outcome: String, _ record: HealthRecord) {
+    private func log(_ result: HealthAttemptResult, _ record: HealthRecord) {
         #if DEBUG
             if timingLog == nil {
                 timingLog = TimingLog()
             }
-            timingLog?.write("health", ["outcome": outcome, "version": record.syncVersion])
+            timingLog?.write("health", ["outcome": result.rawValue, "version": record.syncVersion])
+            didLog(result)
         #endif
     }
 }

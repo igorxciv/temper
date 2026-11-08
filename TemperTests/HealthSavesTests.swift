@@ -44,9 +44,14 @@ private final class Harness {
         defaults.removePersistentDomain(forName: suite)
     }
 
+    /// What every adapter launched here wrote to the timing log, in order.
+    private(set) var logged: [HealthAttemptResult] = []
+
     /// A Health adapter as Temper makes one at launch, over the same defaults each time.
     func launch() -> HealthSaves {
-        HealthSaves(store: store, defaults: defaults) { [unowned self] in isProtectedDataAvailable }
+        let health = HealthSaves(store: store, defaults: defaults) { [unowned self] in isProtectedDataAvailable }
+        health.didLog = { [unowned self] in logged.append($0) }
+        return health
     }
 }
 
@@ -182,6 +187,36 @@ struct HealthSavesTests {
         await health.retryPending()
 
         #expect(harness.store.saved.count == 1)
+    }
+
+    @Test(arguments: [
+        (HealthSaveOutcome.saved, HealthAttemptResult.saved), (.unverified, .unverified), (.failed, .failed),
+        (.notAllowed, .dropped),
+    ])
+    func `Each attempt writes one line to the timing log`(outcome: HealthSaveOutcome, logged: HealthAttemptResult)
+        async throws
+    {
+        let harness = try Harness()
+        harness.store.outcomes = [outcome]
+
+        await harness.launch().save(
+            stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate
+        )
+        .value
+
+        #expect(harness.logged == [logged])
+    }
+
+    @Test func `The attempt that uses up the 3 logs only that it dropped the save`() async throws {
+        let harness = try Harness()
+        harness.store.outcomes = [.unverified, .failed, .unverified]
+        let health = harness.launch()
+
+        await health.save(stopwatch(seconds: 90), of: .stopwatch, workoutID: UUID(), at: start, date: startDate).value
+        await health.retryPending()
+        await health.retryPending()
+
+        #expect(harness.logged == [.unverified, .failed, .dropped])
     }
 
     @Test func `Each Workout's save stands alone`() async throws {
