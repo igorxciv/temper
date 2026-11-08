@@ -1,4 +1,4 @@
-/// The line under the ring: the Round line in Intervals, and the length in a Stopwatch.
+/// The line under the ring: the Round line in Intervals and Open Rounds, and the length in a Stopwatch.
 public nonisolated enum RingLine: Equatable, Sendable {
     /// A smaller caption, and which side of the value it sits on.
     public enum Caption: Equatable, Sendable {
@@ -17,6 +17,9 @@ public nonisolated enum RingLine: Equatable, Sendable {
 ///
 /// Every Phase counts down except a Stopwatch's Work and an open Phase, which count up. Counting up is only a display
 /// choice, so the engine, the Timeline and the Cue rules are the same for both.
+///
+/// In Open Rounds, an open Work counts up over the empty track with "Round 3" under it, and the Rest after it counts
+/// down with "Round 3 · Work 1:42", the Work time just ended.
 public nonisolated struct RunningDisplay<Instant: InstantProtocol>: Equatable, Sendable
 where Instant.Duration == Duration {
     /// The ring at one instant.
@@ -46,7 +49,9 @@ where Instant.Duration == Duration {
     }
 
     /// The ring at `now`. Counting down, the time left rounds up and the ring empties. Counting up, the time
-    /// elapsed rounds down and the ring fills. Either way the time holds at the Phase's end until the next snapshot.
+    /// elapsed rounds down and the ring fills, except in an open Phase, which has no length to fill towards and so
+    /// draws only the empty track. Either way the time holds at the Phase's end until the next snapshot. Past an
+    /// hour the time keeps counting in minutes, as `72:15`.
     public func ring(at now: Instant) -> Ring {
         let timeLeft = snapshot.timeLeft(at: now)
         let fractionLeft = snapshot.fractionLeft(at: now)
@@ -61,7 +66,7 @@ where Instant.Duration == Duration {
         return Ring(
             time: elapsed.clockText,
             spokenTime: "\(elapsed.spokenText(rounding: .down)) elapsed",
-            fill: 1 - fractionLeft
+            fill: snapshot.phase?.isOpen == true ? 0 : 1 - fractionLeft
         )
     }
 
@@ -77,7 +82,15 @@ where Instant.Duration == Duration {
 
     private func roundLine(in phase: Phase) -> RingLine? {
         guard let rounds = snapshot.rounds else {
-            return phase.round.map { .value("\($0)", caption: .before("Round"), spoken: "Round \($0)") }
+            guard let round = phase.round else { return nil }
+            if phase.kind == .rest, let workTime = snapshot.previousOpenPhaseTime {
+                return .value(
+                    workTime.shortClockText(rounding: .down),
+                    caption: .before("Round \(round) · Work"),
+                    spoken: "Round \(round), Work \(workTime.spokenText(rounding: .down))"
+                )
+            }
+            return .value("\(round)", caption: .before("Round"), spoken: "Round \(round)")
         }
         let total = rounds == 1 ? "1 Round" : "\(rounds) Rounds"
         switch phase.kind {

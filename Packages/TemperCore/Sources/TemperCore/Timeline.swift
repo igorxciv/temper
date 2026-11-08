@@ -37,6 +37,8 @@ public nonisolated struct Timeline: Sendable {
         /// It is `nil` past the finish, and in an open Phase once it has started. Whether a Cue actually plays is
         /// not decided here.
         public let nextCue: UpcomingCue?
+        /// The active time of the Phase just before the current one, if that Phase was open and so ended at Done.
+        public let previousOpenPhaseTime: Duration?
 
         public var isFinished: Bool { phase == nil }
     }
@@ -115,14 +117,20 @@ public nonisolated struct Timeline: Sendable {
     /// A Phase's end is the start of the next Phase, and the Workout's end is its finish.
     public func position(at activeTime: Duration) -> Position {
         let nextCue = cues.first { $0.due >= activeTime }
-        guard let span = spans.first(where: { $0.contains(activeTime) }) else {
-            return Position(phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue)
+        guard let index = spans.firstIndex(where: { $0.contains(activeTime) }) else {
+            return Position(phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue, previousOpenPhaseTime: nil)
+        }
+        let span = spans[index]
+        let previous = index > 0 ? spans[index - 1] : nil
+        let previousOpenPhaseTime = previous.flatMap { previous in
+            previous.phase.isOpen ? previous.end.map { $0 - previous.start } : nil
         }
         return Position(
             phase: span.phase,
             timeLeft: span.end.map { $0 - activeTime } ?? .zero,
             elapsed: activeTime - span.start,
-            nextCue: nextCue
+            nextCue: nextCue,
+            previousOpenPhaseTime: previousOpenPhaseTime
         )
     }
 }

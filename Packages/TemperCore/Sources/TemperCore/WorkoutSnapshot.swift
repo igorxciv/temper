@@ -20,10 +20,14 @@ where Instant.Duration == Duration {
     public let progress: Progress
     /// How many Rounds the Workout has, or `nil` if it has no set number.
     public let rounds: Int?
+    /// The active time of the open Phase just before the current one, which ended at Done, or `nil` if the Phase
+    /// before wasn't open. In Open Rounds it's the Work time a Rest follows.
+    public let previousOpenPhaseTime: Duration?
 
-    public init(progress: Progress, rounds: Int?) {
+    public init(progress: Progress, rounds: Int?, previousOpenPhaseTime: Duration? = nil) {
         self.progress = progress
         self.rounds = rounds
+        self.previousOpenPhaseTime = previousOpenPhaseTime
     }
 
     /// What the Workout ended as, once it has finished or been Stopped, or `nil` before then.

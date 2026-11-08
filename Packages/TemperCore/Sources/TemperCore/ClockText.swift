@@ -14,6 +14,13 @@ extension Duration {
         return "\(padded(wholeSeconds / 60)):\(padded(wholeSeconds % 60))"
     }
 
+    /// Minutes and seconds with no leading zero on the minutes, as `1:42`, for a time that isn't a clock face, such
+    /// as a Work time or a Preset's values. There are no hours, so `72:15` reads as it does in `clockText`.
+    public nonisolated func shortClockText(rounding: SecondsRounding) -> String {
+        let wholeSeconds = wholeSeconds(rounding: rounding)
+        return "\(wholeSeconds / 60):\(padded(wholeSeconds % 60))"
+    }
+
     /// The time in whole seconds, with a negative time as zero.
     public nonisolated func wholeSeconds(rounding: SecondsRounding) -> Int64 {
         guard self > .zero else { return 0 }

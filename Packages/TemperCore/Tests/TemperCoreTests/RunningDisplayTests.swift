@@ -210,25 +210,31 @@ nonisolated struct RunningDisplayTests {
     }
 }
 
-/// An open Phase isn't reachable in the app yet. These only pin down that the display handles one without a made-up
-/// value, so the Open Rounds screens start from a sound place.
-nonisolated struct RunningDisplayOpenPhaseTests {
+/// Open Rounds: an open Work counting up, then a Rest counting down, Round after Round.
+nonisolated struct RunningDisplayOpenRoundsTests {
     private typealias Snapshot = WorkoutSnapshot<ManualClock.Instant>
     private typealias Display = RunningDisplay<ManualClock.Instant>
 
-    private let openWork = Phase(kind: .work, length: .open, round: 3)
+    private let openRounds = WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch)
+    private let work = Phase(kind: .work, length: .open, round: 3)
+    private let rest = Phase(kind: .rest, duration: .seconds(60), round: 3)
 
     private func at(_ seconds: Double) -> ManualClock.Instant {
         ManualClock.Instant(offset: .seconds(seconds))
     }
 
-    private func display(_ progress: Snapshot.Progress) -> Display {
-        let workout = Workout(phases: [openWork, Phase(kind: .rest, duration: .seconds(60), round: 3)])
-        return Display(workoutType: .intervals, workout: workout, snapshot: Snapshot(progress: progress, rounds: nil))
+    private func display(_ progress: Snapshot.Progress, workTime: Duration? = nil) -> Display {
+        Display(
+            workoutType: .openRounds,
+            workout: openRounds,
+            snapshot: Snapshot(progress: progress, rounds: nil, previousOpenPhaseTime: workTime)
+        )
     }
 
-    @Test func `An open Phase counts up from its start, rounding down`() {
-        let display = display(.runningOpen(phase: openWork, startedAt: at(100)))
+    // MARK: Open Work
+
+    @Test func `An open Work counts up from its start, rounding down`() {
+        let display = display(.runningOpen(phase: work, startedAt: at(100)))
 
         let ring = display.ring(at: at(164.9))
 
@@ -237,10 +243,73 @@ nonisolated struct RunningDisplayOpenPhaseTests {
         #expect(ring.spokenTime == "1 minute 4 seconds elapsed")
     }
 
-    @Test func `With no set number of Rounds, the line shows the Round with no total`() {
+    @Test func `An open Work reads 00:00 as it starts`() {
+        #expect(display(.runningOpen(phase: work, startedAt: at(100))).ring(at: at(100.9)).time == "00:00")
+    }
+
+    @Test func `An open Work past an hour keeps counting in minutes`() {
+        let ring = display(.runningOpen(phase: work, startedAt: at(0))).ring(at: at(4_335.5))
+
+        #expect(ring.time == "72:15")
+        #expect(ring.spokenTime == "72 minutes 15 seconds elapsed")
+    }
+
+    @Test func `An open Work draws only the empty track, running or Paused`() {
+        #expect(display(.runningOpen(phase: work, startedAt: at(0))).ring(at: at(30)).fill == 0)
+        #expect(display(.pausedOpen(phase: work, elapsed: .seconds(30))).ring(at: at(90)).fill == 0)
+    }
+
+    @Test func `A Paused open Work holds its time`() {
+        let ring = display(.pausedOpen(phase: work, elapsed: .milliseconds(102_700))).ring(at: at(9_000))
+
+        #expect(ring.time == "01:42")
+        #expect(ring.spokenTime == "1 minute 42 seconds elapsed")
+    }
+
+    @Test func `An open Work's line is its Round`() {
         #expect(
-            display(.runningOpen(phase: openWork, startedAt: at(0))).line
+            display(.runningOpen(phase: work, startedAt: at(0))).line
                 == .value("3", caption: .before("Round"), spoken: "Round 3")
         )
+    }
+
+    // MARK: Rest
+
+    @Test func `Rest counts down, rounding up, and empties the ring`() {
+        let display = display(.running(phase: rest, endsAt: at(160)), workTime: .seconds(102))
+
+        #expect(!display.countsUp)
+        #expect(display.ring(at: at(151.2)).time == "00:09")
+        #expect(display.ring(at: at(152)).spokenTime == "8 seconds left")
+        #expect(display.ring(at: at(100)).fill == 1)
+        #expect(display.ring(at: at(145)).fill == 0.25)
+    }
+
+    @Test func `Rest's line gives its Round and the Work time just ended, rounding down`() {
+        let display = display(.running(phase: rest, endsAt: at(160)), workTime: .milliseconds(102_900))
+
+        #expect(
+            display.line
+                == .value("1:42", caption: .before("Round 3 · Work"), spoken: "Round 3, Work 1 minute 42 seconds")
+        )
+    }
+
+    @Test func `A Work time past an hour reads in minutes on Rest's line`() {
+        let display = display(.running(phase: rest, endsAt: at(160)), workTime: .seconds(4_335))
+
+        #expect(
+            display.line
+                == .value(
+                    "72:15", caption: .before("Round 3 · Work"), spoken: "Round 3, Work 72 minutes 15 seconds")
+        )
+    }
+
+    @Test func `A Pause in either Phase shows Paused`() {
+        #expect(display(.pausedOpen(phase: work, elapsed: .seconds(5))).line == .paused)
+        #expect(display(.paused(phase: rest, timeLeft: .seconds(5)), workTime: .seconds(40)).line == .paused)
+    }
+
+    @Test func `A stopped Open Rounds has no line`() {
+        #expect(display(.stopped(.lasting(130))).line == nil)
     }
 }

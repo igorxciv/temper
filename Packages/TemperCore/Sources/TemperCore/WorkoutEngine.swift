@@ -63,7 +63,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
             phase.isOpen
             ? .pausedOpen(phase: phase, elapsed: position.elapsed)
             : .paused(phase: phase, timeLeft: position.timeLeft)
-        publish(Snapshot(progress: progress, rounds: rounds))
+        publish(snapshot(progress, at: position))
         await cueRules.pause(at: tap)
     }
 
@@ -139,12 +139,16 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         guard !phase.isOpen else {
             wake?.cancel()
             let startedAt = now.advanced(by: .zero - position.elapsed)
-            publish(Snapshot(progress: .runningOpen(phase: phase, startedAt: startedAt), rounds: rounds))
+            publish(snapshot(.runningOpen(phase: phase, startedAt: startedAt), at: position))
             return
         }
         let endsAt = now.advanced(by: position.timeLeft)
-        publish(Snapshot(progress: .running(phase: phase, endsAt: endsAt), rounds: rounds))
+        publish(snapshot(.running(phase: phase, endsAt: endsAt), at: position))
         wakeUp(at: endsAt)
+    }
+
+    private func snapshot(_ progress: Snapshot.Progress, at position: Timeline.Position) -> Snapshot {
+        Snapshot(progress: progress, rounds: rounds, previousOpenPhaseTime: position.previousOpenPhaseTime)
     }
 
     private func wakeUp(at deadline: Instant) {
