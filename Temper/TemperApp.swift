@@ -7,7 +7,9 @@ struct TemperApp: App {
     @State private var remembered = RememberedValues()
 
     init() {
-        let runner = WorkoutRunner()
+        let health = HealthSaves()
+        health.retryWhenPossible()
+        let runner = WorkoutRunner(health: health)
         _runner = State(initialValue: runner)
         // The Live Activity's Pause and Resume run in this process, and may be what launched it, so the runner
         // is set before any of them can run.
