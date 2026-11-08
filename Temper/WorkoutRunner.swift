@@ -102,13 +102,15 @@ final class WorkoutRunner {
         #if DEBUG
             logTiming(of: snapshot)
         #endif
-        if case .stopped = snapshot.progress {
+        // Open Rounds ends only at Stop, so its Stop keeps the snapshot for the complete screen. In Intervals and
+        // Stopwatch, Stop returns to setup.
+        if case .stopped = snapshot.progress, workoutType != .openRounds {
             finish()
-        } else {
-            self.snapshot = snapshot
-            let display = Display(workoutType: workoutType, workout: workout, snapshot: snapshot)
-            liveActivity?.show(display.liveActivityState(at: .now, date: .now))
+            return
         }
+        self.snapshot = snapshot
+        let display = Display(workoutType: workoutType, workout: workout, snapshot: snapshot)
+        liveActivity?.show(display.liveActivityState(at: .now, date: .now))
     }
 
     #if DEBUG
