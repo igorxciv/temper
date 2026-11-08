@@ -218,7 +218,7 @@ nonisolated struct HealthRecordTests {
         let record = stopwatch(from: 0, to: 90, pauses: [at(10)..<at(20)])
         let first = try #require(healthRecord(record, attempt: 1))
 
-        #expect(first.attempt(3) == healthRecord(record, attempt: 3))
+        #expect(first.withSyncVersion(3) == healthRecord(record, attempt: 3))
     }
 
     @Test func `A pending save decodes to the same record`() throws {

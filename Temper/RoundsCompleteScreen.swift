@@ -30,7 +30,7 @@ struct RoundsCompleteScreen: View {
                     Text(summary.total)
                         .font(.title2.monospacedDigit())
                         .accessibilityLabel(summary.spokenTotal)
-                    Text(summary.count)
+                    Text(summary.countText)
                         .font(.title3)
                 }
                 .foregroundStyle(colors.secondary)

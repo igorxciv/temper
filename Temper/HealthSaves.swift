@@ -110,13 +110,13 @@ final class HealthSaves {
         let backgroundTask = BackgroundTask(named: "Health")
         defer { backgroundTask.end() }
         guard store.writeStatus == .allowed else {
-            for save in pending.all {
-                drop(save.record)
+            for pendingSave in pending.all {
+                drop(pendingSave.record)
             }
             return
         }
-        for save in pending.all {
-            await attempt(save.record.workoutID)
+        for pendingSave in pending.all {
+            await attempt(pendingSave.record.workoutID)
         }
     }
 
@@ -138,24 +138,24 @@ final class HealthSaves {
     /// Stores the next attempt before making this one, so a save cut off midway is still tried again with a higher
     /// version.
     private func attempt(_ workoutID: UUID) async {
-        guard !attempting.contains(workoutID), let save = pending.save(for: workoutID) else { return }
+        guard !attempting.contains(workoutID), let current = pending[workoutID: workoutID] else { return }
         attempting.insert(workoutID)
         defer { attempting.remove(workoutID) }
         let next = PendingHealthSave(
-            record: save.record.attempt(save.record.syncVersion + 1),
-            countedAttempts: save.countedAttempts + (isProtectedDataAvailable() ? 1 : 0)
+            record: current.record.withSyncVersion(current.record.syncVersion + 1),
+            countedAttempts: current.countedAttempts + (isProtectedDataAvailable() ? 1 : 0)
         )
         pending.put(next)
-        let outcome = await store.save(save.record)
-        log(outcome.rawValue, save.record)
+        let outcome = await store.save(current.record)
+        log(outcome.rawValue, current.record)
         switch outcome {
         case .saved:
             pending.remove(workoutID)
         case .notAllowed:
-            drop(save.record)
+            drop(current.record)
         case .unverified, .failed:
             if next.countedAttempts >= Self.attemptLimit {
-                drop(save.record)
+                drop(current.record)
             }
         }
     }

@@ -33,13 +33,13 @@ nonisolated struct RoundsSummaryTests {
                 RoundsSummary.Row(round: 2, time: "1:07", spokenTime: "Round 2, 1 minute 7 seconds"),
             ]
         )
-        #expect(summary.count == "2 Rounds")
+        #expect(summary.countText == "2 Rounds")
     }
 
     @Test func `One Round reads in the singular`() {
         let record = Record(start: at(0), end: at(5), pauses: [], phases: [work(1, from: 0, to: 5)])
 
-        #expect(RoundsSummary(record: record).count == "1 Round")
+        #expect(RoundsSummary(record: record).countText == "1 Round")
     }
 
     @Test func `The total is the active time, rounding down, read with its label`() {
@@ -62,7 +62,7 @@ nonisolated struct RoundsSummaryTests {
         let summary = RoundsSummary(record: Record.lasting(0))
 
         #expect(summary.rows.isEmpty)
-        #expect(summary.count == "0 Rounds")
+        #expect(summary.countText == "0 Rounds")
         #expect(summary.total == "00:00")
     }
 }

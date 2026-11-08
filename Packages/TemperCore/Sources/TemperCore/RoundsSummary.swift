@@ -26,7 +26,7 @@ public nonisolated struct RoundsSummary: Equatable, Sendable {
     /// What VoiceOver says for the total, such as "Total 23 minutes 10 seconds".
     public let spokenTotal: String
     /// The number of Rounds, as "12 Rounds" or "1 Round", which VoiceOver reads as it is.
-    public let count: String
+    public let countText: String
     public let rows: [Row]
 
     public init<Instant>(record: WorkoutRecord<Instant>) {
@@ -34,7 +34,7 @@ public nonisolated struct RoundsSummary: Equatable, Sendable {
         self.total = total.clockText
         spokenTotal = "Total \(total.spokenText(rounding: .down))"
         let workTimes = record.workTimes
-        count = workTimes.count == 1 ? "1 Round" : "\(workTimes.count) Rounds"
+        countText = workTimes.count == 1 ? "1 Round" : "\(workTimes.count) Rounds"
         rows = workTimes.enumerated().map { index, time in
             Row(
                 round: index + 1,

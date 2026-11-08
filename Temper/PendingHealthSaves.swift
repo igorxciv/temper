@@ -19,13 +19,14 @@ struct PendingHealthSaves {
         return (try? JSONDecoder().decode([PendingHealthSave].self, from: data)) ?? []
     }
 
-    func save(for workoutID: UUID) -> PendingHealthSave? {
+    /// The pending save for a Workout, or `nil` if it has none.
+    subscript(workoutID workoutID: UUID) -> PendingHealthSave? {
         all.first { $0.record.workoutID == workoutID }
     }
 
-    /// Adds `save`, or replaces the one for the same Workout.
-    func put(_ save: PendingHealthSave) {
-        store(all.filter { $0.record.workoutID != save.record.workoutID } + [save])
+    /// Adds `pendingSave`, or replaces the one for the same Workout.
+    func put(_ pendingSave: PendingHealthSave) {
+        store(all.filter { $0.record.workoutID != pendingSave.record.workoutID } + [pendingSave])
     }
 
     func remove(_ workoutID: UUID) {

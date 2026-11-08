@@ -7,7 +7,7 @@ import Foundation
 /// `start` to `end`, of `activityType`. It gets a `pause` event at each Pause's start and a `resume` event at its
 /// end, and one activity per entry in `activities`, of the same activity type, with `TemperPhase` and, when there's
 /// a Round, `TemperRound` metadata. Its only workout metadata is `syncIdentifier` and `syncVersion`. A retry saves
-/// `attempt(_:)` with the next attempt number.
+/// `withSyncVersion(_:)` of the next attempt number.
 public nonisolated struct HealthRecord: Codable, Hashable, Sendable {
     /// The kind of exercise Health files the Health workout under. The raw values name the HealthKit
     /// `HKWorkoutActivityType` cases they stand for, and a pending save stores them.
@@ -121,10 +121,10 @@ public nonisolated struct HealthRecord: Codable, Hashable, Sendable {
     }
 
     /// The same record for another attempt at saving it, which only changes its sync version.
-    public func attempt(_ attempt: Int) -> HealthRecord {
-        precondition(attempt >= 1, "Attempts are numbered from 1")
+    public func withSyncVersion(_ syncVersion: Int) -> HealthRecord {
+        precondition(syncVersion >= 1, "Attempts are numbered from 1")
         var record = self
-        record.syncVersion = attempt
+        record.syncVersion = syncVersion
         return record
     }
 }

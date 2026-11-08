@@ -125,7 +125,7 @@ struct HealthSavesTests {
 
         #expect(harness.store.saved.map(\.syncVersion) == [1, 2])
         #expect(Set(harness.store.saved.map(\.syncIdentifier)) == [workoutID.uuidString])
-        #expect(harness.store.saved.last == harness.store.saved.first?.attempt(2))
+        #expect(harness.store.saved.last == harness.store.saved.first?.withSyncVersion(2))
     }
 
     @Test func `A save is dropped after 3 attempts made with protected data available`() async throws {
