@@ -218,6 +218,37 @@ nonisolated struct WorkoutEngineTests {
         )
     }
 
+    /// A first-launch Stopwatch is a Prepare of 0:10 and a Work of 10:00.
+    @Test(arguments: [(4.0, Phase.Kind.prepare, 6.0), (100, .work, 510)])
+    func `Pause and Resume keep the exact time left in every Stopwatch Phase`(
+        active: Double,
+        kind: Phase.Kind,
+        timeLeft: Double
+    ) async throws {
+        let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
+        let phase = try #require(workout.phases.first { $0.kind == kind })
+        let engine = WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(active))
+        if kind == .work {
+            _ = await snapshots.next()
+        }
+
+        await engine.pause(at: clock.now)
+        #expect(
+            await snapshots.next() == Snapshot(progress: .paused(phase: phase, timeLeft: .seconds(timeLeft)), rounds: 0)
+        )
+
+        clock.advance(by: .seconds(500))
+        await engine.resume(at: clock.now)
+        #expect(
+            await snapshots.next()
+                == Snapshot(progress: .running(phase: phase, endsAt: at(active + 500 + timeLeft)), rounds: 0)
+        )
+    }
+
     @Test func `A Pause uses the time of the tap, however late the engine hears of it`() async {
         var (engine, snapshots) = await engine(runFor: .seconds(4))
         let tap = clock.now
@@ -414,6 +445,15 @@ nonisolated struct WorkoutEngineTests {
         Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(start)), rounds: nil)
     }
 
+    private func pausedOpen(elapsed: Double) -> Snapshot {
+        Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .seconds(elapsed)), rounds: nil)
+    }
+
+    /// Moves the clock to a time since the test began, as a single wake.
+    private func advance(to seconds: Double) {
+        clock.advance(by: clock.now.duration(to: at(seconds)))
+    }
+
     @Test func `An open Phase is published with its start, and no set number of Rounds`() async {
         let engine = makeEngine([prepare, openWork, rest])
         var snapshots = engine.snapshots.makeAsyncIterator()
@@ -569,6 +609,85 @@ nonisolated struct WorkoutEngineTests {
             await snapshots.next()
                 == Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .milliseconds(200)), rounds: nil)
         )
+    }
+
+    @Test func `A Done while Paused does nothing, and a Done after Resume ends the open Work at its tap`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(20))
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(30))
+        await engine.done(at: clock.now)
+        clock.advance(by: .seconds(10))
+        await engine.resume(at: clock.now)
+
+        // Had the Done while Paused ended the Work, Resume would publish the Rest.
+        #expect(await snapshots.next() == runningOpen(since: 40))
+
+        clock.advance(by: .seconds(5))
+        await engine.done(at: clock.now)
+
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 95))
+    }
+
+    @Test func `Several Pauses in one open Work add up exactly, using the time of each tap`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+
+        /// Moves the clock to `seconds` for the tap, then lets the engine hear of it 300 ms later.
+        func tapLate(at seconds: Double, _ send: (ManualClock.Instant) async -> Void) async {
+            advance(to: seconds)
+            let tap = clock.now
+            clock.advanceWhileSuspended(by: .milliseconds(300))
+            await send(tap)
+        }
+
+        await tapLate(at: 10) { await engine.pause(at: $0) }
+        #expect(await snapshots.next() == pausedOpen(elapsed: 10))
+        await tapLate(at: 100) { await engine.resume(at: $0) }
+        #expect(await snapshots.next() == runningOpen(since: 90))
+
+        await tapLate(at: 115) { await engine.pause(at: $0) }
+        #expect(await snapshots.next() == pausedOpen(elapsed: 25))
+        await tapLate(at: 122) { await engine.resume(at: $0) }
+        #expect(await snapshots.next() == runningOpen(since: 97))
+
+        await tapLate(at: 130) { await engine.pause(at: $0) }
+        #expect(await snapshots.next() == pausedOpen(elapsed: 33))
+        await tapLate(at: 200) { await engine.resume(at: $0) }
+        #expect(await snapshots.next() == runningOpen(since: 167))
+
+        await tapLate(at: 210) { await engine.done(at: $0) }
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 240))
+    }
+
+    @Test func `Pause and Resume in the Rest after Done keep its exact time left`() async {
+        let engine = makeDoneEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(40))
+        await engine.done(at: clock.now)
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(10))
+        await engine.pause(at: clock.now)
+        #expect(
+            await snapshots.next() == Snapshot(progress: .paused(phase: doneRest, timeLeft: .seconds(20)), rounds: nil)
+        )
+
+        clock.advance(by: .seconds(100))
+        await engine.resume(at: clock.now)
+        #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 170))
+
+        clock.advance(by: .seconds(20))
+        #expect(await snapshots.next() == runningAfterDone(lastWork, endsAt: 200))
     }
 
     @Test func `Done after Stop does nothing`() async {
