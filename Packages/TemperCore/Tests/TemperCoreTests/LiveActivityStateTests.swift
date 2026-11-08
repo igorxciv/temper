@@ -97,29 +97,12 @@ nonisolated struct LiveActivityStateTests {
         #expect(state == .complete(total: "08:50", spokenTotal: "8 minutes 50 seconds"))
     }
 
-    @Test func `An open Phase counts up, spanning from its start to now`() throws {
-        let openWork = Phase(kind: .work, length: .open, round: 1)
-        let workout = Workout(phases: [openWork])
-        let snapshot = Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(100)), rounds: nil)
-        let display = Display(workoutType: .intervals, workout: workout, snapshot: snapshot)
-
-        let phase = try #require(livePhase(display.liveActivityState(at: at(130), date: date)))
-
-        #expect(phase.countsUp)
-        #expect(phase.interval == date.addingTimeInterval(-30)...date)
-    }
-
-    @Test func `A finished Workout with no total length shows none`() {
-        let workout = Workout(phases: [Phase(kind: .work, length: .open, round: 1)])
-        let display = Display(
-            workoutType: .intervals, workout: workout, snapshot: Snapshot(progress: .finished(.lasting(0)), rounds: nil)
-        )
-
-        #expect(display.liveActivityState(at: at(0), date: date) == .complete(total: nil, spokenTotal: nil))
-    }
-
     @Test func `A stopped Workout has no Live Activity`() {
         #expect(intervals(.stopped(.lasting(0))).liveActivityState(at: at(0), date: date) == nil)
+    }
+
+    @Test func `A stopped Stopwatch has no Live Activity`() {
+        #expect(stopwatch(.stopped(.lasting(100))).liveActivityState(at: at(0), date: date) == nil)
     }
 
     @Test func `The state survives encoding, as the system stores it`() throws {
@@ -128,5 +111,87 @@ nonisolated struct LiveActivityStateTests {
         let decoded = try JSONDecoder().decode(LiveActivityState.self, from: JSONEncoder().encode(state))
 
         #expect(decoded == state)
+    }
+}
+
+/// Open Rounds on the Live Activity: an open Work counting up from its start, and a Rest counting down.
+nonisolated struct LiveActivityStateOpenRoundsTests {
+    private typealias Snapshot = WorkoutSnapshot<ManualClock.Instant>
+    private typealias Display = RunningDisplay<ManualClock.Instant>
+
+    private let openRounds = WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch)
+    private let work = Phase(kind: .work, length: .open, round: 3)
+    private let rest = Phase(kind: .rest, duration: .seconds(60), round: 3)
+    private let date = Date(timeIntervalSinceReferenceDate: 1_000_000)
+
+    private func at(_ seconds: Double) -> ManualClock.Instant {
+        ManualClock.Instant(offset: .seconds(seconds))
+    }
+
+    private func state(_ progress: Snapshot.Progress, at now: Double, workTime: Duration? = nil) -> LiveActivityState? {
+        let snapshot = Snapshot(progress: progress, rounds: nil, previousOpenPhaseTime: workTime)
+        return Display(workoutType: .openRounds, workout: openRounds, snapshot: snapshot)
+            .liveActivityState(at: at(now), date: date)
+    }
+
+    private func livePhase(_ state: LiveActivityState?) -> LivePhase? {
+        if case .phase(let phase) = state { phase } else { nil }
+    }
+
+    @Test func `An open Work counts up from its start, with no end, under its Round`() throws {
+        let phase = try #require(livePhase(state(.runningOpen(phase: work, startedAt: at(100)), at: 130)))
+
+        #expect(phase.kind == .work)
+        #expect(phase.start == date.addingTimeInterval(-30))
+        #expect(phase.end == nil)
+        #expect(phase.countsUp)
+        #expect(!phase.isPaused)
+        #expect(phase.line == "Round 3")
+        #expect(phase.spokenLine == "Round 3")
+    }
+
+    @Test func `A Paused open Work is held now, with no end and no bar`() throws {
+        let phase = try #require(livePhase(state(.pausedOpen(phase: work, elapsed: .seconds(42)), at: 500)))
+
+        #expect(phase.start == date.addingTimeInterval(-42))
+        #expect(phase.end == nil)
+        #expect(phase.pausedAt == date)
+        #expect(phase.pausedFill == 0)
+        #expect(phase.line == "Paused")
+    }
+
+    @Test func `A Rest counts down to its end, with only its Round as the line`() throws {
+        let phase = try #require(
+            livePhase(state(.running(phase: rest, endsAt: at(160)), at: 150, workTime: .seconds(102))))
+
+        #expect(phase.start == date.addingTimeInterval(-50))
+        #expect(phase.end == date.addingTimeInterval(10))
+        #expect(!phase.countsUp)
+        #expect(phase.line == "Round 3")
+        #expect(phase.spokenLine == "Round 3")
+    }
+
+    @Test func `A Paused Rest shows Paused`() throws {
+        let phase = try #require(
+            livePhase(state(.paused(phase: rest, timeLeft: .seconds(15)), at: 0, workTime: .seconds(102))))
+
+        #expect(phase.line == "Paused")
+        #expect(phase.pausedFill == 0.25)
+    }
+
+    @Test func `After a Stop it shows Workout complete with the active time, rounding down`() {
+        #expect(
+            state(.stopped(.lasting(1_390.8)), at: 0)
+                == .complete(total: "23:10", spokenTotal: "23 minutes 10 seconds")
+        )
+    }
+
+    @Test func `An open Work's state survives encoding, with no end`() throws {
+        let state = state(.runningOpen(phase: work, startedAt: at(100)), at: 130)
+
+        let decoded = try JSONDecoder().decode(LiveActivityState.self, from: JSONEncoder().encode(state))
+
+        #expect(decoded == state)
+        #expect(livePhase(decoded)?.end == nil)
     }
 }

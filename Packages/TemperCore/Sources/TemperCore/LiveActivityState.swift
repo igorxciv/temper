@@ -7,20 +7,23 @@ import Foundation
 /// changes, never on a tick. Its time uses the system's rounding, which can differ from the ring's by a second.
 public nonisolated enum LiveActivityState: Codable, Hashable, Sendable {
     case phase(LivePhase)
-    /// The Workout has finished. The total is its length as `00:00`, and what VoiceOver says for it, or `nil` for
-    /// a Workout with no total length.
+    /// The Workout has finished, or Open Rounds has been Stopped. The total is the Workout record's active time as
+    /// `00:00`, rounding down, and what VoiceOver says for it. For a finished Intervals or Stopwatch that's its
+    /// total length. Both are optional only so a state stored by an earlier build still decodes.
     case complete(total: String?, spokenTotal: String?)
 }
 
 /// A Phase on the Live Activity, running or Paused.
 public nonisolated struct LivePhase: Codable, Hashable, Sendable {
     public let kind: Phase.Kind
-    /// When the Phase would start and end if it ran without a Pause from the snapshot on. An open Phase has no end,
-    /// so it spans from its start to the snapshot, until the Open Rounds screens decide how it shows.
-    public let interval: ClosedRange<Date>
+    /// When the Phase would have started if it ran without a Pause up to the snapshot.
+    public let start: Date
+    /// When the Phase would end if it ran without a Pause from the snapshot on, or `nil` for an open Phase, which
+    /// ends only at Done.
+    public let end: Date?
     /// The time at which a Paused Phase is held, or `nil` while it runs.
     public let pausedAt: Date?
-    /// True during a Stopwatch's Work and an open Phase, which count up from the start of `interval`.
+    /// True during a Stopwatch's Work and an open Phase, which count up from `start`.
     public let countsUp: Bool
     /// The line under the time, the same as under the ring, and what VoiceOver says for it.
     public let line: String
@@ -30,43 +33,67 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
         pausedAt != nil
     }
 
-    /// How much of a Paused Phase's bar is drawn, the same as its ring. A running bar is drawn by the system.
+    /// The range the system counts over: from `start` to `end`, or, for an open Phase, from `start` with no end in
+    /// sight, so it counts up for as long as it runs.
+    public var interval: ClosedRange<Date> {
+        start...(end ?? .distantFuture)
+    }
+
+    /// How much of a Paused Phase's bar is drawn, the same as its ring. A running bar is drawn by the system. An
+    /// open Phase has no length to fill towards, so it draws none.
     public var pausedFill: Double {
-        let length = interval.upperBound.timeIntervalSince(interval.lowerBound)
-        guard let pausedAt, length > 0 else { return 0 }
-        let fractionLeft = min(1, max(0, interval.upperBound.timeIntervalSince(pausedAt) / length))
+        guard let pausedAt, let end else { return 0 }
+        let length = end.timeIntervalSince(start)
+        guard length > 0 else { return 0 }
+        let fractionLeft = min(1, max(0, end.timeIntervalSince(pausedAt) / length))
         return countsUp ? 1 - fractionLeft : fractionLeft
     }
 }
 
 extension RunningDisplay {
-    /// The Live Activity's state at `now`, which reads `date` on the wall clock, or `nil` once the Workout stops.
+    /// The Live Activity's state at `now`, which reads `date` on the wall clock, or `nil` when a Stop should end
+    /// it at once, as in Intervals and Stopwatch. A Stopped Open Rounds shows the complete state, as a finished
+    /// Workout does.
     ///
     /// The engine's clock keeps counting while the iPhone sleeps, and the wall clock can be changed, so the dates
-    /// are worked out from the time left at `now` rather than kept from Start.
+    /// are worked out from the time left, or the time elapsed in an open Phase, at `now` rather than kept from
+    /// Start.
     public nonisolated func liveActivityState(at now: Instant, date: Date) -> LiveActivityState? {
         switch snapshot.progress {
         case .running(let phase, _), .runningOpen(let phase, _), .paused(let phase, _), .pausedOpen(let phase, _):
-            let end = date.addingTimeInterval(snapshot.timeLeft(at: now) / .seconds(1))
-            let length = phase.duration ?? snapshot.elapsed(at: now)
-            let start = end.addingTimeInterval(-(length / .seconds(1)))
-            let (text, spoken) = lineText
+            let start = date.addingTimeInterval(-(snapshot.elapsed(at: now) / .seconds(1)))
+            let end = phase.isOpen ? nil : date.addingTimeInterval(snapshot.timeLeft(at: now) / .seconds(1))
+            let (text, spoken) = liveLineText
             return .phase(
                 LivePhase(
                     kind: phase.kind,
-                    interval: start...end,
+                    start: start,
+                    end: end,
                     pausedAt: snapshot.isPaused ? date : nil,
                     countsUp: countsUp,
                     line: text,
                     spokenLine: spoken
                 )
             )
-        case .finished:
-            let total = workout.totalDuration
-            return .complete(total: total?.clockText, spokenTotal: total?.spokenText(rounding: .up))
-        case .stopped:
-            return nil
+        case .finished(let record):
+            return complete(record)
+        case .stopped(let record):
+            return workoutType == .openRounds ? complete(record) : nil
         }
+    }
+
+    private nonisolated func complete(_ record: WorkoutRecord<Instant>) -> LiveActivityState {
+        let total = Duration.seconds(record.activeTime.wholeSeconds(rounding: .down))
+        return .complete(total: total.clockText, spokenTotal: total.spokenText(rounding: .down))
+    }
+
+    /// The running screen's line, except that Open Rounds shows only the Round in both Phases, since its Rest line
+    /// is too long for the Live Activity.
+    private nonisolated var liveLineText: (text: String, spoken: String) {
+        if workoutType == .openRounds, !snapshot.isPaused, let round = snapshot.phase?.round {
+            return ("Round \(round)", "Round \(round)")
+        }
+        return lineText
     }
 
     /// The line under the ring on one line of text, with its caption on the same side as on the running screen.

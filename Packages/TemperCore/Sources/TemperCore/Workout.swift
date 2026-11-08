@@ -25,7 +25,8 @@ public nonisolated struct Phase: Equatable, Sendable {
 
     public let kind: Kind
     public let length: Length
-    /// The Round a Work or Rest in Intervals belongs to. Prepare, Cooldown and a Stopwatch's Work have none.
+    /// The Round a Work or Rest in Intervals or Open Rounds belongs to. Prepare, Cooldown and a Stopwatch's Work have
+    /// none.
     public let round: Int?
 
     public init(kind: Kind, length: Length, round: Int? = nil) {
