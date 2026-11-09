@@ -12,7 +12,7 @@ nonisolated struct LiveActivityStateTests {
     private let stopwatch = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
 
     private let work = Phase(kind: .work, duration: .seconds(40), round: 3)
-    private let stopwatchWork = Phase(kind: .work, duration: .seconds(600))
+    private let stopwatchWork = Phase(kind: .work, length: .runsPast(.seconds(600)))
 
     /// The wall clock at the moment the state is worked out.
     private let date = Date(timeIntervalSinceReferenceDate: 1_000_000)
@@ -73,6 +73,52 @@ nonisolated struct LiveActivityStateTests {
         #expect(phase.pausedFill == 0.75)
     }
 
+    @Test func `A Stopwatch's Work fills its bar up to its set length, and its time counts on with no end`() throws {
+        let display = stopwatch(.running(phase: stopwatchWork, endsAt: at(610)))
+
+        let phase = try #require(livePhase(display.liveActivityState(at: at(460), date: date)))
+
+        #expect(phase.barInterval == date.addingTimeInterval(-450)...date.addingTimeInterval(150))
+        #expect(phase.interval == date.addingTimeInterval(-450)...Date.distantFuture)
+        #expect(phase.hasBar)
+        #expect(phase.button == .pause)
+    }
+
+    @Test func `Past its set length a Stopwatch keeps counting over a full bar, and offers Done`() throws {
+        let display = stopwatch(.runningOpen(phase: stopwatchWork, startedAt: at(10)))
+
+        let phase = try #require(livePhase(display.liveActivityState(at: at(882.5), date: date)))
+
+        #expect(phase.start == date.addingTimeInterval(-872.5))
+        #expect(phase.end == date.addingTimeInterval(-272.5))
+        #expect(phase.interval == date.addingTimeInterval(-872.5)...Date.distantFuture)
+        #expect(phase.countsUp)
+        #expect(phase.hasBar)
+        #expect(phase.line == "of 10:00")
+        #expect(phase.button == .done)
+    }
+
+    @Test func `Paused past its set length a Stopwatch holds a full bar, and offers Resume`() throws {
+        let display = stopwatch(.pausedOpen(phase: stopwatchWork, elapsed: .seconds(872)))
+
+        let phase = try #require(livePhase(display.liveActivityState(at: at(5_000), date: date)))
+
+        #expect(phase.pausedAt == date)
+        #expect(phase.pausedFill == 1)
+        #expect(phase.button == .resume)
+    }
+
+    @Test func `A Phase stored by an earlier build, with no word on counting past its end, stops at its end`() throws {
+        let json = Data(
+            #"{"kind":"work","start":0,"end":600,"countsUp":true,"line":"of 10:00","spokenLine":"of 10 minutes","button":"pause"}"#
+                .utf8)
+
+        let phase = try JSONDecoder().decode(LivePhase.self, from: json)
+
+        #expect(phase.countsPastEnd == nil)
+        #expect(phase.interval.upperBound == Date(timeIntervalSinceReferenceDate: 600))
+    }
+
     @Test func `The line is the running screen's line, caption on the same side`() throws {
         let round = try #require(
             livePhase(intervals(.running(phase: work, endsAt: at(100))).liveActivityState(at: at(90), date: date))
@@ -110,6 +156,12 @@ nonisolated struct LiveActivityStateTests {
         let state = intervals(.finished(.lasting(530))).liveActivityState(at: at(0), date: date)
 
         #expect(state == .complete(total: "08:50", spokenTotal: "8 minutes 50 seconds"))
+    }
+
+    @Test func `A Stopwatch finished at Done shows its time up to Done`() {
+        let state = stopwatch(.finished(.lasting(882.5))).liveActivityState(at: at(0), date: date)
+
+        #expect(state == .complete(total: "14:42", spokenTotal: "14 minutes 42 seconds"))
     }
 
     @Test func `A stopped Workout has no Live Activity`() {

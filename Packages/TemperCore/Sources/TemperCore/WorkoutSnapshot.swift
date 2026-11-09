@@ -3,13 +3,14 @@
 public nonisolated struct WorkoutSnapshot<Instant: InstantProtocol>: Equatable, Sendable
 where Instant.Duration == Duration {
     public enum Progress: Equatable, Sendable {
-        /// A Phase with a set length, running until `endsAt`.
+        /// A Phase with a set length, running until `endsAt`, or until it reaches the set length it runs past.
         case running(phase: Phase, endsAt: Instant)
-        /// An open Phase, running since `startedAt`, which any Pause has moved later by its length.
+        /// An open Phase, or one past the set length it runs past, running since `startedAt`, which any Pause has
+        /// moved later by its length.
         case runningOpen(phase: Phase, startedAt: Instant)
         /// A Phase with a set length, held with `timeLeft` to go.
         case paused(phase: Phase, timeLeft: Duration)
-        /// An open Phase, held with `elapsed` spent in it.
+        /// An open Phase, or one past the set length it runs past, held with `elapsed` spent in it.
         case pausedOpen(phase: Phase, elapsed: Duration)
         /// The Workout ran to its end.
         case finished(WorkoutRecord<Instant>)

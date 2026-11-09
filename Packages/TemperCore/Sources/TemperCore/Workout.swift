@@ -1,4 +1,5 @@
-/// A single period within a Workout, which ends at its set length or, if it is open, when the owner marks it Done.
+/// A single period within a Workout, which ends at its set length or, if it is open or runs past its set length,
+/// when the owner marks it Done.
 public nonisolated struct Phase: Equatable, Sendable {
     /// The raw value is what a Live Activity stores, so renaming a case breaks one that's showing.
     public enum Kind: String, Codable, Equatable, Sendable {
@@ -26,6 +27,10 @@ public nonisolated struct Phase: Equatable, Sendable {
         /// it has no cap, so a forgotten Workout keeps counting until Stop rather than ending by itself. A locked iPhone
         /// has been seen to keep an open Work running past 30 minutes.
         case open
+        /// It counts towards this length and says "Finish" once that much active time has passed, then keeps
+        /// counting, with no cap, until the owner marks it Done. A Stopwatch's Work runs past its set length, since
+        /// an exercise can take longer than planned.
+        case runsPast(Duration)
     }
 
     public let kind: Kind
@@ -45,13 +50,25 @@ public nonisolated struct Phase: Equatable, Sendable {
         self.init(kind: kind, length: .set(duration), round: round)
     }
 
-    /// Its set length, or `nil` if it's open.
+    /// Its set length, or `nil` if it's open. A Phase that runs past its set length doesn't end there.
     public var duration: Duration? {
-        if case .set(let duration) = length { duration } else { nil }
+        switch length {
+        case .set(let duration), .runsPast(let duration): duration
+        case .open: nil
+        }
     }
 
     public var isOpen: Bool {
         length == .open
+    }
+
+    public var runsPastSetLength: Bool {
+        if case .runsPast = length { true } else { false }
+    }
+
+    /// Whether it ends only at Done: an open Phase, or one that runs past its set length.
+    var endsAtDone: Bool {
+        isOpen || runsPastSetLength
     }
 }
 
@@ -88,7 +105,8 @@ public nonisolated struct Workout: Equatable, Sendable {
     }
 
     /// The length of all its Phases, not counting any Pause, or `nil` if a Phase is open or Rounds repeat, and so
-    /// it has no length.
+    /// it has no length. A Phase that runs past its set length counts its set length, so this is the length the
+    /// owner set, not the time the Workout will take.
     public var totalDuration: Duration? {
         guard repeatingRound.isEmpty else { return nil }
         return phases.reduce(Duration?.some(.zero)) { total, phase in

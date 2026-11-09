@@ -726,6 +726,162 @@ nonisolated struct WorkoutEngineTests {
     }
 }
 
+// MARK: Stopwatch past its set length
+
+/// A Stopwatch, run end to end: its Work says Finish at its set length and runs on until Done.
+extension WorkoutEngineTests {
+    /// Prepare 00:10, then a Work of 10:00 from 10 s that reaches its set length at 610 s.
+    private var stopwatch: Workout {
+        WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
+    }
+
+    private var stopwatchWork: Phase {
+        stopwatch.phases[1]
+    }
+
+    private func makeStopwatchEngine() -> WorkoutEngine<ManualClock> {
+        WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+    }
+
+    @Test func `A Stopwatch's Work runs on past its set length instead of finishing`() async {
+        let engine = WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(10))
+        #expect(
+            await snapshots.next() == Snapshot(progress: .running(phase: stopwatchWork, endsAt: at(610)), rounds: 0))
+
+        clock.advance(by: .seconds(600))
+        #expect(
+            await snapshots.next()
+                == Snapshot(progress: .runningOpen(phase: stopwatchWork, startedAt: at(10)), rounds: 0))
+    }
+
+    @Test func `Past its set length a Stopwatch publishes nothing however long it runs, and Pause holds its time`()
+        async
+    {
+        let engine = makeStopwatchEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(10))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(600))
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(3_000))
+        await engine.pause(at: clock.now)
+
+        #expect(
+            await snapshots.next()
+                == Snapshot(progress: .pausedOpen(phase: stopwatchWork, elapsed: .seconds(3_600)), rounds: 0))
+    }
+
+    @Test func `Done before a Stopwatch's set length does nothing`() async {
+        let engine = WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(10))
+        _ = await snapshots.next()
+
+        clock.advance(by: .seconds(599))
+        await engine.done(at: clock.now)
+        clock.advance(by: .seconds(1))
+
+        #expect(await snapshots.next()?.progress == .runningOpen(phase: stopwatchWork, startedAt: at(10)))
+    }
+
+    @Test func `Done past its set length finishes a Stopwatch at the tap`() async {
+        let engine = makeStopwatchEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(10))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(600))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(290))
+
+        await engine.done(at: at(882.5))
+
+        let record = await snapshots.next()?.record
+        #expect(await snapshots.next() == nil)
+        #expect(
+            record
+                == WorkoutRecord(
+                    start: at(0),
+                    end: at(882.5),
+                    pauses: [],
+                    phases: [
+                        .init(kind: .prepare, round: nil, start: at(0), end: at(10)),
+                        .init(kind: .work, round: nil, start: at(10), end: at(882.5)),
+                    ]
+                )
+        )
+    }
+
+    @Test func `Done past its set length finishes rather than stops`() async {
+        let engine = makeStopwatchEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(10))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(600))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(30))
+
+        await engine.done(at: clock.now)
+
+        #expect(await snapshots.next()?.hasFinished == true)
+    }
+
+    @Test func `Stop past its set length ends a Stopwatch at the tap, as Stopped`() async {
+        let engine = makeStopwatchEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(10))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(600))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(290))
+
+        await engine.stop(at: at(882.5))
+
+        let ended = await snapshots.next()
+        #expect(ended?.wasStopped == true)
+        #expect(ended?.record?.end == at(882.5))
+    }
+
+    @Test func `Pause and Resume past its set length leave the Pause out of a Stopwatch's time`() async {
+        let engine = makeStopwatchEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(10))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(600))
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(90))
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(100))
+
+        await engine.resume(at: clock.now)
+        #expect(await snapshots.next()?.progress == .runningOpen(phase: stopwatchWork, startedAt: at(110)))
+
+        clock.advance(by: .seconds(200))
+        await engine.done(at: clock.now)
+        let record = await snapshots.next()?.record
+        #expect(record?.activeTime == .seconds(900))
+        #expect(record?.pauses == [at(700)..<at(800)])
+    }
+}
+
 // MARK: Open Rounds
 
 /// Open Rounds, run end to end: an open Work, a Rest, and the next Round's Work by itself, until Stop.

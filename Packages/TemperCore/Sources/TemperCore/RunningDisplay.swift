@@ -20,6 +20,9 @@ public nonisolated enum RingLine: Equatable, Sendable {
 ///
 /// In Open Rounds, an open Work counts up over the empty track with "Round 3" under it, and the Rest after it counts
 /// down with "Round 3 · Work 1:42", the Work time just ended.
+///
+/// A Stopwatch's Work fills the ring as it counts up to its set length, then keeps counting over the full ring, with
+/// "of 10:00" under it, until Done.
 public nonisolated struct RunningDisplay<Instant: InstantProtocol>: Equatable, Sendable
 where Instant.Duration == Duration {
     /// The ring at one instant.
@@ -32,10 +35,11 @@ where Instant.Duration == Duration {
         public let fill: Double
     }
 
-    /// The running screen's Done button, which only Open Rounds has.
+    /// The running screen's Done button, which Open Rounds and Stopwatch have.
     public enum DoneButton: Equatable, Sendable {
         case enabled
-        /// Kept in place but dimmed, so nothing moves under the owner's thumb as Work turns to Rest or is Paused.
+        /// Kept in place but dimmed, so nothing moves under the owner's thumb as Work turns to Rest or is Paused, or
+        /// as a Stopwatch reaches its set length.
         case disabled
     }
 
@@ -55,18 +59,19 @@ where Instant.Duration == Duration {
         return phase.isOpen || (workoutType == .stopwatch && phase.kind == .work)
     }
 
-    /// Done, enabled only in a running open Work, the only time the engine takes it, or `nil` in Intervals and
-    /// Stopwatch, which have no open Phase.
+    /// Done, enabled only in a running open Work or a running Stopwatch Work past its set length, the only times the
+    /// engine takes it, or `nil` in Intervals, which never waits for Done.
     public var doneButton: DoneButton? {
-        guard workoutType == .openRounds else { return nil }
+        guard workoutType != .intervals else { return nil }
         if case .runningOpen = snapshot.progress { return .enabled }
         return .disabled
     }
 
     /// The ring at `now`. Counting down, the time left rounds up and the ring empties. Counting up, the time
     /// elapsed rounds down and the ring fills, except in an open Phase, which has no length to fill towards and so
-    /// draws only the empty track. Either way the time holds at the Phase's end until the next snapshot. Past an
-    /// hour the time keeps counting in minutes, as `72:15`.
+    /// draws only the empty track. A Stopwatch's Work past its set length keeps counting over the full ring. Counting
+    /// down, the time holds at the Phase's end until the next snapshot. Past an hour the time keeps counting in
+    /// minutes, as `72:15`.
     public func ring(at now: Instant) -> Ring {
         let timeLeft = snapshot.timeLeft(at: now)
         let fractionLeft = snapshot.fractionLeft(at: now)
@@ -119,7 +124,7 @@ where Instant.Duration == Duration {
         }
     }
 
-    /// Prepare shows the length to come, and Work shows the length it counts up to.
+    /// Prepare shows the length to come, and Work shows the length it counts up to, and keeps showing it past it.
     private func lengthLine(in phase: Phase) -> RingLine? {
         guard let length = workout.phases.first(where: { $0.kind == .work })?.duration ?? phase.duration else {
             return nil

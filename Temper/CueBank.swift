@@ -81,6 +81,7 @@ private enum CueSpeech {
         .cooldown: "Cooldown",
         .workoutComplete: "Workout complete",
         .tenSeconds: "10 seconds",
+        .finish: "Finish",
     ]
 
     static func render() async -> [Cue: AVAudioPCMBuffer] {

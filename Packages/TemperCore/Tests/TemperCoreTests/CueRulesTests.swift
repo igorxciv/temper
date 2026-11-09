@@ -88,7 +88,7 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .schedule(.work, at: at(30)))
     }
 
-    @Test func `A Stopwatch says Work as its Work starts and Workout complete at its length, and nothing else`() async {
+    @Test func `A Stopwatch says Work as its Work starts and Finish at its length, and nothing at Done`() async {
         let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
         let engine = WorkoutEngine(workout: workout, clock: clock, audio: audio, isDipOn: false)
         var calls = audio.calls.makeAsyncIterator()
@@ -101,18 +101,22 @@ nonisolated struct CueRulesTests {
         #expect(await calls.next() == .schedule(.work, at: at(10)))
         await audio.finishSpeaking()
         advance(to: 608.5)
-        #expect(await calls.next() == .schedule(.workoutComplete, at: at(610)))
+        #expect(await calls.next() == .schedule(.finish, at: at(610)))
         advance(to: 610)
         #expect(await snapshots.next()?.phase?.kind == .work)
-        #expect(await snapshots.next()?.hasFinished == true)
+        #expect(await snapshots.next()?.progress == .runningOpen(phase: workout.phases[1], startedAt: at(10)))
         await audio.finishSpeaking()
+
+        advance(to: 900)
+        await engine.done(at: at(900))
+        #expect(await snapshots.next()?.hasFinished == true)
         #expect(await calls.next() == .deactivate)
         await letAudioSettle()
 
         let expected: [Call] = [
             .activate(ducking: false),
             .schedule(.work, at: at(10)),
-            .schedule(.workoutComplete, at: at(610)),
+            .schedule(.finish, at: at(610)),
             .deactivate,
         ]
         #expect(await audio.history == expected)

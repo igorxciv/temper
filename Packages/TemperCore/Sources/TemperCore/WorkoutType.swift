@@ -82,7 +82,8 @@ public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiabl
             return Workout(phases: Self.droppingZero(phases))
         case .stopwatch:
             precondition(settings.work > .zero, "Intervals and Stopwatch always have a Work")
-            return Workout(phases: Self.droppingZero([prepare, Phase(kind: .work, duration: settings.work)]))
+            let work = Phase(kind: .work, length: .runsPast(settings.work))
+            return Workout(phases: Self.droppingZero([prepare, work]))
         case .openRounds:
             let round = [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: settings.rest)]
             return Workout(
