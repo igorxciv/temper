@@ -3,3 +3,6 @@
 // Organizational Unit of your "Apple Development" certificate in Keychain Access.
 DEVELOPMENT_TEAM = ABCDE12345
 BUNDLE_ID_PREFIX = com.yourname
+// Every target builds its bundle ID from BUNDLE_ID_PREFIX: the app is $(BUNDLE_ID_PREFIX).temper, the widget
+// extension .temper.widgets and the Watch app .temper.watchkitapp, so the Watch needs nothing more here. Run the
+// TemperWatch scheme on the Watch once to register the Watch with the team's profile.

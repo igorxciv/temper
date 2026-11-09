@@ -22,8 +22,8 @@ DEVELOPMENT_TEAM =
 BUNDLE_ID_PREFIX = org.example
 PRODUCT_BUNDLE_IDENTIFIER = $(BUNDLE_ID_PREFIX).$(TARGET_NAME:lower)
 
-// Only the app signs with entitlements. Keyed by target name, the setting is empty for the test bundle, which has
-// no xcconfig of its own, and TemperWidgets.xcconfig clears it too.
+// Keyed by target name, the setting is empty for the test bundle, which has no xcconfig of its own.
+// TemperWidgets.xcconfig clears it too, and TemperWatch.xcconfig names the Watch app's own file.
 TEMPER_ENTITLEMENTS_Temper = Config/Temper.entitlements
 CODE_SIGN_ENTITLEMENTS = $(TEMPER_ENTITLEMENTS_$(TARGET_NAME))
 #include? "Local.xcconfig"
