@@ -1,8 +1,8 @@
 /// What the Watch says outside a Workout. The Watch can't start one, so it points to the iPhone.
 public nonisolated enum WatchIdle: Equatable, Sendable {
-    /// Workouts are allowed in Health, so the iPhone opens the Watch at the next Start.
+    /// Temper may save Health workouts, so the iPhone opens the Watch at the next Start.
     case startOnIPhone
-    /// Workouts aren't allowed in Health. The iPhone then runs every Workout alone and never opens the Watch, so the
+    /// Temper may not save Health workouts. The iPhone then runs every Workout alone and never opens the Watch, so the
     /// Watch points to the only place that asks.
     case turnOnHealth
 
@@ -18,7 +18,7 @@ public nonisolated enum WatchIdle: Equatable, Sendable {
         }
     }
 
-    /// The smaller line under the title. The title already says everything when workouts aren't allowed.
+    /// The smaller line under the title. The title already says everything when Health workouts aren't allowed.
     public var message: String? {
         switch self {
         case .startOnIPhone: "Pick a Workout on your iPhone and tap Start."

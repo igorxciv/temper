@@ -5,7 +5,8 @@ import HealthKit
 enum WatchHealth {
     private static let store = HKHealthStore()
 
-    /// Whether the Watch may save workouts. The iPhone opens the Watch at Start only when this holds on the iPhone.
+    /// Whether the Watch may save Health workouts. The iPhone opens the Watch at Start only when this holds on the
+    /// iPhone.
     static var workoutsAllowed: Bool {
         HKHealthStore.isHealthDataAvailable() && store.authorizationStatus(for: .workoutType()) == .sharingAuthorized
     }

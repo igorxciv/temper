@@ -5,7 +5,7 @@ description: Temper's rules for Swift and iOS work, including API errata and ove
 
 ## Baseline
 
-iOS 27 minimum, Swift 6 language mode, the latest SwiftUI. Availability checks appear only for APIs newer than iOS 27.0.
+iOS 27 minimum, Swift 6 language mode, the latest SwiftUI. Availability checks appear only for APIs newer than iOS 27.0. The Watch app, and `TemperCore` with it, also deploys to watchOS 26, because watchOS 27 drops the owner's Series 8.
 
 ## Standing rules
 

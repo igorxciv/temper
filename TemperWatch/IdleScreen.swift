@@ -33,7 +33,7 @@ struct IdleNotice: View {
         ScrollView {
             VStack(spacing: 6) {
                 Image(systemName: "iphone")
-                    .font(.system(size: 34, weight: .semibold))
+                    .font(.largeTitle.weight(.semibold))
                     .foregroundStyle(ink.accent.opacity(dim ? 0.55 : 1))
                     .accessibilityHidden(true)
                 Text(idle.title)
