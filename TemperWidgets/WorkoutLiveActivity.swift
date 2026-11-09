@@ -172,7 +172,8 @@ private struct SmallPhaseView: View {
     }
 }
 
-/// The Phase's button: Pause or Resume in Intervals and Stopwatch, and Done in Open Rounds' running Work. The tap
+/// The Phase's button: Pause or Resume in Intervals and Stopwatch, and Done in Open Rounds' running Work and in a
+/// Stopwatch's running Work past its set length. The tap
 /// runs in the app, which reads the clock as the tap arrives, the same as a tap on the running screen.
 private struct PhaseButton: View {
     let phase: LivePhase
@@ -249,7 +250,8 @@ private struct PhaseLine: View {
     }
 }
 
-/// The ring as a bar. It empties as the time counts down and fills as a Stopwatch counts up. An open Phase has none.
+/// The ring as a bar. It empties as the time counts down and fills as a Stopwatch counts up, staying full past its
+/// set length. An open Phase has none.
 private struct PhaseBar: View {
     let phase: LivePhase
 
@@ -260,7 +262,7 @@ private struct PhaseBar: View {
             if phase.isPaused {
                 ProgressView(value: phase.pausedFill)
             } else {
-                ProgressView(timerInterval: phase.interval, countsDown: !phase.countsUp) {
+                ProgressView(timerInterval: phase.barInterval, countsDown: !phase.countsUp) {
                     EmptyView()
                 } currentValueLabel: {
                     EmptyView()

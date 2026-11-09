@@ -130,7 +130,7 @@ private struct CaptionText: View {
     }
 }
 
-/// Pause or Resume, and Stop, with Done above them in Open Rounds. The Phase name, ring and line above give up height
+/// Pause or Resume, and Stop, with Done above them in Open Rounds and Stopwatch. The Phase name, ring and line above give up height
 /// to Done, so the ring shrinks to make room for it.
 private struct RunningControls: View {
     let isPaused: Bool
@@ -182,7 +182,8 @@ private struct RunningControls: View {
     }
 }
 
-/// Open Rounds' Done, in Work's ring color. No tap-anywhere, because a phone on a bench can be brushed. Disabled, it
+/// Done, in Work's ring color, for Open Rounds' open Work and a Stopwatch's Work past its set length. No tap-anywhere,
+/// because a phone on a bench can be brushed. Disabled, it
 /// stays in place and dims, and VoiceOver reads it as dimmed.
 private struct DoneControl: View {
     let isEnabled: Bool

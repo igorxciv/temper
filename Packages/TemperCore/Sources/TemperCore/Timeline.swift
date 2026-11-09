@@ -1,8 +1,11 @@
-/// The spoken announcement of a Phase change, of the end of the Workout, or that Rest is about to end.
+/// The spoken announcement of a Phase change, of the end of the Workout, that Rest is about to end, or that a
+/// Stopwatch's Work has reached its set length.
 public nonisolated enum Cue: Equatable, Sendable {
     case work, rest, cooldown, workoutComplete
     /// "10 seconds", as an Open Rounds Rest is about to end.
     case tenSeconds
+    /// "Finish", as a Phase that runs past its set length reaches it.
+    case finish
 
     /// The Cue for entering a Phase. Prepare starts silently.
     init?(entering kind: Phase.Kind) {
@@ -34,12 +37,19 @@ public nonisolated struct UpcomingCue: Equatable, Sendable {
 /// A Phase's end becomes known when the Phase before it ends: at its set length, or at the Done that ended an open
 /// Phase. So nothing after an open Phase is placed until it is marked Done. Until then the position stays in that
 /// Phase, with no time left and no Cue upcoming.
+///
+/// A Phase that runs past its set length waits for Done the same way, but first counts its time left down to its set
+/// length, where "Finish" is due, and takes Done only from then on.
+///
+/// "Workout complete" is due only when the last Phase ends at its set length. A Workout that ends at Done says
+/// nothing more, since the owner has just ended it.
 public nonisolated struct Timeline: Sendable {
     /// Where the Workout is at one active time.
     public struct Position: Equatable, Sendable {
         /// The current Phase, or `nil` once the Workout has finished.
         public let phase: Phase?
-        /// The time left in the current Phase, or zero in an open Phase and once the Workout has finished.
+        /// The time left in the current Phase, or zero in an open Phase, in a Phase past the set length it runs past,
+        /// and once the Workout has finished.
         public let timeLeft: Duration
         /// The time spent in the current Phase, or zero once the Workout has finished.
         public let elapsed: Duration
@@ -51,13 +61,22 @@ public nonisolated struct Timeline: Sendable {
         public let previousOpenPhaseTime: Duration?
 
         public var isFinished: Bool { phase == nil }
+
+        /// Whether the current Phase runs on with no time left until Done: an open Phase, or one past the set length
+        /// it runs past.
+        public var runsOpen: Bool { phase != nil && timeLeft == .zero }
     }
 
     private struct Span: Sendable {
         let phase: Phase
         let start: Duration
-        /// The start of the next Phase, or `nil` for an open Phase.
+        /// The start of the next Phase, or `nil` for a Phase still waiting for Done.
         let end: Duration?
+
+        /// Where its time left reaches zero: its end, or its set length if it runs past it. `nil` if it's open.
+        var setEnd: Duration? {
+            phase.duration.map { start + $0 }
+        }
 
         func contains(_ activeTime: Duration) -> Bool {
             end.map { activeTime < $0 } ?? true
@@ -83,7 +102,11 @@ public nonisolated struct Timeline: Sendable {
             if let cue = Cue(entering: phase.kind) {
                 cues.append(UpcomingCue(cue: cue, due: start))
             }
-            guard let end = phase.duration.map({ start + $0 }) ?? dones.popFirst() else {
+            if case .runsPast(let length) = phase.length {
+                cues.append(UpcomingCue(cue: .finish, due: start + length))
+            }
+            let endAtSetLength = phase.endsAtDone ? nil : phase.duration.map { start + $0 }
+            guard let end = endAtSetLength ?? dones.popFirst() else {
                 spans.append(Span(phase: phase, start: start, end: nil))
                 break
             }
@@ -93,7 +116,7 @@ public nonisolated struct Timeline: Sendable {
             }
             start = end
         }
-        if spans.last?.end != nil || spans.isEmpty {
+        if spans.last.map({ !$0.phase.endsAtDone }) ?? true {
             cues.append(UpcomingCue(cue: .workoutComplete, due: start))
         }
         self.workout = workout
@@ -102,13 +125,16 @@ public nonisolated struct Timeline: Sendable {
         self.cues = cues
     }
 
-    /// Ends the open Phase still waiting for Done at `activeTime`, which places every following Phase and its Cue
+    /// Ends the Phase still waiting for Done at `activeTime`, which places every following Phase and its Cue
     /// up to the next open Phase. It's `nil` if `activeTime` isn't in that Phase, so a Done during a Phase with a
-    /// set length, or a second Done that lands in the Phase after, ends nothing. It's also `nil` within
+    /// set length, or a second Done that lands in the Phase after, ends nothing. So does a Done before the set length
+    /// of a Phase that runs past it. It's also `nil` within
     /// `doubleTapLimit` of active time after the last Done, which matters only when that Done went straight to the
     /// next open Phase.
     func markingDone(at activeTime: Duration) -> Timeline? {
-        guard let waiting = spans.last, waiting.end == nil, activeTime >= waiting.start else { return nil }
+        guard let waiting = spans.last, waiting.end == nil, activeTime >= waiting.setEnd ?? waiting.start else {
+            return nil
+        }
         if let lastDone = doneTimes.last, activeTime - lastDone < doubleTapLimit { return nil }
         return Timeline(workout: workout, doneTimes: doneTimes + [activeTime])
     }
@@ -144,7 +170,7 @@ public nonisolated struct Timeline: Sendable {
         }
         return Position(
             phase: span.phase,
-            timeLeft: span.end.map { $0 - activeTime } ?? .zero,
+            timeLeft: (span.end ?? span.setEnd).map { max(.zero, $0 - activeTime) } ?? .zero,
             elapsed: activeTime - span.start,
             nextCue: nextCue,
             previousOpenPhaseTime: previousOpenPhaseTime

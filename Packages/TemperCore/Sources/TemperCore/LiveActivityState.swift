@@ -8,8 +8,9 @@ import Foundation
 public nonisolated enum LiveActivityState: Codable, Hashable, Sendable {
     case phase(LivePhase)
     /// The Workout has finished, or Open Rounds has been Stopped. The total is the Workout record's active time as
-    /// `00:00`, rounding down, and what VoiceOver says for it. For a finished Intervals or Stopwatch that's its
-    /// total length. Both are optional only so a state stored by an earlier build still decodes.
+    /// `00:00`, rounding down, and what VoiceOver says for it. For a finished Intervals that's its total length, and
+    /// for a Stopwatch it's the time up to Done. Both are optional only so a state stored by an earlier build still
+    /// decodes.
     case complete(total: String?, spokenTotal: String?)
 }
 
@@ -19,7 +20,7 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
     public enum Button: String, Codable, Hashable, Sendable {
         case pause
         case resume
-        /// Ends a running open Work.
+        /// Ends a running open Work, or a running Stopwatch Work past its set length.
         case done
     }
 
@@ -27,7 +28,7 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
     /// When the Phase would have started if it ran without a Pause up to the snapshot.
     public let start: Date
     /// When the Phase would end if it ran without a Pause from the snapshot on, or `nil` for an open Phase, which
-    /// ends only at Done.
+    /// ends only at Done. For a Stopwatch's Work it's when the Work reaches its set length.
     public let end: Date?
     /// The time at which a Paused Phase is held, or `nil` while it runs.
     public let pausedAt: Date?
@@ -36,9 +37,13 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
     /// The line under the time, the same as under the ring, and what VoiceOver says for it.
     public let line: String
     public let spokenLine: String
-    /// Pause or Resume in Intervals and Stopwatch. Done in a running open Work, and `nil` in an Open Rounds Rest
-    /// or while it's Paused, since Open Rounds keeps Pause in the app.
+    /// Pause or Resume in Intervals, and in a Stopwatch up to its set length. Done in a running open Work and a
+    /// running Stopwatch Work past its set length. `nil` in an Open Rounds Rest or while it's Paused, since Open
+    /// Rounds keeps Pause in the app.
     public let button: Button?
+    /// True for a Stopwatch's Work, whose time keeps counting past `end` until Done while its bar stays full. It's
+    /// optional only so a state stored by an earlier build still decodes.
+    public var countsPastEnd: Bool? = nil
 
     public var isPaused: Bool {
         pausedAt != nil
@@ -49,9 +54,14 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
         end != nil
     }
 
-    /// The range the system counts over: from `start` to `end`, or, for an open Phase, from `start` with no end in
-    /// sight, so it counts up for as long as it runs.
+    /// The range the system counts the time over: from `start` to `end`, or, for an open Phase and a Phase that
+    /// counts past its end, from `start` with no end in sight, so it counts up for as long as it runs.
     public var interval: ClosedRange<Date> {
+        start...(countsPastEnd == true ? .distantFuture : end ?? .distantFuture)
+    }
+
+    /// The range the system fills or empties the bar over, which stays full once a Phase counts past its end.
+    public var barInterval: ClosedRange<Date> {
         start...(end ?? .distantFuture)
     }
 
@@ -77,7 +87,12 @@ extension RunningDisplay {
         switch snapshot.progress {
         case .running(let phase, _), .runningOpen(let phase, _), .paused(let phase, _), .pausedOpen(let phase, _):
             let start = date.addingTimeInterval(-(snapshot.elapsed(at: now) / .seconds(1)))
-            let end = phase.isOpen ? nil : date.addingTimeInterval(snapshot.timeLeft(at: now) / .seconds(1))
+            let end: Date? =
+                switch phase.length {
+                case .set: date.addingTimeInterval(snapshot.timeLeft(at: now) / .seconds(1))
+                case .runsPast(let length): start.addingTimeInterval(length / .seconds(1))
+                case .open: nil
+                }
             let (text, spoken) = liveLineText
             return .phase(
                 LivePhase(
@@ -88,7 +103,8 @@ extension RunningDisplay {
                     countsUp: countsUp,
                     line: text,
                     spokenLine: spoken,
-                    button: liveButton
+                    button: liveButton,
+                    countsPastEnd: phase.runsPastSetLength
                 )
             )
         case .finished(let record), .stopped(let record):
@@ -96,12 +112,11 @@ extension RunningDisplay {
         }
     }
 
-    /// Done while the running screen's Done is enabled, and nothing while it's dimmed, since a Workout with Done
-    /// keeps Pause in the app. Otherwise Pause, or Resume while Paused.
+    /// Done while the running screen's Done is enabled. Otherwise nothing in Open Rounds, which keeps Pause in the
+    /// app, and Pause, or Resume while Paused, in Intervals and Stopwatch.
     private nonisolated var liveButton: LivePhase.Button? {
-        if let doneButton {
-            return doneButton == .enabled ? .done : nil
-        }
+        if doneButton == .enabled { return .done }
+        if workoutType == .openRounds { return nil }
         return snapshot.isPaused ? .resume : .pause
     }
 

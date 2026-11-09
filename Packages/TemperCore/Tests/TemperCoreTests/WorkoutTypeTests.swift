@@ -120,20 +120,20 @@ struct WorkoutTypeTests {
         #expect(workout.rounds == nil)
     }
 
-    @Test func `A Stopwatch is a Prepare, then one Work with no Round`() {
+    @Test func `A Stopwatch is a Prepare, then one Work with no Round that runs past its set length`() {
         let expected = [
             Phase(kind: .prepare, duration: .seconds(10)),
-            Phase(kind: .work, duration: .seconds(600)),
+            Phase(kind: .work, length: .runsPast(.seconds(600))),
         ]
 
         #expect(stopwatch() == Workout(phases: expected))
     }
 
     @Test func `A zero Prepare is dropped, so a Stopwatch opens on Work`() {
-        #expect(stopwatch(prepare: .zero) == Workout(phases: [Phase(kind: .work, duration: .seconds(600))]))
+        #expect(stopwatch(prepare: .zero) == Workout(phases: [Phase(kind: .work, length: .runsPast(.seconds(600)))]))
     }
 
-    @Test func `A Stopwatch runs for its Prepare plus its Work, and has no Rounds`() {
+    @Test func `A Stopwatch's set length is its Prepare plus its Work, and it has no Rounds`() {
         let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
 
         #expect(workout.totalDuration == .seconds(610))

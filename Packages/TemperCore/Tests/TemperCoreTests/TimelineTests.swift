@@ -160,4 +160,54 @@ nonisolated struct TimelineTests {
         // Round 1's Rest runs from 50 to 110 s.
         #expect(timeline.position(at: .seconds(51)).nextCue == UpcomingCue(cue: .work, due: .seconds(110)))
     }
+
+    // MARK: A Phase that runs past its set length
+
+    private let stopwatchWork = Phase(kind: .work, length: .runsPast(.seconds(600)))
+
+    /// A Stopwatch: Prepare 00:10, then a Work of 10:00 that reaches its set length at 610 s and runs on until Done.
+    private var stopwatch: Timeline {
+        Timeline(workout: Workout(phases: [prepare, stopwatchWork]))
+    }
+
+    @Test func `A Phase that runs past its set length counts its time left down to it`() {
+        let position = stopwatch.position(at: .seconds(310))
+
+        #expect(position.phase == stopwatchWork)
+        #expect(position.timeLeft == .seconds(300))
+        #expect(!position.runsOpen)
+    }
+
+    @Test(arguments: [610, 611, 100_000])
+    func `Past its set length it holds the position with no time left, however long it runs`(seconds: Int) {
+        let position = stopwatch.position(at: .seconds(seconds))
+
+        #expect(position.phase == stopwatchWork)
+        #expect(position.timeLeft == .zero)
+        #expect(position.elapsed == .seconds(seconds - 10))
+        #expect(position.runsOpen)
+    }
+
+    @Test func `Finish is due at its set length, and Workout complete never is`() {
+        #expect(stopwatch.position(at: .seconds(11)).nextCue == UpcomingCue(cue: .finish, due: .seconds(610)))
+        #expect(stopwatch.position(at: .seconds(610)).nextCue == UpcomingCue(cue: .finish, due: .seconds(610)))
+        #expect(stopwatch.position(at: .milliseconds(610_001)).nextCue == nil)
+    }
+
+    @Test func `It has no finish until Done`() {
+        #expect(stopwatch.finish == nil)
+    }
+
+    @Test(arguments: [10, 300, 609])
+    func `Done before its set length ends nothing`(seconds: Int) {
+        #expect(stopwatch.markingDone(at: .seconds(seconds)) == nil)
+    }
+
+    @Test func `Done past its set length finishes the Workout there, with no Cue for it`() {
+        let done = stopwatch.markingDone(at: .seconds(882))
+
+        #expect(done?.finish == .seconds(882))
+        #expect(done?.position(at: .seconds(882)).isFinished == true)
+        #expect(done?.position(at: .seconds(700)).nextCue == nil)
+    }
 }

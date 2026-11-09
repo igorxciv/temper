@@ -41,9 +41,9 @@ struct ResumeWorkoutIntent: LiveActivityIntent {
     }
 }
 
-/// The Live Activity's Done button, which ends a running open Work and runs the same way as its Pause button. The
-/// Workout reads the clock when it runs. A Done with no running open Work does nothing, so a tap during Rest, while
-/// Paused, or a second quick tap is safe.
+/// The Live Activity's Done button, which ends a running open Work, or a running Stopwatch Work past its set length,
+/// and runs the same way as its Pause button. The Workout reads the clock when it runs. A Done with no such Work
+/// does nothing, so a tap during Rest, while Paused, or a second quick tap is safe.
 struct DoneWorkoutIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "Done with Work"
     static let isDiscoverable = false

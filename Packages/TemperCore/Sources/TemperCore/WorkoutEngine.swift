@@ -68,7 +68,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         state = .paused(start: start, heldFor: heldFor, since: tap)
         earliestTap = tap
         let progress: Snapshot.Progress =
-            phase.isOpen
+            position.runsOpen
             ? .pausedOpen(phase: phase, elapsed: position.elapsed)
             : .paused(phase: phase, timeLeft: position.timeLeft)
         publish(snapshot(progress, at: position))
@@ -88,8 +88,9 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     }
 
     /// Done keeps the time of the tap, as placed, so the next Phase starts when the owner ended the open one, not
-    /// when the tap arrived. It applies only to a running open Phase. A Done during a Phase with a set length, a
-    /// second tap of a double tap, or one after Stop or the finish does nothing. So does a Done while Paused, so the
+    /// when the tap arrived. It applies only to a running open Phase, or a running Phase past the set length it runs
+    /// past. A Done during a Phase with a set length, before the set length of one that runs past it, a second tap of
+    /// a double tap, or one after Stop or the finish does nothing. So does a Done while Paused, so the
     /// owner resumes before ending a Work and a stray tap can't end it. The double-tap limit counts the placed time,
     /// so a Done from each remote for the same Work gives one Done.
     public func done(at tap: Instant) async {
@@ -105,6 +106,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
 
     /// Stop keeps the time of the tap, as placed, so the Workout record ends where the owner Stopped it: a Phase cut
     /// short and a Pause still on both end at the tap. A tap that arrives after the Workout's finish ends it at the finish.
+    /// A Phase past the set length it runs past hasn't finished, so a Stop there ends it at the tap.
     public func stop(at tap: Instant) async {
         let tap = place(tap)
         switch state {
@@ -149,8 +151,9 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         }
     }
 
-    /// Works out where the Workout is now. Only a change of Phase or the finish publishes anything. An open Phase
-    /// has no end to wake for, so it waits for the next event.
+    /// Works out where the Workout is now. Only a change of Phase, a Phase reaching the set length it runs past, or
+    /// the finish publishes anything. An open Phase, and one past the set length it runs past, has no end to wake
+    /// for, so it waits for the next event.
     private func recalculate() async {
         guard case .running(let start, let heldFor) = state else { return }
         let now = clock.now
@@ -159,7 +162,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
             await finish(start: start, heldFor: heldFor)
             return
         }
-        guard !phase.isOpen else {
+        guard !position.runsOpen else {
             wake?.cancel()
             let startedAt = now.advanced(by: .zero - position.elapsed)
             publish(snapshot(.runningOpen(phase: phase, startedAt: startedAt), at: position))

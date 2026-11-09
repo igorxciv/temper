@@ -14,7 +14,7 @@ nonisolated struct RunningDisplayTests {
     private let work = Phase(kind: .work, duration: .seconds(40), round: 3)
     private let rest = Phase(kind: .rest, duration: .seconds(20), round: 3)
     private let cooldown = Phase(kind: .cooldown, duration: .seconds(60))
-    private let stopwatchWork = Phase(kind: .work, duration: .seconds(600))
+    private let stopwatchWork = Phase(kind: .work, length: .runsPast(.seconds(600)))
 
     private func at(_ seconds: Double) -> ManualClock.Instant {
         ManualClock.Instant(offset: .seconds(seconds))
@@ -42,10 +42,20 @@ nonisolated struct RunningDisplayTests {
         #expect(!intervals(running(work, endsAt: 100)).countsUp)
     }
 
-    @Test func `Intervals and Stopwatch have no Done button`() {
+    @Test func `Intervals has no Done button`() {
         #expect(intervals(running(work, endsAt: 100)).doneButton == nil)
-        #expect(stopwatch(running(stopwatchWork, endsAt: 610)).doneButton == nil)
-        #expect(stopwatch(.paused(phase: stopwatchWork, timeLeft: .seconds(5))).doneButton == nil)
+        #expect(intervals(.paused(phase: work, timeLeft: .seconds(5))).doneButton == nil)
+    }
+
+    @Test func `A Stopwatch's Done stays in place, disabled, up to its set length and while Paused past it`() {
+        #expect(stopwatch(running(prepare, endsAt: 10)).doneButton == .disabled)
+        #expect(stopwatch(running(stopwatchWork, endsAt: 610)).doneButton == .disabled)
+        #expect(stopwatch(.paused(phase: stopwatchWork, timeLeft: .seconds(5))).doneButton == .disabled)
+        #expect(stopwatch(.pausedOpen(phase: stopwatchWork, elapsed: .seconds(700))).doneButton == .disabled)
+    }
+
+    @Test func `A Stopwatch's Done is enabled once its Work runs past its set length`() {
+        #expect(stopwatch(.runningOpen(phase: stopwatchWork, startedAt: at(10))).doneButton == .enabled)
     }
 
     // MARK: Counting down
@@ -123,6 +133,18 @@ nonisolated struct RunningDisplayTests {
         #expect(ring == .init(time: "10:00", spokenTime: "10 minutes elapsed", fill: 1))
     }
 
+    @Test func `Past its set length a Stopwatch's Work keeps counting over the full ring`() {
+        let ring = stopwatch(.runningOpen(phase: stopwatchWork, startedAt: at(10))).ring(at: at(882.5))
+
+        #expect(ring == .init(time: "14:32", spokenTime: "14 minutes 32 seconds elapsed", fill: 1))
+    }
+
+    @Test func `Past its set length a Paused Stopwatch holds its time over the full ring`() {
+        let ring = stopwatch(.pausedOpen(phase: stopwatchWork, elapsed: .seconds(872))).ring(at: at(9_000))
+
+        #expect(ring == .init(time: "14:32", spokenTime: "14 minutes 32 seconds elapsed", fill: 1))
+    }
+
     @Test func `Counting up holds its place during a Pause`() {
         let ring = stopwatch(.paused(phase: stopwatchWork, timeLeft: .seconds(450))).ring(at: at(9_000))
 
@@ -181,8 +203,15 @@ nonisolated struct RunningDisplayTests {
         )
     }
 
+    @Test func `A Stopwatch's Work keeps showing its set length past it`() {
+        #expect(
+            stopwatch(.runningOpen(phase: stopwatchWork, startedAt: at(10))).line
+                == .value("10:00", caption: .before("of"), spoken: "of 10 minutes")
+        )
+    }
+
     @Test func `A Stopwatch with no Prepare shows its length from the start`() {
-        let work = Phase(kind: .work, duration: .seconds(65))
+        let work = Phase(kind: .work, length: .runsPast(.seconds(65)))
         let display = Display(
             workoutType: .stopwatch,
             workout: Workout(phases: [work]),
@@ -218,17 +247,18 @@ nonisolated struct RunningDisplayTests {
     // MARK: Complete screen
 
     @Test(arguments: [WorkoutType.intervals, .stopwatch])
-    func `A finished Workout opens the complete screen with its total length`(type: WorkoutType) {
+    func `A finished Workout opens the complete screen with its active time`(type: WorkoutType) {
         let workout = type == .intervals ? intervals : stopwatch
         let display = Display(
-            workoutType: type, workout: workout, snapshot: Snapshot(progress: .finished(.lasting(0)), rounds: 8))
+            workoutType: type, workout: workout, snapshot: Snapshot(progress: .finished(.lasting(882.5)), rounds: 8))
 
-        #expect(display.completion == .total(workout.totalDuration))
+        #expect(display.completion == .total(.milliseconds(882_500)))
     }
 
     @Test func `A Stop in Intervals and Stopwatch returns to setup, with no complete screen`() {
         #expect(intervals(.stopped(.lasting(100))).completion == nil)
         #expect(stopwatch(.stopped(.lasting(100))).completion == nil)
+        #expect(stopwatch(.stopped(.lasting(900))).completion == nil)
     }
 
     @Test func `A running Workout has no complete screen`() {

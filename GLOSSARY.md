@@ -17,7 +17,7 @@ The Workout Type made of a Prepare if one is configured, followed by a set numbe
 _Avoid_: HIIT, Tabata, rounds timer
 
 **Stopwatch**:
-The Workout Type made of a Prepare if one is configured, followed by a single Work that counts up to a set length.
+The Workout Type made of a Prepare if one is configured, followed by a single Work that counts up past a set length until the owner marks it Done.
 _Avoid_: Timer, count-up
 
 **Open Rounds**:
@@ -29,7 +29,7 @@ A named, saved set of one Workout Type's values, kept for starting that kind of 
 _Avoid_: Saved Workout, template, favorite, routine
 
 **Phase**:
-A single period within a Workout: a Prepare, Work, Rest, or Cooldown. It ends at its set length or, if it is open, when the owner marks it Done.
+A single period within a Workout: a Prepare, Work, Rest, or Cooldown. It ends at its set length or, if it is open or is a Stopwatch's Work, when the owner marks it Done.
 _Avoid_: Stage, step, interval
 
 **Open**:
@@ -37,7 +37,7 @@ Said of a Phase with no set length, which ends only when the owner marks it Done
 _Avoid_: Untimed, manual, unlimited
 
 **Done**:
-The owner's mark that ends an open Phase.
+The owner's mark that ends an open Phase, or a Stopwatch's Work once it has passed its set length.
 _Avoid_: Next, Skip, Lap, Split, Finish
 
 **Prepare**:
@@ -65,7 +65,7 @@ A hold on the current Phase, requested by the owner, that stops its clock until 
 _Avoid_: Rest, break
 
 **Cue**:
-The spoken announcement of a Phase change, of the end of the Workout, or that Rest is about to end.
+The spoken announcement of a Phase change, of the end of the Workout, that Rest is about to end, or that a Stopwatch's Work has reached its set length.
 _Avoid_: Alert, notification, beep
 
 **Dip**:
