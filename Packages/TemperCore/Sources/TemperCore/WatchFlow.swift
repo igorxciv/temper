@@ -66,8 +66,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case scheduleHaptics([WatchCue])
     }
 
-    /// How long a session waits for the iPhone's first message before it ends without saving. It's the same 10
-    /// minutes as the dropout rule.
+    /// How long a session waits for the iPhone's first message before it ends without saving.
     public static var firstMessageTimeout: Duration { .seconds(600) }
 
     public private(set) var screen = Screen.idle
@@ -161,8 +160,8 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         }
     }
 
-    /// Nothing is left to follow, so a Watch still waiting or running, late or not, goes back to idle. A complete screen waits for
-    /// Done, and "Update Temper" stays.
+    /// Nothing is left to follow, so a Watch still waiting or running, late or not, goes back to idle. A complete
+    /// screen waits for Done, and "Update Temper" stays.
     private mutating func leaveRunning() {
         switch screen {
         case .waiting, .running, .runningOnIPhone: screen = .idle

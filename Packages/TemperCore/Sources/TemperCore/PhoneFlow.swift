@@ -9,7 +9,8 @@ import Foundation
 /// the Watch's copy, which Health keeps in place of the iPhone's, has identical times.
 ///
 /// An instance that started before the running Workout's Start, or that arrives with no Workout running, is a
-/// leftover and gets `discard`. The match has no slack, because the two clocks agree within about 8 ms.
+/// leftover and gets `discard`. So does one that started only once the Workout had ended, which collected nothing
+/// during it. The match has no slack, because the two clocks agree within about 8 ms.
 ///
 /// The instance is generic so tests can stand in for HealthKit's session.
 public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
@@ -61,6 +62,9 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
     /// The record `end` carries. It's held only in memory, until the session it went to has ended: a Watch that
     /// connects after a Stop gets it, and if the app dies first, the Watch's own fallback covers the Workout.
     private var record: HealthRecord?
+    /// When the Workout ended, kept from its record after the record is let go, or `nil` while it runs or when it
+    /// has no record.
+    private var end: Date?
 
     public init() {}
 
@@ -73,6 +77,7 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
         case .recordReady(let record):
             guard running != nil else { return [] }
             self.record = record
+            end = record?.end
             return []
         case .watchAppRequested(let date):
             guard running != nil else { return [] }
@@ -85,7 +90,9 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
             guard let current else { return [] }
             return [.send(.update(state), to: current)] + (hadEnded ? [] : ending(current))
         case .instanceArrived(let instance, let start, let arrival):
-            guard let running, start >= running.start else { return [.send(.discard, to: instance)] }
+            guard let running, start >= running.start, end.map({ start < $0 }) ?? true else {
+                return [.send(.discard, to: instance)]
+            }
             current = instance
             // A Watch the iPhone never asked to open has no window to be in.
             let inTime =

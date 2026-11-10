@@ -194,6 +194,18 @@ nonisolated struct PhoneFlowTests {
             ])
     }
 
+    /// A Watch that wakes only after a short Workout is over collected nothing during it.
+    @Test func `A session that started at or after the Workout's end is told to end without saving`() {
+        var flow = started()
+        _ = flow.handle(.recordReady(record))
+        _ = flow.handle(.published(.ended(.total(.seconds(90)))))
+
+        let effects = flow.handle(
+            .instanceArrived(1, start: start.addingTimeInterval(90), at: start.addingTimeInterval(91)))
+
+        #expect(effects == [.send(.discard, to: 1)])
+    }
+
     /// The record is held only in memory, until the session it went to has ended.
     @Test func `Once the session that got the record ends, the record is let go`() {
         var flow = started()
