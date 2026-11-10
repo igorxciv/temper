@@ -162,19 +162,29 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
             await finish(start: start, heldFor: heldFor)
             return
         }
+        let origin = start.advanced(by: heldFor)
         guard !position.runsOpen else {
             wake?.cancel()
             let startedAt = now.advanced(by: .zero - position.elapsed)
-            publish(snapshot(.runningOpen(phase: phase, startedAt: startedAt), at: position))
+            publish(snapshot(.runningOpen(phase: phase, startedAt: startedAt), at: position, origin: origin))
             return
         }
         let endsAt = now.advanced(by: position.timeLeft)
-        publish(snapshot(.running(phase: phase, endsAt: endsAt), at: position))
+        publish(snapshot(.running(phase: phase, endsAt: endsAt), at: position, origin: origin))
         wakeUp(at: endsAt)
     }
 
-    private func snapshot(_ progress: Snapshot.Progress, at position: Timeline.Position) -> Snapshot {
-        Snapshot(progress: progress, rounds: rounds, previousOpenPhaseTime: position.previousOpenPhaseTime)
+    /// A running snapshot has `origin`, the instant its active time was zero, to place its Cues to come. A Paused one
+    /// has none.
+    private func snapshot(
+        _ progress: Snapshot.Progress, at position: Timeline.Position, origin: Instant? = nil
+    ) -> Snapshot {
+        let cues = origin.map { origin in
+            position.cues.map { Snapshot.TimedCue(cue: $0.cue, due: origin.advanced(by: $0.due)) }
+        }
+        return Snapshot(
+            progress: progress, rounds: rounds, previousOpenPhaseTime: position.previousOpenPhaseTime,
+            cues: cues ?? [])
     }
 
     private func wakeUp(at deadline: Instant) {

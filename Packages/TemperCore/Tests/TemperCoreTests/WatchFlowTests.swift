@@ -7,6 +7,8 @@ import Testing
 nonisolated struct WatchFlowTests {
     private let start = Date(timeIntervalSinceReferenceDate: 1_000_000)
     private let workoutID = UUID()
+    /// When the messages arrive, unless a test says otherwise: well into the Work.
+    private var now: Date { start.addingTimeInterval(30) }
 
     private var begin: MessageToWatch {
         .begin(
@@ -24,8 +26,8 @@ nonisolated struct WatchFlowTests {
     private func running() -> WatchFlow {
         var flow = WatchFlow()
         _ = flow.handle(.launched(workoutsAllowed: true))
-        _ = flow.handle(.received(begin))
-        _ = flow.handle(.received(.update(.phase(work))))
+        _ = flow.handle(.received(begin, at: now))
+        _ = flow.handle(.received(.update(.phase(work)), at: now))
         return flow
     }
 
@@ -52,7 +54,7 @@ nonisolated struct WatchFlowTests {
         var flow = WatchFlow()
         _ = flow.handle(.launched(workoutsAllowed: true))
 
-        let effects = flow.handle(.received(begin))
+        let effects = flow.handle(.received(begin, at: now))
 
         #expect(effects == [.beginCollection(at: start)])
         #expect(flow.screen == .waiting)
@@ -62,7 +64,7 @@ nonisolated struct WatchFlowTests {
     @Test func `A repeated begin for the same Workout changes nothing`() {
         var flow = running()
 
-        let effects = flow.handle(.received(begin))
+        let effects = flow.handle(.received(begin, at: now))
 
         #expect(effects == [])
         #expect(flow.screen == .running(work))
@@ -74,7 +76,7 @@ nonisolated struct WatchFlowTests {
             kind: .work, round: 1, start: work.start, end: work.end, pausedAt: start.addingTimeInterval(20),
             countsUp: false, line: .paused, capsule: .resume)
 
-        let effects = flow.handle(.received(.update(.phase(paused))))
+        let effects = flow.handle(.received(.update(.phase(paused)), at: now))
 
         #expect(effects == [])
         #expect(flow.screen == .running(paused))
@@ -84,7 +86,7 @@ nonisolated struct WatchFlowTests {
         var flow = WatchFlow()
         _ = flow.handle(.launched(workoutsAllowed: true))
 
-        _ = flow.handle(.received(.update(.phase(work))))
+        _ = flow.handle(.received(.update(.phase(work)), at: now))
 
         #expect(flow.screen == .waiting)
     }
@@ -92,7 +94,7 @@ nonisolated struct WatchFlowTests {
     @Test func `An ended Workout with a complete screen shows it until Done, then goes back to idle`() {
         var flow = running()
 
-        _ = flow.handle(.received(.update(.ended(.total(.seconds(530))))))
+        _ = flow.handle(.received(.update(.ended(.total(.seconds(530)))), at: now))
         #expect(flow.screen == .complete(.total(.seconds(530))))
 
         let effects = flow.handle(.doneTapped)
@@ -103,7 +105,7 @@ nonisolated struct WatchFlowTests {
     @Test func `A Workout ended with no complete screen goes straight back to idle`() {
         var flow = running()
 
-        _ = flow.handle(.received(.update(.ended(nil))))
+        _ = flow.handle(.received(.update(.ended(nil)), at: now))
 
         #expect(flow.screen == .idle)
     }
@@ -111,9 +113,9 @@ nonisolated struct WatchFlowTests {
     /// The iPhone's own Health workout covers every Workout until the Watch saves.
     @Test func `The iPhone's end makes the Watch end its session without saving, and keep its screen`() {
         var flow = running()
-        _ = flow.handle(.received(.update(.ended(.total(.seconds(530))))))
+        _ = flow.handle(.received(.update(.ended(.total(.seconds(530)))), at: now))
 
-        let effects = flow.handle(.received(.end(nil)))
+        let effects = flow.handle(.received(.end(nil), at: now))
 
         #expect(effects == [.endWithoutSaving])
         #expect(flow.screen == .complete(.total(.seconds(530))))
@@ -122,11 +124,11 @@ nonisolated struct WatchFlowTests {
     /// The iPhone sends `end`, then stops the mirrored session, which the Watch sees as its session stopping.
     @Test func `The session stopping after the iPhone's end ends nothing twice`() {
         var flow = running()
-        _ = flow.handle(.received(.update(.ended(nil))))
-        _ = flow.handle(.received(.end(nil)))
+        _ = flow.handle(.received(.update(.ended(nil)), at: now))
+        _ = flow.handle(.received(.end(nil), at: now))
 
         #expect(flow.handle(.sessionStopped) == [])
-        #expect(flow.handle(.received(.end(nil))) == [])
+        #expect(flow.handle(.received(.end(nil), at: now)) == [])
     }
 
     @Test func `The session stopping with no end from the iPhone still ends it without saving`() {
@@ -151,7 +153,7 @@ nonisolated struct WatchFlowTests {
 
     @Test func `A session that ends under the complete screen leaves it for Done`() {
         var flow = running()
-        _ = flow.handle(.received(.update(.ended(.total(.seconds(530))))))
+        _ = flow.handle(.received(.update(.ended(.total(.seconds(530)))), at: now))
 
         _ = flow.handle(.sessionEnded)
 
@@ -167,7 +169,7 @@ nonisolated struct WatchFlowTests {
             .received(
                 .begin(
                     workoutID: workoutID, start: start, workoutType: .intervals, inTime: true,
-                    version: MessageToWatch.version + 1)))
+                    version: MessageToWatch.version + 1), at: now))
 
         #expect(effects == [.endWithoutSaving])
         #expect(flow.screen == .updateNeeded)
@@ -180,10 +182,11 @@ nonisolated struct WatchFlowTests {
             .received(
                 .begin(
                     workoutID: workoutID, start: start, workoutType: .intervals, inTime: true,
-                    version: MessageToWatch.version + 1)))
+                    version: MessageToWatch.version + 1), at: now))
 
-        _ = flow.handle(.received(.update(.phase(work))))
-        let effects = flow.handle(.received(.end(nil))) + flow.handle(.sessionStopped) + flow.handle(.sessionEnded)
+        _ = flow.handle(.received(.update(.phase(work)), at: now))
+        let effects =
+            flow.handle(.received(.end(nil), at: now)) + flow.handle(.sessionStopped) + flow.handle(.sessionEnded)
 
         #expect(effects == [])
         #expect(flow.screen == .updateNeeded)
@@ -196,5 +199,62 @@ nonisolated struct WatchFlowTests {
 
         #expect(effects == [.endWithoutSaving, .startSession])
         #expect(flow.screen == .waiting)
+    }
+
+    // MARK: Cue haptics
+
+    /// Work 1 from 10 s to 50 s, with Rest due at its end.
+    private var workWithRest: WatchPhase {
+        WatchPhase(
+            kind: .work, round: 1, start: work.start, end: work.end, pausedAt: nil, countsUp: false, line: work.line,
+            capsule: .pause, cues: [WatchCue(cue: .rest, date: start.addingTimeInterval(50))])
+    }
+
+    @Test func `An update schedules the haptics of its Phase's Cues`() {
+        var flow = running()
+
+        let effects = flow.handle(.received(.update(.phase(workWithRest)), at: now))
+
+        #expect(effects == [.scheduleHaptics([WatchCue(cue: .rest, date: start.addingTimeInterval(50))])])
+    }
+
+    @Test func `A newer update cancels the haptics scheduled for after it arrives`() {
+        var flow = running()
+        _ = flow.handle(.received(.update(.phase(workWithRest)), at: now))
+
+        let effects = flow.handle(.received(.update(.ended(nil)), at: now))
+
+        #expect(effects == [.cancelHaptics(after: now)])
+    }
+
+    @Test func `A Phase reached at Done plays its Cue as its update arrives`() {
+        var flow = running()
+        let doneAt = start.addingTimeInterval(42)
+        let rest = WatchPhase(
+            kind: .rest, round: 1, start: doneAt, end: doneAt.addingTimeInterval(10), pausedAt: nil, countsUp: false,
+            line: nil, capsule: .pause)
+
+        let effects = flow.handle(.received(.update(.phase(rest)), at: doneAt.addingTimeInterval(0.05)))
+
+        #expect(effects == [.playHaptic(.rest)])
+    }
+
+    @Test func `The session stopping cancels every haptic still scheduled`() {
+        var flow = running()
+        _ = flow.handle(.received(.update(.phase(workWithRest)), at: now))
+
+        let effects = flow.handle(.sessionStopped)
+
+        #expect(effects == [.cancelHaptics(after: .distantPast), .endWithoutSaving])
+    }
+
+    /// With the wrist down, a Watch app plays haptics only while its workout session runs.
+    @Test func `With its session ended, the Watch plays no haptics`() {
+        var flow = running()
+        _ = flow.handle(.sessionEnded)
+
+        let effects = flow.handle(.received(.update(.phase(workWithRest)), at: now))
+
+        #expect(effects == [])
     }
 }

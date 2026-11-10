@@ -57,6 +57,28 @@ nonisolated struct WatchStateTests {
         #expect(phase.capsule == .pause)
     }
 
+    @Test func `An Open Rounds Rest carries "10 seconds" and then Work, dated on the wall clock`() throws {
+        let cues = [Snapshot.TimedCue(cue: .tenSeconds, due: at(150)), Snapshot.TimedCue(cue: .work, due: at(160))]
+        let snapshot = Snapshot(
+            progress: .running(phase: rest, endsAt: at(160)), rounds: nil, previousOpenPhaseTime: .seconds(90),
+            cues: cues)
+        let display = Display(workoutType: .openRounds, workout: openRounds, snapshot: snapshot)
+
+        let phase = try #require(watchPhase(display.watchState(at: at(102.5), date: date)))
+
+        #expect(
+            phase.cues == [
+                WatchCue(cue: .tenSeconds, date: date.addingTimeInterval(47.5)),
+                WatchCue(cue: .work, date: date.addingTimeInterval(57.5)),
+            ])
+    }
+
+    @Test func `A Phase with no Cues to come, such as a Paused one, carries none`() throws {
+        let display = intervals(.paused(phase: work, timeLeft: .seconds(10)))
+
+        #expect(try #require(watchPhase(display.watchState(at: at(500), date: date))).cues == [])
+    }
+
     @Test func `A Paused Phase is held now, shows Paused, and offers Resume`() throws {
         let display = intervals(.paused(phase: work, timeLeft: .seconds(10)))
 

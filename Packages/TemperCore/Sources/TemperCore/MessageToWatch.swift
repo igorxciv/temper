@@ -10,7 +10,8 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     /// The version of these messages. A Watch that gets a `begin` with another version shows "Update Temper" and ends
     /// without saving, and the iPhone's own Health workout covers the Workout. Raise it whenever a message changes
     /// in a way an older build can't read.
-    public static let version = 1
+    /// Version 2 added each Phase's Cues.
+    public static let version = 2
 
     /// The first message to each mirrored instance: which Workout it belongs to, when that Workout started, and
     /// whether the Watch arrived within the 10 s window after the iPhone asked it to open.

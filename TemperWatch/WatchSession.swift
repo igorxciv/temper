@@ -18,6 +18,7 @@ final class WatchSession: NSObject {
     @ObservationIgnored private let store = HKHealthStore()
     @ObservationIgnored private var session: HKWorkoutSession?
     @ObservationIgnored private var builder: HKLiveWorkoutBuilder?
+    @ObservationIgnored private let haptics = WristHaptics()
     /// The configuration the iPhone opened the Watch with, for the session the flow starts.
     @ObservationIgnored private var configuration: HKWorkoutConfiguration?
     /// The Workout's Start, held from the iPhone's `begin` until the session runs and collection can begin.
@@ -57,6 +58,12 @@ final class WatchSession: NSObject {
                 builder?.discardWorkout()
             }
             session?.end()
+        case .cancelHaptics(let date):
+            haptics.cancel(after: date)
+        case .playHaptic(let cue):
+            haptics.play(cue)
+        case .scheduleHaptics(let cues):
+            haptics.schedule(cues)
         }
     }
 
@@ -72,6 +79,7 @@ final class WatchSession: NSObject {
         session.delegate = self
         self.session = session
         self.builder = builder
+        haptics.session = session
         collectionStart = nil
         hasBegunCollection = false
         session.prepare()
@@ -115,10 +123,10 @@ final class WatchSession: NSObject {
         }
     }
 
-    private func received(_ messages: [MessageToWatch], from session: HKWorkoutSession) {
+    private func received(_ messages: [MessageToWatch], from session: HKWorkoutSession, at arrival: Date) {
         guard session === self.session else { return }
         for message in messages {
-            apply(.received(message))
+            apply(.received(message, at: arrival))
         }
     }
 }
@@ -138,6 +146,8 @@ extension WatchSession: HKWorkoutSessionDelegate {
     ) {
         // Data this build can't read is dropped. A `begin` of another version still decodes, and shows Update Temper.
         let messages = data.compactMap { try? MessageToWatch(json: $0) }
-        Task { @MainActor in self.received(messages, from: workoutSession) }
+        // Timed here rather than after the hop, so a haptic due on arrival is judged by when the message came.
+        let arrival = Date.now
+        Task { @MainActor in self.received(messages, from: workoutSession, at: arrival) }
     }
 }
