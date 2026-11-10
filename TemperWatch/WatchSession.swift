@@ -9,8 +9,9 @@ import WatchKit
 /// `WatchFlow` decides what to show and do. This adapter only calls HealthKit: it starts the session the iPhone asked
 /// for, mirrors it once it's prepared, hands each message and tap to the flow, and carries out the flow's effects.
 /// Alongside the flow, it reads what the Zones need when the session starts and passes on each heart-rate reading.
-/// The flow is what's tested. No protocol stands in for HealthKit here, since this would be its only adapter, so the
-/// devices check this adapter.
+///
+/// Only the flow is tested. No protocol stands in for HealthKit here, since this would be its only adapter, so this
+/// adapter is checked on the devices.
 ///
 /// The session collects heart rate and energy, and pauses and resumes live, but collects no events of its own. At the
 /// end the Phases and Pauses come from the iPhone's Health record, so the Watch's copy carries the iPhone's times.

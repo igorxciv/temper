@@ -34,7 +34,7 @@ struct TemperAppTests {
     /// The Watch can't start a Workout or run one without the iPhone, so it ships only inside the iPhone app. It
     /// deploys to watchOS 26, because watchOS 27 drops the Series 8.
     @Test func `The app carries its Watch app, which runs only as its companion, from watchOS 26`() throws {
-        let watch = try #require(Bundle(url: Bundle.main.bundleURL.appending(path: "Watch/TemperWatch.app")))
+        let watch = try watchApp()
         let info = watch.infoDictionary ?? [:]
         let appID = try #require(Bundle.main.bundleIdentifier)
 
@@ -50,8 +50,7 @@ struct TemperAppTests {
     @Test func `The Watch app keeps a workout session, opens from the Live Activity, and explains Health alike`()
         throws
     {
-        let watch = try #require(Bundle(url: Bundle.main.bundleURL.appending(path: "Watch/TemperWatch.app")))
-        let info = watch.infoDictionary ?? [:]
+        let info = try watchApp().infoDictionary ?? [:]
         let app = Bundle.main.infoDictionary ?? [:]
 
         #expect(info["WKBackgroundModes"] as? [String] == ["workout-processing"])
@@ -60,6 +59,11 @@ struct TemperAppTests {
             #expect(info[key] is String)
             #expect(info[key] as? String == app[key] as? String)
         }
+    }
+
+    /// The Watch app the iPhone app carries.
+    private func watchApp() throws -> Bundle {
+        try #require(Bundle(url: Bundle.main.bundleURL.appending(path: "Watch/TemperWatch.app")))
     }
 
     @Test func `The app needs HealthKit and explains why it writes to Health and what it reads`() {
