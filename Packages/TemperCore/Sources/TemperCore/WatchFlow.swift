@@ -4,8 +4,9 @@ import Foundation
 /// and the screen to show.
 ///
 /// The iPhone opens the Watch at Start. The Watch starts its own workout session and follows what the iPhone sends.
-/// It keeps no Workout logic of its own and persists nothing. For now it only displays the Workout: it ends its session
-/// without saving, so the iPhone's own Health workout covers every Workout.
+/// It keeps no Workout logic of its own and persists nothing. Its capsule and secondary page are a remote: each tap
+/// goes to the iPhone dated when it was made, and the update it causes shows it worked. For now the Watch ends its
+/// session without saving, so the iPhone's own Health workout covers every Workout.
 public nonisolated struct WatchFlow: Equatable, Sendable {
     public enum Screen: Equatable, Sendable {
         /// "Start on iPhone", or the Health hint when workouts aren't allowed.
@@ -29,6 +30,8 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case sessionEnded
         /// The owner tapped Done on the complete screen.
         case doneTapped
+        /// The owner tapped the capsule or the secondary page at `date` on the Watch's clock.
+        case tapped(WatchCommand, at: Date)
     }
 
     public enum Effect: Equatable, Sendable {
@@ -38,6 +41,10 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case beginCollection(at: Date)
         /// Discard what the session collected and end it.
         case endWithoutSaving
+        /// Send a message to the iPhone over the session.
+        case send(MessageFromWatch)
+        /// Show that the iPhone refused a tap, which reached it too late to place.
+        case tapRefused(WatchCommand)
     }
 
     public private(set) var screen = Screen.idle
@@ -70,6 +77,9 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
                 screen = .idle
             }
             return []
+        case .tapped(let command, let date):
+            guard case .running = screen else { return [] }
+            return [.send(.tap(command, at: date))]
         }
     }
 
@@ -88,6 +98,9 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
             guard workoutID != nil else { return [] }
             show(state)
             return []
+        case .refused(let command):
+            guard workoutID != nil else { return [] }
+            return [.tapRefused(command)]
         case .end:
             guard workoutID != nil else { return [] }
             leaveRunning()

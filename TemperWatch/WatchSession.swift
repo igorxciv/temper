@@ -2,11 +2,12 @@ import Foundation
 import HealthKit
 import Observation
 import TemperCore
+import WatchKit
 
 /// The Watch's workout session, which carries the running link to the iPhone.
 ///
 /// `WatchFlow` decides what to show and do. This adapter only calls HealthKit: it starts the session the iPhone asked
-/// for, mirrors it once it's prepared, hands each message to the flow, and carries out the flow's effects.
+/// for, mirrors it once it's prepared, hands each message and tap to the flow, and carries out the flow's effects.
 @Observable
 final class WatchSession: NSObject {
     static let shared = WatchSession()
@@ -36,6 +37,11 @@ final class WatchSession: NSObject {
         apply(.doneTapped)
     }
 
+    /// A tap on the running screen's capsule or the secondary page, dated now on the Watch's clock.
+    func tap(_ command: WatchCommand) {
+        apply(.tapped(command, at: .now))
+    }
+
     private func apply(_ event: WatchFlow.Event) {
         let effects = flow.handle(event)
         screen = flow.screen
@@ -57,6 +63,22 @@ final class WatchSession: NSObject {
                 builder?.discardWorkout()
             }
             session?.end()
+        case .send(let message):
+            send(message)
+        case .tapRefused:
+            WKInterfaceDevice.current().play(.failure)
+        }
+    }
+
+    /// A tap that can't be sent never reaches the engine, so it fails the same way as one the iPhone refuses.
+    private func send(_ message: MessageFromWatch) {
+        guard let session, let data = try? message.json() else { return }
+        Task {
+            do {
+                try await session.sendToRemoteWorkoutSession(data: data)
+            } catch {
+                WKInterfaceDevice.current().play(.failure)
+            }
         }
     }
 

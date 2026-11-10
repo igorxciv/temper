@@ -15,4 +15,11 @@ public nonisolated struct ClockAnchor<Instant: InstantProtocol>: Sendable where 
     public func date(of other: Instant) -> Date {
         date.addingTimeInterval(instant.duration(to: other) / .seconds(1))
     }
+
+    /// The engine instant of the wall-clock date `other`.
+    public func instant(of other: Date) -> Instant {
+        instant.advanced(by: .seconds(other.timeIntervalSince(date)))
+    }
 }
+
+extension ClockAnchor: Hashable {}

@@ -6,8 +6,12 @@ import TemperCore
 ///
 /// The time and bar are drawn from the Phase's dates, so nothing has to arrive from the iPhone between its events.
 /// Always On keeps the same layout on black, so nothing moves on wrist-down.
+///
+/// Only the capsule takes a tap, so a tap anywhere above it does nothing.
 struct WatchRunningScreen: View {
     let phase: WatchPhase
+    /// Sends a tap to the iPhone. The update it causes redraws the screen.
+    let tap: (WatchCommand) -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
@@ -44,7 +48,7 @@ struct WatchRunningScreen: View {
             }
             LineText(line: phase.line, colors: colors, dim: dim)
             Spacer(minLength: 4)
-            CapsuleLabel(capsule: phase.capsule, colors: colors, dim: dim)
+            QuickActionCapsule(capsule: phase.capsule, colors: colors, dim: dim, tap: tap)
         }
         .padding(.horizontal, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -130,31 +134,21 @@ private struct CaptionText: View {
     }
 }
 
-/// The iPhone's quick action in a full-width capsule about 56 pt tall: filled awake, outlined in Always On. It shows
-/// the state only, and takes no tap yet.
-private struct CapsuleLabel: View {
+/// The iPhone's quick action in the full-width capsule. A dimmed Done stays in place and takes no tap.
+private struct QuickActionCapsule: View {
     let capsule: WatchPhase.Capsule
     let colors: PhaseColors
     let dim: Bool
+    let tap: (WatchCommand) -> Void
 
     var body: some View {
-        let ring = colors.ring.opacity(dim ? 0.55 : 1)
-        Label(title, systemImage: symbol)
-            .font(.system(size: 21, weight: .bold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .frame(maxWidth: .infinity, minHeight: 56)
-            .foregroundStyle(dim ? ring : colors.background)
-            .background {
-                if dim {
-                    Capsule().strokeBorder(ring, lineWidth: 2)
-                } else {
-                    Capsule().fill(ring)
-                }
+        WatchCapsule(title: title, symbol: symbol, fill: colors.ring, ink: colors.background, dim: dim) {
+            if let command = capsule.command {
+                tap(command)
             }
-            .opacity(capsule == .doneDimmed ? 0.3 : 1)
-            // The time is the point of this screen, so the capsule can't grow into it.
-            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        }
+        .disabled(capsule.command == nil)
+        .opacity(capsule == .doneDimmed ? 0.3 : 1)
     }
 
     private var title: String {
@@ -178,7 +172,8 @@ private struct CapsuleLabel: View {
     WatchRunningScreen(
         phase: WatchPhase(
             kind: .work, round: 4, start: .now.addingTimeInterval(-12), end: .now.addingTimeInterval(28), pausedAt: nil,
-            countsUp: false, line: .value("4", caption: .after("of 8"), spoken: "Round 4 of 8"), capsule: .pause))
+            countsUp: false, line: .value("4", caption: .after("of 8"), spoken: "Round 4 of 8"), capsule: .pause),
+        tap: { _ in })
 }
 
 #Preview("Open Rounds Rest") {
@@ -187,12 +182,14 @@ private struct CapsuleLabel: View {
             kind: .rest, round: 3, start: .now.addingTimeInterval(-18), end: .now.addingTimeInterval(42), pausedAt: nil,
             countsUp: false,
             line: .value("1:42", caption: .before("Round 3 · Work"), spoken: "Round 3, Work 1 minute 42 seconds"),
-            capsule: .doneDimmed))
+            capsule: .doneDimmed),
+        tap: { _ in })
 }
 
 #Preview("Stopwatch, Paused") {
     WatchRunningScreen(
         phase: WatchPhase(
             kind: .work, round: nil, start: .now.addingTimeInterval(-134), end: .now.addingTimeInterval(466),
-            pausedAt: .now, countsUp: true, line: .paused, capsule: .resume))
+            pausedAt: .now, countsUp: true, line: .paused, capsule: .resume),
+        tap: { _ in })
 }

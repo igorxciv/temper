@@ -15,6 +15,21 @@ nonisolated struct WatchPhaseTests {
             pausedAt: pausedAt.map(date.addingTimeInterval), countsUp: countsUp, line: nil, capsule: .pause)
     }
 
+    @Test(arguments: [
+        (WatchPhase.Capsule.pause, WatchCommand?.some(.pause)), (.resume, .resume), (.done, .done), (.doneDimmed, nil),
+    ])
+    func `The capsule sends the iPhone's quick action, and a dimmed Done sends nothing`(
+        capsule: WatchPhase.Capsule, command: WatchCommand?
+    ) {
+        #expect(capsule.command == command)
+    }
+
+    /// Open Rounds' capsule is Done, so the secondary page is where its Pause and Resume live.
+    @Test func `The secondary page offers Pause while the Phase runs and Resume while it's Paused`() {
+        #expect(phase(start: -30, end: 10).pauseCommand == .pause)
+        #expect(phase(start: -30, end: 10, pausedAt: 0).pauseCommand == .resume)
+    }
+
     @Test func `Counting down, the time left rounds up and the bar empties`() {
         let work = phase(start: -32.5, end: 7.5)
 
