@@ -17,7 +17,7 @@ final class WatchLink: NSObject {
     private let store = HKHealthStore()
     private let workoutsAllowed: () -> Bool
     private var flow = Flow()
-    /// The mirrored sessions the flow took, until each one ends.
+    /// The mirrored sessions the flow has messages for, leftovers included, until each one ends.
     private var sessions: [ObjectIdentifier: HKWorkoutSession] = [:]
     /// Mirrored sessions that arrived before their activity started, so with no start date to match by yet, and when
     /// each arrived. Each is matched once it reports running.
@@ -66,7 +66,7 @@ final class WatchLink: NSObject {
 
     /// The Watch mirrors its session before starting its activity, so a session can arrive with no start date. It's
     /// matched by its start date once it has one, never by its arrival, so a leftover session isn't taken for the
-    /// running Workout's.
+    /// running Workout's. One that never starts gets nothing, and the Watch ends it after its own 10 minutes.
     private func arrived(_ session: HKWorkoutSession, at arrival: Date) {
         guard let start = session.startDate else {
             unstarted[ObjectIdentifier(session)] = (session, arrival)
@@ -82,11 +82,9 @@ final class WatchLink: NSObject {
 
     private func match(_ session: HKWorkoutSession, start: Date, arrival: Date) {
         let id = ObjectIdentifier(session)
-        let effects = flow.handle(.instanceArrived(id, start: start, at: arrival))
-        // A session the flow doesn't take belongs to no running Workout, so it's left alone.
-        guard !effects.isEmpty else { return }
+        // Kept even when it belongs to no running Workout, since the flow then tells it to end without saving.
         sessions[id] = session
-        enqueue(effects)
+        handle(.instanceArrived(id, start: start, at: arrival))
     }
 
     private func ended(_ id: ObjectIdentifier) {
@@ -128,7 +126,9 @@ final class WatchLink: NSObject {
             let configuration = HKWorkoutConfiguration()
             configuration.activityType = HealthRecord.ActivityType(workoutType).healthKit
             configuration.locationType = .indoor
-            // The completion only means the request was delivered, and Start never waits for the Watch.
+            // The completion only means the request was delivered, and Start never waits for the Watch. So the
+            // window is timed from the call.
+            handle(.watchAppRequested(at: .now))
             store.startWatchApp(with: configuration) { _, _ in }
         case .send(let message, let id):
             guard let session = sessions[id], let data = try? message.json() else { return }

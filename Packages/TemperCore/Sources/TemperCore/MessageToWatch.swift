@@ -3,7 +3,8 @@ import Foundation
 /// What the iPhone sends the Watch over the mirrored workout session, encoded as JSON.
 ///
 /// Every mirrored instance that belongs to the running Workout gets `begin`, then the latest `update`, then `end` once
-/// the Workout has ended, so a Watch that connects late or reconnects catches up the same way. There are no
+/// the Workout has ended, so a Watch that connects late or reconnects catches up the same way. An instance that
+/// belongs to no running Workout gets `discard` alone. There are no
 /// acknowledgements: the iPhone sees the Watch's session end through the mirrored session's own state. An update is
 /// under 1 KB, far inside the session's limit of 100 KB per 10 s. Only `end` grows with the Workout, and even 200
 /// Rounds of Open Rounds stay under half that limit, so nothing throttles.
@@ -23,6 +24,9 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     case refused(WatchCommand)
     /// The Workout has ended, with the Health record the iPhone saves, or `nil` for no record.
     case end(HealthRecord?)
+    /// The session belongs to no running Workout, so the Watch ends it without saving. It needed no new version: a
+    /// build that can't read it drops it, and carries on as it did before there was one.
+    case discard
 
     /// What `begin` says of the Workout itself, which the Watch keeps for the Health record it may have to build
     /// alone. It isn't sent: `begin` carries the same values.

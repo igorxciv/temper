@@ -52,7 +52,7 @@ nonisolated struct WatchFlowTests {
 
         let effects = flow.handle(.launched(workoutsAllowed: true))
 
-        #expect(effects == [.startSession])
+        #expect(effects == [.startSession, .awaitFirstMessage(for: .seconds(600))])
         #expect(flow.screen == .waiting)
     }
 
@@ -488,7 +488,7 @@ nonisolated struct WatchFlowTests {
         var flow = WatchFlow()
 
         let recovering = flow.handle(.recovered(isPaused: false))
-        #expect(recovering == [])
+        #expect(recovering == [.awaitFirstMessage(for: .seconds(600))])
         #expect(flow.screen == .waiting)
 
         _ = flow.handle(.received(begin, at: later))
@@ -511,8 +511,186 @@ nonisolated struct WatchFlowTests {
 
         let effects = flow.handle(.launched(workoutsAllowed: true))
 
-        #expect(effects == [.endWithoutSaving, .startSession])
+        #expect(effects == [.endWithoutSaving, .startSession, .awaitFirstMessage(for: .seconds(600))])
         #expect(flow.screen == .waiting)
+    }
+
+    // MARK: A late Watch
+
+    private var lateBegin: MessageToWatch {
+        .begin(
+            workoutID: workoutID, start: start, workoutType: .intervals, inTime: false,
+            version: MessageToWatch.version)
+    }
+
+    /// A Watch whose session reached the iPhone after the 10 s window, with the iPhone's `begin` received.
+    private func late() -> WatchFlow {
+        var flow = WatchFlow()
+        _ = flow.handle(.launched(workoutsAllowed: true))
+        _ = flow.handle(.received(lateBegin, at: now))
+        return flow
+    }
+
+    /// It records all the same, from the Workout's Start.
+    @Test func `A late begin starts collection at the Workout's Start and shows Running on iPhone`() {
+        var flow = WatchFlow()
+        _ = flow.handle(.launched(workoutsAllowed: true))
+
+        let effects = flow.handle(.received(lateBegin, at: now))
+
+        #expect(effects == [.beginCollection(at: start)])
+        #expect(flow.screen == .runningOnIPhone)
+    }
+
+    @Test func `A late Watch keeps Running on iPhone through each Phase, and taps no Cue on the wrist`() {
+        var flow = late()
+        let doneAt = start.addingTimeInterval(42)
+        let rest = WatchPhase(
+            kind: .rest, round: 1, start: doneAt, end: doneAt.addingTimeInterval(10), pausedAt: nil, countsUp: false,
+            line: nil, capsule: .pause, cues: [WatchCue(cue: .work, date: doneAt.addingTimeInterval(10))])
+
+        let scheduling = flow.handle(.received(.update(.phase(workWithRest)), at: now))
+        let playing = flow.handle(.received(.update(.phase(rest)), at: doneAt.addingTimeInterval(0.05)))
+
+        #expect(scheduling == [])
+        #expect(playing == [])
+        #expect(flow.screen == .runningOnIPhone)
+    }
+
+    /// So its copy's active time and energy follow the Workout's, as an in-time Watch's do.
+    @Test func `A late Watch's session pauses and resumes with the updates`() {
+        var flow = late()
+        _ = flow.handle(.received(.update(.phase(work)), at: now))
+
+        let pausing = flow.handle(.received(.update(.phase(paused)), at: now))
+        let resuming = flow.handle(.received(.update(.phase(work)), at: now))
+
+        #expect(pausing == [.pauseSession])
+        #expect(resuming == [.resumeSession])
+        #expect(flow.screen == .runningOnIPhone)
+    }
+
+    @Test func `A late Watch saves the iPhone's record at version 1,000,000`() {
+        var flow = late()
+        _ = flow.handle(.received(.update(.phase(work)), at: now))
+        _ = flow.handle(.received(.update(.ended(nil)), at: now))
+
+        let effects = flow.handle(.received(.end(record), at: now))
+
+        #expect(effects == [.endAndSave(record.withSyncVersion(1_000_000))])
+        #expect(flow.screen == .idle)
+    }
+
+    @Test func `A late Watch shows the complete screen once the Workout has ended`() {
+        var flow = late()
+
+        _ = flow.handle(.received(.update(.ended(.total(.seconds(530)))), at: now))
+
+        #expect(flow.screen == .complete(.total(.seconds(530))))
+    }
+
+    /// A reconnect sends `begin` again, and the iPhone fixes `inTime` at the first arrival.
+    @Test func `A repeated begin leaves a late Watch on Running on iPhone`() {
+        var flow = late()
+        _ = flow.handle(.received(.update(.phase(work)), at: now))
+
+        let effects = flow.handle(.received(lateBegin, at: now))
+
+        #expect(effects == [])
+        #expect(flow.screen == .runningOnIPhone)
+    }
+
+    /// It has no controls, so nothing can reach the iPhone from it.
+    @Test func `A late Watch sends the iPhone no tap`() {
+        var flow = late()
+        _ = flow.handle(.received(.update(.phase(work)), at: now))
+
+        #expect(flow.handle(.tapped(.pause, at: now)) == [])
+    }
+
+    @Test func `A late Watch whose session ends goes back to idle`() {
+        var flow = late()
+
+        _ = flow.handle(.sessionEnded(at: now))
+
+        #expect(flow.screen == .idle)
+    }
+
+    /// The next Workout's Watch may be in time.
+    @Test func `Opened for a new Workout after a late one, the Watch shows its Phases again`() {
+        var flow = late()
+        _ = flow.handle(.launched(workoutsAllowed: true))
+        _ = flow.handle(.received(begin, at: now))
+
+        _ = flow.handle(.received(.update(.phase(work)), at: now))
+
+        #expect(flow.screen == .running(work, isConnected: true))
+    }
+
+    // MARK: Leftover sessions
+
+    /// The iPhone found no running Workout the session belongs to.
+    @Test func `Told to discard while waiting, the Watch ends its session without saving and goes back to idle`() {
+        var flow = WatchFlow()
+        _ = flow.handle(.launched(workoutsAllowed: true))
+
+        let effects = flow.handle(.received(.discard, at: now))
+
+        #expect(effects == [.endWithoutSaving])
+        #expect(flow.screen == .idle)
+    }
+
+    /// A session that reconnects after its Workout has given way to the next one.
+    @Test func `Told to discard while following a Workout, the Watch ends its session without saving`() {
+        var flow = running()
+
+        let effects = flow.handle(.received(.discard, at: now))
+
+        #expect(effects == [.endWithoutSaving])
+        #expect(flow.screen == .idle)
+        #expect(flow.handle(.sessionStopped) == [])
+    }
+
+    // MARK: The wait for the iPhone
+
+    /// It never began collection, so it has nothing to save.
+    @Test func `With no first message in time, the Watch ends its session without saving and goes back to idle`() {
+        var flow = WatchFlow()
+        _ = flow.handle(.launched(workoutsAllowed: true))
+
+        let effects = flow.handle(.firstMessageTimedOut)
+
+        #expect(effects == [.endWithoutSaving])
+        #expect(flow.screen == .idle)
+    }
+
+    /// After `begin` an in-time Watch still shows "Connecting to iPhone", until its first update.
+    @Test func `Once begin has arrived, the wait running out changes nothing`() {
+        var waiting = WatchFlow()
+        _ = waiting.handle(.launched(workoutsAllowed: true))
+        _ = waiting.handle(.received(begin, at: now))
+        var running = running()
+        var late = late()
+
+        #expect(waiting.handle(.firstMessageTimedOut) == [])
+        #expect(running.handle(.firstMessageTimedOut) == [])
+        #expect(late.handle(.firstMessageTimedOut) == [])
+        #expect(waiting.screen == .waiting)
+        #expect(running.screen == .running(work, isConnected: true))
+        #expect(late.screen == .runningOnIPhone)
+    }
+
+    @Test func `With its session already ended, the wait running out changes nothing`() {
+        var discarded = WatchFlow()
+        _ = discarded.handle(.launched(workoutsAllowed: true))
+        _ = discarded.handle(.received(.discard, at: now))
+        var complete = running()
+        _ = complete.handle(.received(.update(.ended(.total(.seconds(530)))), at: now))
+        _ = complete.handle(.received(.end(record), at: now))
+
+        #expect(discarded.handle(.firstMessageTimedOut) == [])
+        #expect(complete.handle(.firstMessageTimedOut) == [])
+        #expect(complete.screen == .complete(.total(.seconds(530))))
     }
 
     // MARK: Cue haptics

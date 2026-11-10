@@ -28,6 +28,7 @@ nonisolated struct MessageToWatchTests {
         .refused(.stop),
         .end(nil),
         .end(record),
+        .discard,
     ])
     func `A message arrives as it was sent`(message: MessageToWatch) throws {
         #expect(try MessageToWatch(json: message.json()) == message)
