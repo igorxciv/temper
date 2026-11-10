@@ -3,7 +3,8 @@
 /// so it fits inside the shortest Phase, 00:05, and short Phases need no special case.
 private nonisolated let cueLead = Duration.milliseconds(1_500)
 private nonisolated let startLimit = Duration.seconds(1)
-private nonisolated let lateLimit = Duration.seconds(1)
+/// How late a Cue can still play: spoken on the iPhone, or tapped on the wrist for a Phase whose update arrives late.
+nonisolated let lateLimit = Duration.seconds(1)
 private nonisolated let liftRetryDelay = Duration.seconds(5)
 
 /// Decides which Cues play and what the audio session does around them. It has its own actor and never waits

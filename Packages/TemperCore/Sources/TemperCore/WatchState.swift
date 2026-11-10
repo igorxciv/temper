@@ -41,10 +41,13 @@ public nonisolated struct WatchPhase: Codable, Hashable, Sendable {
     /// The line under the iPhone's ring, spoken text included, or `nil` when there's nothing to say.
     public let line: RingLine?
     public let capsule: Capsule
+    /// The Cues due before the next update, which the Watch marks with wrist haptics: those still to come in a
+    /// running Phase, up to its end. A Paused Phase has none.
+    public let cues: [WatchCue]
 
     public init(
         kind: Phase.Kind, round: Int?, start: Date, end: Date?, pausedAt: Date?, countsUp: Bool, line: RingLine?,
-        capsule: Capsule
+        capsule: Capsule, cues: [WatchCue] = []
     ) {
         self.kind = kind
         self.round = round
@@ -54,6 +57,19 @@ public nonisolated struct WatchPhase: Codable, Hashable, Sendable {
         self.countsUp = countsUp
         self.line = line
         self.capsule = capsule
+        self.cues = cues
+    }
+}
+
+/// A Cue due during a Phase on the Watch, dated on the wall clock, so its haptic lands on time rather than when an
+/// update happens to arrive.
+public nonisolated struct WatchCue: Codable, Hashable, Sendable {
+    public let cue: Cue
+    public let date: Date
+
+    public init(cue: Cue, date: Date) {
+        self.cue = cue
+        self.date = date
     }
 }
 
@@ -107,7 +123,10 @@ extension RunningDisplay {
                 pausedAt: snapshot.isPaused ? date : nil,
                 countsUp: countsUp,
                 line: line,
-                capsule: capsule
+                capsule: capsule,
+                cues: snapshot.cues.map { cue in
+                    WatchCue(cue: cue.cue, date: date.addingTimeInterval(now.duration(to: cue.due) / .seconds(1)))
+                }
             )
         )
     }

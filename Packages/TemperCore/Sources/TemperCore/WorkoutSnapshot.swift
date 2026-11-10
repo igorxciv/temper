@@ -18,17 +18,35 @@ where Instant.Duration == Duration {
         case stopped(WorkoutRecord<Instant>)
     }
 
+    /// A Cue and the instant it's due.
+    public struct TimedCue: Equatable, Sendable {
+        public let cue: Cue
+        public let due: Instant
+
+        public init(cue: Cue, due: Instant) {
+            self.cue = cue
+            self.due = due
+        }
+    }
+
     public let progress: Progress
     /// How many Rounds the Workout has, or `nil` if it has no set number.
     public let rounds: Int?
     /// The active time of the open Phase just before the current one, which ended at Done, or `nil` if the Phase
     /// before wasn't open. In Open Rounds it's the Work time a Rest follows.
     public let previousOpenPhaseTime: Duration?
+    /// The Cues still to come in a running Phase, up to its end or the set length it runs past, as the Timeline
+    /// places them. A Paused Phase has none, since nothing is due until Resume places them again, and neither has an
+    /// ended Workout.
+    public let cues: [TimedCue]
 
-    public init(progress: Progress, rounds: Int?, previousOpenPhaseTime: Duration? = nil) {
+    public init(
+        progress: Progress, rounds: Int?, previousOpenPhaseTime: Duration? = nil, cues: [TimedCue] = []
+    ) {
         self.progress = progress
         self.rounds = rounds
         self.previousOpenPhaseTime = previousOpenPhaseTime
+        self.cues = cues
     }
 
     /// What the Workout ended as, once it has finished or been Stopped, or `nil` before then.

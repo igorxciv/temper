@@ -1,6 +1,8 @@
 /// The spoken announcement of a Phase change, of the end of the Workout, that Rest is about to end, or that a
 /// Stopwatch's Work has reached its set length.
-public nonisolated enum Cue: Equatable, Sendable {
+///
+/// The raw value is what the Watch is sent, so renaming a case changes the messages' version.
+public nonisolated enum Cue: String, Codable, Equatable, Sendable {
     case work, rest, cooldown, workoutComplete
     /// "10 seconds", as an Open Rounds Rest is about to end.
     case tenSeconds
@@ -57,6 +59,10 @@ public nonisolated struct Timeline: Sendable {
         /// It is `nil` past the finish, and in an open Phase once it has started. Whether a Cue actually plays is
         /// not decided here.
         public let nextCue: UpcomingCue?
+        /// The Cues still to come in the current Phase: those due after this time, up to its end, or up to the set
+        /// length it runs past. The last is usually the next Phase's Cue, or "Workout complete", due at its end. An
+        /// open Phase has none, since nothing after it is placed until Done, and neither does a finished Workout.
+        public let cues: [UpcomingCue]
         /// The active time of the Phase just before the current one, if that Phase was open and so ended at Done.
         public let previousOpenPhaseTime: Duration?
 
@@ -161,9 +167,13 @@ public nonisolated struct Timeline: Sendable {
     public func position(at activeTime: Duration) -> Position {
         let nextCue = cues.first { $0.due >= activeTime }
         guard let index = spans.firstIndex(where: { $0.contains(activeTime) }) else {
-            return Position(phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue, previousOpenPhaseTime: nil)
+            return Position(
+                phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue, cues: [], previousOpenPhaseTime: nil)
         }
         let span = spans[index]
+        let cuesToCome = (span.end ?? span.setEnd).map { end in
+            cues.filter { $0.due > activeTime && $0.due <= end }
+        }
         let previous = index > 0 ? spans[index - 1] : nil
         let previousOpenPhaseTime = previous.flatMap { previous in
             previous.phase.isOpen ? previous.end.map { $0 - previous.start } : nil
@@ -173,6 +183,7 @@ public nonisolated struct Timeline: Sendable {
             timeLeft: (span.end ?? span.setEnd).map { max(.zero, $0 - activeTime) } ?? .zero,
             elapsed: activeTime - span.start,
             nextCue: nextCue,
+            cues: cuesToCome ?? [],
             previousOpenPhaseTime: previousOpenPhaseTime
         )
     }

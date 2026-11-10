@@ -210,4 +210,42 @@ nonisolated struct TimelineTests {
         #expect(done?.position(at: .seconds(882)).isFinished == true)
         #expect(done?.position(at: .seconds(700)).nextCue == nil)
     }
+
+    // MARK: The Cues still to come in a Phase
+
+    @Test func `A Phase's Cues to come end with the next Phase's Cue, due at its end`() {
+        #expect(timeline.position(at: .zero).cues == [UpcomingCue(cue: .work, due: .seconds(10))])
+        #expect(timeline.position(at: .seconds(20)).cues == [UpcomingCue(cue: .rest, due: .seconds(40))])
+    }
+
+    @Test func `The last Phase's Cues to come end with Workout complete`() {
+        #expect(timeline.position(at: .seconds(100)).cues == [UpcomingCue(cue: .workoutComplete, due: .seconds(145))])
+    }
+
+    /// The Cue due as a Phase starts is its own, already due, so a Phase reached at its exact start doesn't carry it.
+    @Test func `A Cue due exactly now is not still to come`() {
+        #expect(timeline.position(at: .seconds(40)).cues == [UpcomingCue(cue: .work, due: .seconds(55))])
+    }
+
+    @Test func `An Open Rounds Rest has "10 seconds" and then Work to come`() {
+        #expect(
+            openRounds(rest: 60)?.position(at: .seconds(40)).cues == [
+                UpcomingCue(cue: .tenSeconds, due: .seconds(90)), UpcomingCue(cue: .work, due: .seconds(100)),
+            ])
+        #expect(openRounds(rest: 60)?.position(at: .seconds(95)).cues == [UpcomingCue(cue: .work, due: .seconds(100))])
+    }
+
+    @Test func `An open Phase has no Cue to come, since nothing after it is placed`() {
+        #expect(openTimeline.position(at: .seconds(10)).cues == [])
+        #expect(openTimeline.position(at: .seconds(500)).cues == [])
+    }
+
+    @Test func `A Phase that runs past its set length has "Finish" to come, and nothing once past it`() {
+        #expect(stopwatch.position(at: .seconds(300)).cues == [UpcomingCue(cue: .finish, due: .seconds(610))])
+        #expect(stopwatch.position(at: .seconds(610)).cues == [])
+    }
+
+    @Test func `A finished Workout has no Cue to come`() {
+        #expect(timeline.position(at: .seconds(145)).cues == [])
+    }
 }
