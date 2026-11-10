@@ -48,6 +48,7 @@ final class WorkoutRunner {
         self.health = health
         self.watch = watch
         cues.render()
+        watch.tapped = { [weak self] command, tap in self?.apply(command, at: tap) }
         Task { await LiveActivityAdapter.endLeftovers() }
     }
 
@@ -88,24 +89,33 @@ final class WorkoutRunner {
     }
 
     func pause() {
-        let tap = ContinuousClock.now
-        Task { [engine] in await engine?.pause(at: tap) }
+        apply(.pause, at: .now)
     }
 
     func resume() {
-        let tap = ContinuousClock.now
-        Task { [engine] in await engine?.resume(at: tap) }
+        apply(.resume, at: .now)
     }
 
     /// Ends the open Work at the tap. The engine ignores it outside a running open Work.
     func done() {
-        let tap = ContinuousClock.now
-        Task { [engine] in await engine?.done(at: tap) }
+        apply(.done, at: .now)
     }
 
     func stop() {
-        let tap = ContinuousClock.now
-        Task { [engine] in await engine?.stop(at: tap) }
+        apply(.stop, at: .now)
+    }
+
+    /// Hands a tap to the engine at `tap`: now for the screen and the Live Activity, or a little earlier for the
+    /// Watch, whose link placed it back by its trip. The engine clamps either one after what it last applied.
+    private func apply(_ command: WatchCommand, at tap: ContinuousClock.Instant) {
+        Task { [engine] in
+            switch command {
+            case .pause: await engine?.pause(at: tap)
+            case .resume: await engine?.resume(at: tap)
+            case .done: await engine?.done(at: tap)
+            case .stop: await engine?.stop(at: tap)
+            }
+        }
     }
 
     /// For returning to the front, so the screen shows the correct Phase or the complete screen.
@@ -176,13 +186,6 @@ extension WorkoutRunner {
         let healthRecord = HealthRecord(record, of: workoutType, workoutID: workoutID, attempt: 1, anchor: .now)
         watch.hold(healthRecord)
         health.save(healthRecord)
-    }
-}
-
-extension ClockAnchor<ContinuousClock.Instant> {
-    /// The engine clock and the wall clock, read together now.
-    fileprivate static var now: Self {
-        Self(instant: ContinuousClock.now, date: Date.now)
     }
 }
 

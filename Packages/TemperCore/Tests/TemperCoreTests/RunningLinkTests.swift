@@ -20,7 +20,7 @@ nonisolated struct RunningLinkTests {
         /// The Health record the iPhone saved itself, or `nil` before the end or for a Workout too short to save.
         var phoneRecord: HealthRecord?
 
-        var phone = PhoneFlow<Int>()
+        var phone = PhoneFlow<Int, Instant>()
         var watch = WatchFlow()
         /// What the Watch did with its session, leaving out haptics, which go to the wrist.
         var watchEffects: [WatchFlow.Effect] = []
@@ -83,7 +83,31 @@ nonisolated struct RunningLinkTests {
             watchHandles(.doneTapped)
         }
 
-        private mutating func route(_ effects: [PhoneFlow<Int>.Effect]) {
+        /// The owner taps the Watch at `tap`, and what it sends reaches the iPhone at `arrival`. Returns the commands
+        /// the iPhone gives the engine, at their placed instants.
+        mutating func watchTaps(
+            _ command: WatchCommand, at tap: Instant, arrivingAt arrival: Instant
+        ) -> [(WatchCommand, Instant)] {
+            now = tap
+            let before = watchEffects.count
+            watchHandles(.tapped(command, at: date(of: tap)))
+            now = arrival
+            for case .send(let message) in watchEffects[before...] {
+                // Through JSON, as over the session.
+                route(
+                    phone.handle(
+                        .received(
+                            try! MessageFromWatch(json: message.json()), from: 1,
+                            arrival: ClockAnchor(instant: arrival, date: date(of: arrival)))))
+            }
+            defer { commands = [] }
+            return commands
+        }
+
+        /// What the iPhone gave the engine since the last tap.
+        private var commands: [(WatchCommand, Instant)] = []
+
+        private mutating func route(_ effects: [PhoneFlow<Int, Instant>.Effect]) {
             for effect in effects {
                 switch effect {
                 case .startWatchApp:
@@ -96,6 +120,8 @@ nonisolated struct RunningLinkTests {
                     watchHandles(.sessionStopped)
                     watchHandles(.sessionEnded)
                     route(phone.handle(.instanceEnded(1)))
+                case .apply(let command, let placed):
+                    commands.append((command, placed))
                 case .send, .stopActivity:
                     Issue.record("An effect for a session that doesn't exist: \(effect)")
                 }
@@ -120,7 +146,8 @@ nonisolated struct RunningLinkTests {
                 case .cancelAllHaptics: scheduled = []
                 case .playHaptic(let cue): taps.append(WristTap(cue, at: arrival))
                 case .scheduleHaptics(let cues): scheduled += cues
-                case .startSession, .beginCollection, .pauseSession, .resumeSession, .endAndSave, .endWithoutSaving:
+                case .startSession, .beginCollection, .pauseSession, .resumeSession, .endAndSave, .endWithoutSaving,
+                    .send, .signalRefused:
                     watchEffects.append(effect)
                 }
             }
@@ -172,6 +199,24 @@ nonisolated struct RunningLinkTests {
 
     private func makeEngine(_ workout: Workout) -> WorkoutEngine<ManualClock> {
         WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+    }
+
+    /// The owner taps the Watch now, and the tap takes `trip` to reach the iPhone, which gives the engine what it
+    /// placed.
+    private func watchTaps(
+        _ command: WatchCommand, _ link: inout Link, _ engine: WorkoutEngine<ManualClock>,
+        trip: Duration = .milliseconds(250)
+    ) async {
+        let tap = clock.now
+        clock.advance(by: trip)
+        for (command, placed) in link.watchTaps(command, at: tap, arrivingAt: clock.now) {
+            switch command {
+            case .done: await engine.done(at: placed)
+            case .pause: await engine.pause(at: placed)
+            case .resume: await engine.resume(at: placed)
+            case .stop: await engine.stop(at: placed)
+            }
+        }
     }
 
     @Test func `Intervals shows on the Watch from Start, through a Pause, to its complete screen`() async throws {
@@ -374,5 +419,118 @@ nonisolated struct RunningLinkTests {
                 WristTap(.rest, at: 40.05), WristTap(.tenSeconds, at: 60), WristTap(.work, at: 70),
                 WristTap(.rest, at: 100.05),
             ])
+    }
+
+    // MARK: The Watch as the remote
+
+    @Test func `Open Rounds runs from Start to Stop with only the Watch, and a late tap is refused`() async throws {
+        // No Prepare: an open Work from Start, then a 1:00 Rest after each Done.
+        let workout = WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch)
+        var link = Link(.openRounds, workout)
+        let engine = makeEngine(workout)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+
+        link.started(at: try #require(await engine.start()))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .seconds(2))
+        link.watchArrives(at: clock.now)
+        // The capsule's Done at 100 ends Work 1 there, not when it reaches the iPhone. Rest 1 runs 100–160.
+        clock.advance(by: .seconds(98))
+        await watchTaps(.done, &link, engine)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .milliseconds(59_750))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        // The secondary page's Pause at 180 and Resume at 190.
+        clock.advance(by: .seconds(20))
+        await watchTaps(.pause, &link, engine)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .milliseconds(9_750))
+        await watchTaps(.resume, &link, engine)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        // A Done made at 200 that takes 2.5 s to arrive is refused, and Work 2 runs on.
+        clock.advance(by: .milliseconds(9_750))
+        await watchTaps(.done, &link, engine, trip: .milliseconds(2_500))
+        // Stop, tapped at 230 and again at 231, ends Work 2 at 231.
+        clock.advance(by: .milliseconds(27_500))
+        var stop = StopConfirmation()
+        #expect(stop.tap(at: link.date(of: clock.now)) == .askAgain)
+        clock.advance(by: .seconds(1))
+        #expect(stop.tap(at: link.date(of: clock.now)) == .end)
+        await watchTaps(.stop, &link, engine)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        link.tapDone()
+
+        #expect(
+            link.screens == [
+                "waiting", "Work 1 · done", "Rest 1 · doneDimmed", "Work 2 · done", "Work 2 paused · doneDimmed",
+                "Work 2 · done", "complete 03:41, 2 Rounds: 1:40, 1:01", "idle",
+            ])
+        // The Watch's own tap times, not their arrivals, are what the Watch saves.
+        let record = try #require(link.phoneRecord)
+        #expect(record.pauses == [HealthRecord.Pause(start: link.epoch + 180, end: link.epoch + 190)])
+        #expect(record.end == link.epoch + 231)
+        let tapped = { (seconds: Double) in link.date(of: Instant(offset: .seconds(seconds))) }
+        #expect(
+            link.watchEffects == [
+                .startSession, .beginCollection(at: link.epoch), .send(.tap(.done, at: tapped(100))),
+                .send(.tap(.pause, at: tapped(180))), .pauseSession, .send(.tap(.resume, at: tapped(190))),
+                .resumeSession, .send(.tap(.done, at: tapped(200))), .signalRefused(.done),
+                .send(.tap(.stop, at: tapped(231))), .endAndSave(record.withSyncVersion(1_000_000)),
+            ])
+    }
+
+    @Test func `A Stopwatch runs from Start to its complete screen with only the Watch's capsule`() async throws {
+        // Prepare 0–10, then Work counting up to 10:00 and on until Done.
+        let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
+        var link = Link(.stopwatch, workout)
+        let engine = makeEngine(workout)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+
+        link.started(at: try #require(await engine.start()))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .seconds(2))
+        link.watchArrives(at: clock.now)
+        clock.advance(by: .seconds(8))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        // Paused from 60 to 90, so the Work reaches its set length at 640.
+        clock.advance(by: .seconds(50))
+        await watchTaps(.pause, &link, engine)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .milliseconds(29_750))
+        await watchTaps(.resume, &link, engine)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .milliseconds(549_750))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .seconds(20))
+        await watchTaps(.done, &link, engine)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        link.tapDone()
+
+        #expect(
+            link.screens == [
+                "waiting", "Prepare · pause", "Work · pause", "Work paused · resume", "Work · pause", "Work · done",
+                "complete 10:30", "idle",
+            ])
+    }
+
+    @Test func `A Stop from the Watch's secondary page takes a Stopwatch's Watch straight back to idle`()
+        async throws
+    {
+        let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
+        var link = Link(.stopwatch, workout)
+        let engine = makeEngine(workout)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+
+        link.started(at: try #require(await engine.start()))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .seconds(2))
+        link.watchArrives(at: clock.now)
+        clock.advance(by: .seconds(8))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .seconds(40))
+        await watchTaps(.stop, &link, engine)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+
+        #expect(link.screens == ["waiting", "Prepare · pause", "Work · pause", "idle"])
     }
 }

@@ -24,6 +24,16 @@ public nonisolated struct WatchPhase: Codable, Hashable, Sendable {
         case done
         /// Open Rounds' Done, kept in place but dimmed in a Rest or while Paused, so nothing moves under the thumb.
         case doneDimmed
+
+        /// What a tap on the capsule asks the iPhone to do, or `nil` for a dimmed Done, which takes no tap.
+        public var command: WatchCommand? {
+            switch self {
+            case .pause: .pause
+            case .resume: .resume
+            case .done: .done
+            case .doneDimmed: nil
+            }
+        }
     }
 
     public let kind: Phase.Kind
@@ -74,6 +84,12 @@ public nonisolated struct WatchCue: Codable, Hashable, Sendable {
 }
 
 nonisolated extension WatchPhase {
+    /// What the secondary page's upper capsule asks: Pause while the Phase runs, Resume while it's Paused. It's there
+    /// in every Workout Type, because Open Rounds' capsule is Done.
+    public var pauseOrResume: WatchCommand {
+        pausedAt == nil ? .pause : .resume
+    }
+
     /// The time the Watch shows at `date`, as `00:00`, rounded as on the iPhone's ring: counting down, the time left
     /// rounds up and holds at `00:00` past the end until the next update. Counting up, the time elapsed rounds down
     /// and keeps counting past any end. A Paused Phase holds at `pausedAt`.

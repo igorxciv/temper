@@ -6,9 +6,13 @@ import TemperCore
 ///
 /// The time and bar are drawn from the Phase's dates, so nothing has to arrive from the iPhone between its events.
 /// Always On keeps the same layout on black, so nothing moves on wrist-down.
+///
+/// Only the capsule takes a tap, so a tap anywhere above it does nothing.
 struct WatchRunningScreen: View {
     let phase: WatchPhase
     let heartRate: LiveHeartRate
+    /// Sends a tap to the iPhone. The update it causes redraws the screen.
+    let tap: (WatchCommand) -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
@@ -45,7 +49,7 @@ struct WatchRunningScreen: View {
             }
             LineText(line: phase.line, colors: colors, dim: dim)
             Spacer(minLength: 4)
-            CapsuleLabel(capsule: phase.capsule, colors: colors, dim: dim)
+            QuickActionCapsule(capsule: phase.capsule, colors: colors, dim: dim, tap: tap)
         }
         .padding(.horizontal, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -170,47 +174,24 @@ private struct CaptionText: View {
     }
 }
 
-/// The iPhone's quick action in a full-width capsule about 56 pt tall: filled awake, outlined in Always On. It shows
-/// the state only, and takes no tap yet.
-private struct CapsuleLabel: View {
+/// The iPhone's quick action in the full-width capsule. A dimmed Done stays in place and takes no tap.
+private struct QuickActionCapsule: View {
     let capsule: WatchPhase.Capsule
     let colors: PhaseColors
     let dim: Bool
+    let tap: (WatchCommand) -> Void
 
     var body: some View {
-        let ring = colors.ring.opacity(dim ? 0.55 : 1)
-        Label(title, systemImage: symbol)
-            .font(.system(size: 21, weight: .bold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .frame(maxWidth: .infinity, minHeight: 56)
-            .foregroundStyle(dim ? ring : colors.background)
-            .background {
-                if dim {
-                    Capsule().strokeBorder(ring, lineWidth: 2)
-                } else {
-                    Capsule().fill(ring)
-                }
+        // A dimmed Done reads as Done but sends nothing.
+        let command = capsule.command
+        let shown = command ?? .done
+        WatchCapsule(title: shown.title, symbol: shown.symbol, fill: colors.ring, ink: colors.background, dim: dim) {
+            if let command {
+                tap(command)
             }
-            .opacity(capsule == .doneDimmed ? 0.3 : 1)
-            // The time is the point of this screen, so the capsule can't grow into it.
-            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-    }
-
-    private var title: String {
-        switch capsule {
-        case .pause: "Pause"
-        case .resume: "Resume"
-        case .done, .doneDimmed: "Done"
         }
-    }
-
-    private var symbol: String {
-        switch capsule {
-        case .pause: "pause.fill"
-        case .resume: "play.fill"
-        case .done, .doneDimmed: "checkmark"
-        }
+        .disabled(command == nil)
+        .opacity(command == nil ? 0.3 : 1)
     }
 }
 
@@ -219,7 +200,7 @@ private struct CapsuleLabel: View {
         phase: WatchPhase(
             kind: .work, round: 4, start: .now.addingTimeInterval(-12), end: .now.addingTimeInterval(28), pausedAt: nil,
             countsUp: false, line: .value("4", caption: .after("of 8"), spoken: "Round 4 of 8"), capsule: .pause),
-        heartRate: .preview(bpm: 152))
+        heartRate: .preview(bpm: 152), tap: { _ in })
 }
 
 #Preview("Open Rounds Rest") {
@@ -229,7 +210,7 @@ private struct CapsuleLabel: View {
             countsUp: false,
             line: .value("1:42", caption: .before("Round 3 · Work"), spoken: "Round 3, Work 1 minute 42 seconds"),
             capsule: .doneDimmed),
-        heartRate: .preview(bpm: 118))
+        heartRate: .preview(bpm: 118), tap: { _ in })
 }
 
 #Preview("Stopwatch, Paused") {
@@ -237,7 +218,7 @@ private struct CapsuleLabel: View {
         phase: WatchPhase(
             kind: .work, round: nil, start: .now.addingTimeInterval(-134), end: .now.addingTimeInterval(466),
             pausedAt: .now, countsUp: true, line: .paused, capsule: .resume),
-        heartRate: LiveHeartRate())
+        heartRate: LiveHeartRate(), tap: { _ in })
 }
 
 extension LiveHeartRate {

@@ -5,7 +5,8 @@ import Testing
 
 /// The iPhone's side of the running link: what it sends each mirrored Watch session, and when.
 nonisolated struct PhoneFlowTests {
-    private typealias Flow = PhoneFlow<Int>
+    private typealias Flow = PhoneFlow<Int, ManualClock.Instant>
+    private typealias Instant = ManualClock.Instant
 
     private let start = Date(timeIntervalSinceReferenceDate: 1_000_000)
     private let workoutID = UUID()
@@ -233,5 +234,94 @@ nonisolated struct PhoneFlowTests {
                     to: 2),
                 .send(.update(phase(.prepare, startingAt: 600)), to: 2),
             ])
+    }
+
+    // MARK: Taps from the Watch
+
+    /// The engine clock read `seconds` as `date` on the wall clock, which is the Start plus `seconds`.
+    private func anchor(_ seconds: Double) -> ClockAnchor<Instant> {
+        ClockAnchor(instant: Instant(offset: .seconds(seconds)), date: start.addingTimeInterval(seconds))
+    }
+
+    private func connected() -> Flow {
+        var flow = started()
+        _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
+        return flow
+    }
+
+    @Test func `A tap in time goes to the engine, placed as far back as it was old on arrival`() {
+        var flow = connected()
+
+        let effects = flow.handle(
+            .received(.tap(.done, at: start.addingTimeInterval(99.5)), from: 1, arrival: anchor(100)))
+
+        #expect(effects == [.apply(.done, at: Instant(offset: .milliseconds(99_500)))])
+    }
+
+    @Test func `A tap more than 2 s old on arrival is refused back to the Watch, and the engine never gets it`() {
+        var flow = connected()
+
+        let effects = flow.handle(
+            .received(.tap(.pause, at: start.addingTimeInterval(97.75)), from: 1, arrival: anchor(100)))
+
+        #expect(effects == [.send(.refused(.pause), to: 1)])
+    }
+
+    /// The Live Activity's press is applied on arrival, so a Watch tap made just before it reaches the engine after.
+    @Test func `A Watch tap placed before a Live Activity press the engine already applied lands just after it`()
+        async throws
+    {
+        // Prepare 0–10, then Work.
+        let clock = ManualClock()
+        let engine = WorkoutEngine(
+            workout: WorkoutType.intervals.makeWorkout(from: WorkoutType.intervals.firstLaunch), clock: clock,
+            audio: FakeAudioOutput(), isDipOn: false)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        var flow = connected()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(4))
+        await engine.pause(at: clock.now)
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(10))
+        await engine.resume(at: clock.now)
+        _ = await snapshots.next()
+        clock.advance(by: .milliseconds(250))
+
+        // The Watch's Pause was made at 13.5, before the Live Activity's Resume at 14, and arrives at 14.25.
+        let effects = flow.handle(
+            .received(.tap(.pause, at: start.addingTimeInterval(13.5)), from: 1, arrival: anchor(14.25)))
+        let placed = Instant(offset: .milliseconds(13_500))
+        #expect(effects == [.apply(.pause, at: placed)])
+        await engine.pause(at: placed)
+
+        // Held at the Resume, with the Prepare's 6 s left, not the 6.5 s it had at the Watch's tap.
+        let paused = try #require(await snapshots.next())
+        guard case .paused(let phase, let timeLeft) = paused.progress else {
+            Issue.record("Not Paused: \(paused.progress)")
+            return
+        }
+        #expect(phase.kind == .prepare)
+        #expect(timeLeft == .seconds(6))
+    }
+
+    @Test func `A tap through a session that isn't the Workout's goes nowhere`() {
+        var flow = connected()
+        _ = flow.handle(.instanceEnded(1))
+
+        let effects = flow.handle(
+            .received(.tap(.done, at: start.addingTimeInterval(99.5)), from: 1, arrival: anchor(100)))
+
+        #expect(effects == [])
+    }
+
+    @Test func `A tap after the Workout has ended goes nowhere`() {
+        var flow = connected()
+        _ = flow.handle(.published(.ended(.total(.seconds(90)))))
+
+        let effects = flow.handle(
+            .received(.tap(.stop, at: start.addingTimeInterval(99.5)), from: 1, arrival: anchor(100)))
+
+        #expect(effects == [])
     }
 }

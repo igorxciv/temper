@@ -254,6 +254,40 @@ nonisolated struct WatchFlowTests {
         #expect(flow.screen == .updateNeeded)
     }
 
+    // MARK: Taps
+
+    /// No acknowledgement comes back: the update the tap causes shows it worked.
+    @Test func `A tap on a running Workout goes to the iPhone dated when it was made, and changes nothing yet`() {
+        var flow = running()
+        let tap = start.addingTimeInterval(20)
+
+        let effects = flow.handle(.tapped(.pause, at: tap))
+
+        #expect(effects == [.send(.tap(.pause, at: tap))])
+        #expect(flow.screen == .running(work))
+    }
+
+    @Test func `With no Workout running on the Watch, a tap sends nothing`() {
+        var waiting = WatchFlow()
+        _ = waiting.handle(.launched(workoutsAllowed: true))
+        var complete = running()
+        _ = complete.handle(.received(.update(.ended(.total(.seconds(530)))), at: now))
+        var idle = WatchFlow()
+
+        #expect(waiting.handle(.tapped(.stop, at: start)) == [])
+        #expect(complete.handle(.tapped(.stop, at: start)) == [])
+        #expect(idle.handle(.tapped(.stop, at: start)) == [])
+    }
+
+    @Test func `A tap the iPhone refused shows the Watch it failed`() {
+        var flow = running()
+
+        let effects = flow.handle(.received(.refused(.done), at: now))
+
+        #expect(effects == [.signalRefused(.done)])
+        #expect(flow.screen == .running(work))
+    }
+
     @Test func `Opened again during a session, the Watch ends the old one without saving and starts afresh`() {
         var flow = running()
 
