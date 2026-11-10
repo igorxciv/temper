@@ -174,7 +174,7 @@ extension WorkoutRunner {
     fileprivate func saveToHealth(_ snapshot: Snapshot) {
         guard let record = snapshot.record, let workoutID = healthWorkoutID.take() else { return }
         let healthRecord = HealthRecord(record, of: workoutType, workoutID: workoutID, attempt: 1, anchor: .now)
-        watch.recordReady(healthRecord)
+        watch.hold(healthRecord)
         health.save(healthRecord)
     }
 }

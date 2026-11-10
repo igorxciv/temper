@@ -67,7 +67,7 @@ final class WatchSession: NSObject {
                 return
             }
             pendingSave = record
-            // Stopped at the record's end, the way the probe saved, and the save carries on once it has stopped.
+            // Stopped at the record's end, then saved once it has stopped, as the Health probe for #108 did.
             if session.state == .stopped {
                 save(session)
             } else {
@@ -116,8 +116,8 @@ final class WatchSession: NSObject {
     /// Saves the pending record and ends the session. If any step fails, what was collected is discarded and the
     /// iPhone's own copy, which has every Phase, covers the Workout.
     ///
-    /// The live builder adds one activity of its own spanning the whole workout. It's left alone: the pre-build gate
-    /// found it does no harm next to the Phases.
+    /// The live builder adds one activity of its own spanning the whole workout. It's left alone: on the devices it did
+    /// no harm next to the Phases added from the record (#124, run B).
     private func save(_ session: HKWorkoutSession) {
         guard let record = pendingSave.take(), let builder else {
             session.end()
@@ -126,31 +126,7 @@ final class WatchSession: NSObject {
         let configuration = session.workoutConfiguration
         Task {
             do {
-                try await builder.addMetadata([
-                    HKMetadataKeySyncIdentifier: record.syncIdentifier,
-                    HKMetadataKeySyncVersion: record.syncVersion,
-                ])
-                let events = record.pauses.flatMap { pause in
-                    [
-                        HKWorkoutEvent(
-                            type: .pause, dateInterval: DateInterval(start: pause.start, duration: 0), metadata: nil),
-                        HKWorkoutEvent(
-                            type: .resume, dateInterval: DateInterval(start: pause.end, duration: 0), metadata: nil),
-                    ]
-                }
-                if !events.isEmpty {
-                    try await builder.addWorkoutEvents(events)
-                }
-                for activity in record.activities {
-                    var metadata: [String: Any] = [HealthRecord.Activity.phaseMetadataKey: activity.phaseMetadataValue]
-                    if let round = activity.round {
-                        metadata[HealthRecord.Activity.roundMetadataKey] = round
-                    }
-                    try await builder.addWorkoutActivity(
-                        HKWorkoutActivity(
-                            workoutConfiguration: configuration, start: activity.start, end: activity.end,
-                            metadata: metadata))
-                }
+                try await builder.add(record, configuration: configuration)
                 try await builder.endCollection(at: record.end)
                 _ = try await builder.finishWorkout()
             } catch {

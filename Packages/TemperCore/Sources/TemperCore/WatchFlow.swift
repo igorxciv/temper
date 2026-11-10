@@ -70,6 +70,9 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case .received(let message):
             return receive(message)
         case .sessionStopped:
+            // The iPhone stops a session tied to a Workout only after sending `end`, which can arrive just after the
+            // stop. So that session waits for it, which saves or not, and only a session tied to nothing ends here.
+            guard workoutID == nil else { return [] }
             return endSession()
         case .sessionEnded:
             hasSession = false

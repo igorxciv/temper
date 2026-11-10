@@ -179,8 +179,20 @@ nonisolated struct WatchFlowTests {
         #expect(flow.handle(.received(.end(nil))) == [])
     }
 
-    @Test func `The session stopping with no end from the iPhone still ends it without saving`() {
+    /// The iPhone stops the session only after sending `end`, and the two can reach the Watch in either order.
+    @Test func `A session tied to a Workout that stops before the iPhone's end waits for it, then saves`() {
         var flow = running()
+
+        let stopping = flow.handle(.sessionStopped)
+        let ending = flow.handle(.received(.end(record)))
+
+        #expect(stopping == [])
+        #expect(ending == [.endAndSave(record.withSyncVersion(1_000_000))])
+    }
+
+    @Test func `A session stopping before the iPhone's begin ends without saving`() {
+        var flow = WatchFlow()
+        _ = flow.handle(.launched(workoutsAllowed: true))
 
         let effects = flow.handle(.sessionStopped)
 
