@@ -52,33 +52,7 @@ struct HealthKitWorkouts: HealthWorkoutStore {
         let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: .local())
         do {
             try await builder.beginCollection(at: record.start)
-            try await builder.addMetadata([
-                HKMetadataKeySyncIdentifier: record.syncIdentifier,
-                HKMetadataKeySyncVersion: record.syncVersion,
-            ])
-            let events = record.pauses.flatMap { pause in
-                [
-                    HKWorkoutEvent(
-                        type: .pause, dateInterval: DateInterval(start: pause.start, duration: 0), metadata: nil),
-                    HKWorkoutEvent(
-                        type: .resume, dateInterval: DateInterval(start: pause.end, duration: 0), metadata: nil),
-                ]
-            }
-            if !events.isEmpty {
-                try await builder.addWorkoutEvents(events)
-            }
-            for activity in record.activities {
-                var metadata: [String: Any] = [HealthRecord.Activity.phaseMetadataKey: activity.phaseMetadataValue]
-                if let round = activity.round {
-                    metadata[HealthRecord.Activity.roundMetadataKey] = round
-                }
-                try await builder.addWorkoutActivity(
-                    HKWorkoutActivity(
-                        workoutConfiguration: configuration, start: activity.start, end: activity.end,
-                        metadata: metadata
-                    )
-                )
-            }
+            try await builder.add(record, configuration: configuration)
             try await builder.endCollection(at: record.end)
             // A locked save can return no workout and no error, saved or not, so only a workout counts.
             return try await builder.finishWorkout() == nil ? .unverified : .saved
