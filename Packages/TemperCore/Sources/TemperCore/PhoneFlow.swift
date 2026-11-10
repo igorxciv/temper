@@ -23,8 +23,8 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
     }
 
     public enum Effect: Equatable, Sendable {
-        /// Ask the Watch to open and start its session. Start never waits for it.
-        case startWatchApp
+        /// Ask the Watch to open and start its session for a Workout of this type. Start never waits for it.
+        case startWatchApp(WorkoutType)
         /// Send a message, in order after the effects before it.
         case send(MessageToWatch, to: Instance)
         /// Stop the Watch's session from this side, once the messages before it have been sent.
@@ -56,7 +56,7 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
         case .started(let workoutID, let workoutType, let start, let workoutsAllowed):
             self = Self()
             running = Running(workoutID: workoutID, workoutType: workoutType, start: start)
-            return workoutsAllowed ? [.startWatchApp] : []
+            return workoutsAllowed ? [.startWatchApp(workoutType)] : []
         case .published(let state):
             guard running != nil else { return [] }
             let hadEnded = hasEnded

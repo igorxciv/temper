@@ -36,7 +36,7 @@ nonisolated struct PhoneFlowTests {
         let effects = flow.handle(
             .started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: true))
 
-        #expect(effects == [.startWatchApp])
+        #expect(effects == [.startWatchApp(.openRounds)])
     }
 
     @Test func `Without workout permission, Start doesn't open the Watch`() {

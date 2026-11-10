@@ -8,6 +8,11 @@
 	<string>Temper saves each Workout to Health when it ends.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Temper reads your heart rate during a Workout on Apple Watch, and your date of birth and resting heart rate to work out heart-rate zones.</string>
+	<!-- The Watch runs a workout session through every Workout the iPhone opens it for. -->
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<!-- Tapping the Live Activity in the Smart Stack opens this app. An empty array means every Live Activity of
 	     the app, and Temper has one, WorkoutAttributes. Apple doesn't say how to name a single type. -->
 	<key>WKSupportsLiveActivityLaunchAttributeTypes</key>
