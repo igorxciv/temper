@@ -2,10 +2,12 @@ import SwiftUI
 import TemperCore
 
 /// The iPhone's complete screen shrunk: the checkmark, "Workout complete" and the total. Open Rounds adds the Round
-/// count and each Round's Work time. It scrolls, and Done at the end goes back to idle. The iPhone leaves its own
+/// count and each Round's Work time. The Watch alone adds average and max heart rate on one line under the total,
+/// unless the Workout had no samples. It scrolls, and Done at the end goes back to idle. The iPhone leaves its own
 /// complete screen separately.
 struct WatchCompleteScreen: View {
     let completion: Completion
+    let heartRate: WorkoutHeartRate.Summary?
     let done: () -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -29,11 +31,13 @@ struct WatchCompleteScreen: View {
                 case .total(let total):
                     TotalText(
                         text: total.clockText(rounding: .down), spoken: total.spokenText(rounding: .down), ink: ink)
+                    heartRateLine(ink: ink, dim: dim)
                 case .rounds(let summary):
                     TotalText(text: summary.total, spoken: summary.spokenTotal, ink: ink)
                     Text(summary.countText)
                         .font(.footnote)
                         .foregroundStyle(ink.secondary)
+                    heartRateLine(ink: ink, dim: dim)
                     VStack(spacing: 4) {
                         ForEach(summary.rows) { row in
                             RoundRow(row: row, ink: ink)
@@ -55,6 +59,42 @@ struct WatchCompleteScreen: View {
             .padding(.horizontal, 6)
         }
         .background((dim ? Color.black : ink.background).ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func heartRateLine(ink: InkColors, dim: Bool) -> some View {
+        if let heartRate {
+            HStack(spacing: 10) {
+                HeartRateStat(label: "Avg", value: heartRate.averageText, ink: ink, dim: dim)
+                HeartRateStat(label: "Max", value: heartRate.maximumText, ink: ink, dim: dim)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.top, 2)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(heartRate.spokenText)
+        }
+    }
+}
+
+private struct HeartRateStat: View {
+    let label: String
+    let value: String
+    let ink: InkColors
+    let dim: Bool
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(dim ? ink.secondary : HeartRateInk.heart)
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundStyle(ink.secondary)
+            Text(value)
+                .font(.system(size: 16, weight: .semibold).monospacedDigit())
+                .foregroundStyle(ink.text)
+        }
     }
 }
 
@@ -95,5 +135,17 @@ private struct RoundRow: View {
 }
 
 #Preview("Intervals") {
-    WatchCompleteScreen(completion: .total(.seconds(530))) {}
+    WatchCompleteScreen(completion: .total(.seconds(530)), heartRate: .preview) {}
+}
+
+#Preview("No heart rate") {
+    WatchCompleteScreen(completion: .total(.seconds(530)), heartRate: nil) {}
+}
+
+extension WorkoutHeartRate.Summary {
+    fileprivate static var preview: Self? {
+        var heartRate = WorkoutHeartRate(zones: nil)
+        heartRate.record(latest: 140, average: 128, maximum: 171)
+        return heartRate.summary
+    }
 }
