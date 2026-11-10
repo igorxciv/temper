@@ -20,10 +20,12 @@ final class WatchSession: NSObject {
     @ObservationIgnored private var builder: HKLiveWorkoutBuilder?
     /// The configuration the iPhone opened the Watch with, for the session the flow starts.
     @ObservationIgnored private var configuration: HKWorkoutConfiguration?
+    /// The Workout's Start, held from the iPhone's `begin` until the session runs and collection can begin.
+    @ObservationIgnored private var collectionStart: Date?
     /// True once collection has been asked to begin, so only a builder with something to discard is discarded.
     @ObservationIgnored private var hasBegunCollection = false
 
-    /// Called from `handle(_:)`, after the iPhone's `startWatchApp` at Start.
+    /// Called from the app delegate's `handle(_:)`, after the iPhone's `startWatchApp` at Start.
     func handle(_ configuration: HKWorkoutConfiguration) {
         self.configuration = configuration
         apply(.launched(workoutsAllowed: WatchHealth.workoutsAllowed))
@@ -47,10 +49,10 @@ final class WatchSession: NSObject {
         case .startSession:
             startSession()
         case .beginCollection(let start):
-            guard let builder else { return }
-            hasBegunCollection = true
-            Task { try? await builder.beginCollection(at: start) }
+            collectionStart = start
+            beginCollectionIfRunning()
         case .endWithoutSaving:
+            collectionStart = nil
             if hasBegunCollection {
                 builder?.discardWorkout()
             }
@@ -70,8 +72,18 @@ final class WatchSession: NSObject {
         session.delegate = self
         self.session = session
         self.builder = builder
+        collectionStart = nil
         hasBegunCollection = false
         session.prepare()
+    }
+
+    /// The session mirrors before its activity starts, so the iPhone's `begin` can arrive while it's only prepared.
+    /// Collection begins once it runs, dated at the Workout's Start either way.
+    private func beginCollectionIfRunning() {
+        guard let start = collectionStart, let session, let builder, session.state == .running else { return }
+        collectionStart = nil
+        hasBegunCollection = true
+        Task { try? await builder.beginCollection(at: start) }
     }
 
     /// Mirrors only once the session is prepared, which works around an iOS 26 bug that dropped the mirroring of
@@ -88,13 +100,15 @@ final class WatchSession: NSObject {
         switch state {
         case .prepared:
             prepared(session)
+        case .running:
+            beginCollectionIfRunning()
         case .stopped:
             apply(.sessionStopped)
         case .ended:
             self.session = nil
             builder = nil
             apply(.sessionEnded)
-        case .notStarted, .running, .paused:
+        case .notStarted, .paused:
             break
         @unknown default:
             break

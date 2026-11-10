@@ -18,6 +18,9 @@ final class WatchLink: NSObject {
     private var flow = Flow()
     /// The mirrored sessions the flow took, until each one ends.
     private var sessions: [ObjectIdentifier: HKWorkoutSession] = [:]
+    /// Mirrored sessions that arrived before their activity started, so with no start date to match by yet, and when
+    /// each arrived. Each is matched once it reports running.
+    private var unstarted: [ObjectIdentifier: (session: HKWorkoutSession, arrival: Date)] = [:]
     private let effects: AsyncStream<Flow.Effect>.Continuation
 
     /// `workoutsAllowed` reads the iPhone's workout write status, which is also the Watch's.
@@ -28,6 +31,8 @@ final class WatchLink: NSObject {
         super.init()
         store.workoutSessionMirroringStartHandler = { [weak self] session in
             let arrival = Date.now
+            // Set here rather than after the hop, so no change of state can slip by unreported.
+            session.delegate = self
             Task { @MainActor in self?.arrived(session, at: arrival) }
         }
         Task { [weak self] in
@@ -48,17 +53,33 @@ final class WatchLink: NSObject {
         handle(.published(state))
     }
 
+    /// The Watch mirrors its session before starting its activity, so a session can arrive with no start date. It's
+    /// matched by its start date once it has one, never by its arrival, so a leftover session isn't taken for the
+    /// running Workout's.
     private func arrived(_ session: HKWorkoutSession, at arrival: Date) {
+        guard let start = session.startDate else {
+            unstarted[ObjectIdentifier(session)] = (session, arrival)
+            return
+        }
+        match(session, start: start, arrival: arrival)
+    }
+
+    private func started(_ id: ObjectIdentifier, at start: Date) {
+        guard let (session, arrival) = unstarted.removeValue(forKey: id) else { return }
+        match(session, start: session.startDate ?? start, arrival: arrival)
+    }
+
+    private func match(_ session: HKWorkoutSession, start: Date, arrival: Date) {
         let id = ObjectIdentifier(session)
-        let effects = flow.handle(.instanceArrived(id, start: session.startDate ?? arrival, at: arrival))
+        let effects = flow.handle(.instanceArrived(id, start: start, at: arrival))
         // A session the flow doesn't take belongs to no running Workout, so it's left alone.
         guard !effects.isEmpty else { return }
-        session.delegate = self
         sessions[id] = session
         enqueue(effects)
     }
 
     private func ended(_ id: ObjectIdentifier) {
+        unstarted[id] = nil
         guard sessions.removeValue(forKey: id) != nil else { return }
         handle(.instanceEnded(id))
     }
@@ -97,9 +118,12 @@ extension WatchLink: HKWorkoutSessionDelegate {
         _ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState,
         from fromState: HKWorkoutSessionState, date: Date
     ) {
-        guard toState == .ended else { return }
         let id = ObjectIdentifier(workoutSession)
-        Task { @MainActor in self.ended(id) }
+        switch toState {
+        case .running: Task { @MainActor in self.started(id, at: date) }
+        case .ended: Task { @MainActor in self.ended(id) }
+        default: break
+        }
     }
 
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: any Error) {}

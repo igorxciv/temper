@@ -119,12 +119,15 @@ extension RunningDisplay {
         return (start, end)
     }
 
-    /// Done while the running screen's Done is enabled. Otherwise nothing in Open Rounds, which keeps Pause in the
-    /// app, and Pause, or Resume while Paused, in Intervals and Stopwatch.
+    /// The Watch's capsule, except that Open Rounds' dimmed Done is no button at all, since Open Rounds keeps Pause in
+    /// the app.
     private nonisolated var liveButton: LivePhase.Button? {
-        if doneButton == .enabled { return .done }
-        if workoutType == .openRounds { return nil }
-        return snapshot.isPaused ? .resume : .pause
+        switch capsule {
+        case .pause: .pause
+        case .resume: .resume
+        case .done: .done
+        case .doneDimmed: nil
+        }
     }
 
     private nonisolated func complete(_ record: WorkoutRecord<Instant>) -> LiveActivityState {

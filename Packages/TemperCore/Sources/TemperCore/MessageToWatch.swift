@@ -25,6 +25,7 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
         self = try JSONDecoder().decode(Self.self, from: json)
     }
 
+    /// The message as JSON, for `sendToRemoteWorkoutSession(data:)`.
     public func json() throws -> Data {
         try JSONEncoder().encode(self)
     }
