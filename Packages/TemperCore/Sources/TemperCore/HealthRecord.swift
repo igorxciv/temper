@@ -123,6 +123,20 @@ public nonisolated struct HealthRecord: Codable, Hashable, Sendable {
         syncVersion = attempt
     }
 
+    /// A record of exactly these parts, for the initializers that work them out.
+    init(
+        activityType: ActivityType, start: Date, end: Date, pauses: [Pause], activities: [Activity], workoutID: UUID,
+        syncVersion: Int
+    ) {
+        self.activityType = activityType
+        self.start = start
+        self.end = end
+        self.pauses = pauses
+        self.activities = activities
+        self.workoutID = workoutID
+        self.syncVersion = syncVersion
+    }
+
     /// The same record for another attempt at saving it, which only changes its sync version.
     public func withSyncVersion(_ syncVersion: Int) -> HealthRecord {
         precondition(syncVersion >= 1, "Attempts are numbered from 1")

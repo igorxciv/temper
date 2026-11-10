@@ -236,6 +236,65 @@ nonisolated struct PhoneFlowTests {
             ])
     }
 
+    // MARK: Reconnecting
+
+    /// The iPhone shows nothing during a dropout. The Watch's session reconnects by itself, as a new instance.
+    @Test func `A reconnect before Stop gets begin, still in time, then the latest update, and the updates after`() {
+        var flow = started()
+        _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
+        _ = flow.handle(.published(phase(.work, startingAt: 0)))
+
+        let dropping = flow.handle(.instanceDisconnected(1)) + flow.handle(.published(phase(.rest, startingAt: 90)))
+        let reconnecting = flow.handle(.instanceArrived(2, start: start, at: start.addingTimeInterval(200)))
+        let following = flow.handle(.published(phase(.work, startingAt: 150)))
+
+        #expect(dropping == [])
+        #expect(reconnecting == [.send(begin(), to: 2), .send(.update(phase(.rest, startingAt: 90)), to: 2)])
+        #expect(following == [.send(.update(phase(.work, startingAt: 150)), to: 2)])
+    }
+
+    /// A disconnected instance is no longer valid, and may report its own end while the Watch's session runs on. The
+    /// record must outlast it, or the Watch that reconnects would be told there's none.
+    @Test func `A reconnect after a Stop during the dropout gets begin, the ended state and end with the record`() {
+        var flow = started()
+        _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
+        _ = flow.handle(.instanceDisconnected(1))
+
+        let stopping =
+            flow.handle(.recordReady(record)) + flow.handle(.published(.ended(nil))) + flow.handle(.instanceEnded(1))
+        let reconnecting = flow.handle(.instanceArrived(2, start: start, at: start.addingTimeInterval(200)))
+
+        #expect(stopping == [])
+        #expect(
+            reconnecting == [
+                .send(begin(), to: 2), .send(.update(.ended(nil)), to: 2), .send(.end(record), to: 2),
+                .stopActivity(2),
+            ])
+    }
+
+    @Test func `A tap through a disconnected session goes nowhere`() {
+        var flow = connected()
+        _ = flow.handle(.instanceDisconnected(1))
+
+        let effects = flow.handle(
+            .received(.tap(.done, at: start.addingTimeInterval(99.5)), from: 1, arrival: anchor(100)))
+
+        #expect(effects == [])
+    }
+
+    /// An instance the newer one replaced.
+    @Test func `An older session disconnecting leaves the Workout's session in place`() {
+        var flow = started()
+        _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
+        _ = flow.handle(.instanceArrived(2, start: start, at: start.addingTimeInterval(30)))
+
+        _ = flow.handle(.instanceDisconnected(1))
+
+        #expect(
+            flow.handle(.published(phase(.rest, startingAt: 90)))
+                == [.send(.update(phase(.rest, startingAt: 90)), to: 2)])
+    }
+
     // MARK: Taps from the Watch
 
     /// The engine clock read `seconds` as `date` on the wall clock, which is the Start plus `seconds`.

@@ -8,8 +8,13 @@ import TemperCore
 /// Always On keeps the same layout on black, so nothing moves on wrist-down.
 ///
 /// Only the capsule takes a tap, so a tap anywhere above it does nothing.
+///
+/// During a dropout the time keeps drawing from the last update, and a Phase that ends holds at 00:00 rather than
+/// guessing the next. "iPhone not connected" takes the line's place, and the capsule dims where it is.
 struct WatchRunningScreen: View {
     let phase: WatchPhase
+    /// False during a dropout.
+    let isConnected: Bool
     let heartRate: LiveHeartRate
     /// Sends a tap to the iPhone. The update it causes redraws the screen.
     let tap: (WatchCommand) -> Void
@@ -47,9 +52,14 @@ struct WatchRunningScreen: View {
                         .padding(.vertical, 3)
                 }
             }
-            LineText(line: phase.line, colors: colors, dim: dim)
+            if isConnected {
+                LineText(line: phase.line, colors: colors, dim: dim)
+            } else {
+                NotConnectedMark(size: 14, dim: dim)
+            }
             Spacer(minLength: 4)
-            QuickActionCapsule(capsule: phase.capsule, colors: colors, dim: dim, tap: tap)
+            QuickActionCapsule(
+                capsule: phase.capsule, isConnected: isConnected, colors: colors, dim: dim, tap: tap)
         }
         .padding(.horizontal, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -174,9 +184,11 @@ private struct CaptionText: View {
     }
 }
 
-/// The iPhone's quick action in the full-width capsule. A dimmed Done stays in place and takes no tap.
+/// The iPhone's quick action in the full-width capsule. A dimmed Done stays in place and takes no tap. During a
+/// dropout every capsule dims in place, and a tap on it only gets the failure haptic.
 private struct QuickActionCapsule: View {
     let capsule: WatchPhase.Capsule
+    let isConnected: Bool
     let colors: PhaseColors
     let dim: Bool
     let tap: (WatchCommand) -> Void
@@ -191,7 +203,8 @@ private struct QuickActionCapsule: View {
             }
         }
         .disabled(command == nil)
-        .opacity(command == nil ? 0.3 : 1)
+        .opacity(command == nil || !isConnected ? 0.3 : 1)
+        .accessibilityHint(isConnected ? "" : NotConnectedMark.title)
     }
 }
 
@@ -200,7 +213,7 @@ private struct QuickActionCapsule: View {
         phase: WatchPhase(
             kind: .work, round: 4, start: .now.addingTimeInterval(-12), end: .now.addingTimeInterval(28), pausedAt: nil,
             countsUp: false, line: .value("4", caption: .after("of 8"), spoken: "Round 4 of 8"), capsule: .pause),
-        heartRate: .preview(bpm: 152), tap: { _ in })
+        isConnected: true, heartRate: .preview(bpm: 152), tap: { _ in })
 }
 
 #Preview("Open Rounds Rest") {
@@ -210,7 +223,16 @@ private struct QuickActionCapsule: View {
             countsUp: false,
             line: .value("1:42", caption: .before("Round 3 · Work"), spoken: "Round 3, Work 1 minute 42 seconds"),
             capsule: .doneDimmed),
-        heartRate: .preview(bpm: 118), tap: { _ in })
+        isConnected: true, heartRate: .preview(bpm: 118), tap: { _ in })
+}
+
+#Preview("Dropout, Phase held at 00:00") {
+    WatchRunningScreen(
+        phase: WatchPhase(
+            kind: .work, round: 4, start: .now.addingTimeInterval(-50), end: .now.addingTimeInterval(-10),
+            pausedAt: nil, countsUp: false, line: .value("4", caption: .after("of 8"), spoken: "Round 4 of 8"),
+            capsule: .pause),
+        isConnected: false, heartRate: .preview(bpm: 152), tap: { _ in })
 }
 
 #Preview("Stopwatch, Paused") {
@@ -218,7 +240,7 @@ private struct QuickActionCapsule: View {
         phase: WatchPhase(
             kind: .work, round: nil, start: .now.addingTimeInterval(-134), end: .now.addingTimeInterval(466),
             pausedAt: .now, countsUp: true, line: .paused, capsule: .resume),
-        heartRate: LiveHeartRate(), tap: { _ in })
+        isConnected: true, heartRate: LiveHeartRate(), tap: { _ in })
 }
 
 extension LiveHeartRate {

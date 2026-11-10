@@ -24,6 +24,21 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     /// The Workout has ended, with the Health record the iPhone saves, or `nil` for no record.
     case end(HealthRecord?)
 
+    /// What `begin` says of the Workout itself, which the Watch keeps for the Health record it may have to build
+    /// alone. It isn't sent: `begin` carries the same values.
+    public struct Begin: Hashable, Sendable {
+        public let workoutID: UUID
+        /// The Workout's Start.
+        public let start: Date
+        public let workoutType: WorkoutType
+
+        public init(workoutID: UUID, start: Date, workoutType: WorkoutType) {
+            self.workoutID = workoutID
+            self.start = start
+            self.workoutType = workoutType
+        }
+    }
+
     /// Decodes a message from the JSON `json()` made.
     public init(json: Data) throws {
         self = try JSONDecoder().decode(Self.self, from: json)
