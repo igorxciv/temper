@@ -207,6 +207,54 @@ nonisolated struct PhoneFlowTests {
         #expect(effects == [.send(.discard, to: 1)])
     }
 
+    /// On the devices a session reaches the iPhone already running, and HealthKit gives its mirrored copy no start
+    /// date. The Watch ends any older session before it starts one, so this is the Workout's.
+    @Test func `A session already running on arrival, with no start date, gets begin, then the latest update`() {
+        var flow = started()
+        _ = flow.handle(.published(phase(.work, startingAt: 0)))
+
+        let effects = flow.handle(.instanceArrived(1, start: nil, at: start.addingTimeInterval(2)))
+
+        #expect(effects == [.send(begin(), to: 1), .send(.update(phase(.work, startingAt: 0)), to: 1)])
+    }
+
+    @Test func `A session with no start date arriving with no Workout running is told to end without saving`() {
+        var flow = Flow()
+
+        let effects = flow.handle(.instanceArrived(1, start: nil, at: start.addingTimeInterval(1)))
+
+        #expect(effects == [.send(.discard, to: 1)])
+    }
+
+    /// It may have started only after the end, having collected nothing, and the iPhone can't tell.
+    @Test func `The Workout's first session, with no start date, arriving after its end is told to end without saving`()
+    {
+        var flow = started()
+        _ = flow.handle(.recordReady(record))
+        _ = flow.handle(.published(.ended(.total(.seconds(90)))))
+
+        let effects = flow.handle(.instanceArrived(1, start: nil, at: start.addingTimeInterval(91)))
+
+        #expect(effects == [.send(.discard, to: 1)])
+    }
+
+    /// The Watch's session ran through the Workout, so the reconnect is the same session and gets the record.
+    @Test func `A reconnect with no start date after a Stop during the dropout gets end with the record`() {
+        var flow = started()
+        _ = flow.handle(.instanceArrived(1, start: nil, at: start.addingTimeInterval(2)))
+        _ = flow.handle(.instanceDisconnected(1))
+        _ = flow.handle(.recordReady(record))
+        _ = flow.handle(.published(.ended(nil)))
+
+        let reconnecting = flow.handle(.instanceArrived(2, start: nil, at: start.addingTimeInterval(200)))
+
+        #expect(
+            reconnecting == [
+                .send(begin(), to: 2), .send(.update(.ended(nil)), to: 2), .send(.end(record), to: 2),
+                .stopActivity(2),
+            ])
+    }
+
     /// The record is held only in memory, until the session it went to has ended.
     @Test func `Once the session that got the record ends, the record is let go`() {
         var flow = started()

@@ -64,15 +64,23 @@ final class WatchLink: NSObject {
         handle(.published(state))
     }
 
-    /// The Watch mirrors its session before starting its activity, so a session can arrive with no start date. It's
-    /// matched by its start date once it has one, never by its arrival, so a leftover session isn't taken for the
-    /// running Workout's. One that never starts gets nothing, and the Watch ends it after its own 10 minutes.
+    /// The Watch mirrors its session before starting its activity, so a session can arrive not yet started. It then
+    /// waits here until it reports running, which dates its start. One that never starts gets nothing, and the Watch
+    /// ends it after its own 10 minutes.
+    ///
+    /// On the devices the session has usually started by the time it arrives, as it has on every reconnect, and its
+    /// mirrored copy has no start date. No change of state follows, so the flow takes it with no start.
     private func arrived(_ session: HKWorkoutSession, at arrival: Date) {
-        guard let start = session.startDate else {
-            unstarted[ObjectIdentifier(session)] = (session, arrival)
+        if let start = session.startDate {
+            match(session, start: start, arrival: arrival)
             return
         }
-        match(session, start: start, arrival: arrival)
+        switch session.state {
+        case .notStarted, .prepared: unstarted[ObjectIdentifier(session)] = (session, arrival)
+        case .running, .paused, .stopped: match(session, start: nil, arrival: arrival)
+        case .ended: break
+        @unknown default: break
+        }
     }
 
     private func started(_ id: ObjectIdentifier, at start: Date) {
@@ -80,7 +88,7 @@ final class WatchLink: NSObject {
         match(session, start: session.startDate ?? start, arrival: arrival)
     }
 
-    private func match(_ session: HKWorkoutSession, start: Date, arrival: Date) {
+    private func match(_ session: HKWorkoutSession, start: Date?, arrival: Date) {
         let id = ObjectIdentifier(session)
         // Kept even when it belongs to no running Workout, since the flow then tells it to end without saving.
         sessions[id] = session

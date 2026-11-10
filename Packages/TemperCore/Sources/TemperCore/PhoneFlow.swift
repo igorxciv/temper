@@ -12,6 +12,11 @@ import Foundation
 /// leftover and gets `discard`. So does one that started only once the Workout had ended, which collected nothing
 /// during it. The match has no slack, because the two clocks agree within about 8 ms.
 ///
+/// On the devices a session reaches the iPhone already running, and HealthKit gives its mirrored copy no start date.
+/// Such a session belongs to the running Workout, because the Watch ends any older session before it starts one. It's
+/// a leftover with no Workout running. It's also one when it's the Workout's first and arrives after the Workout's
+/// end, since it may have started only then.
+///
 /// The iPhone shows nothing during a dropout. An instance that disconnects gets nothing more, the Workout runs on,
 /// and the Watch's session reconnects by itself as a new instance. A Stop during the dropout reaches the Watch then,
 /// because the record is held until the session `end` went to has ended.
@@ -34,8 +39,9 @@ where Instant.Duration == Duration {
         case watchAppRequested(at: Date)
         /// The Watch's state after an engine event.
         case published(WatchState)
-        /// A mirrored session arrived, which started on the Watch at `start` and reached the iPhone `at`.
-        case instanceArrived(Instance, start: Date, at: Date)
+        /// A mirrored session arrived, which started on the Watch at `start` and reached the iPhone `at`. `start` is
+        /// `nil` for one already running on arrival, whose mirrored copy has no start date.
+        case instanceArrived(Instance, start: Date?, at: Date)
         /// A mirrored session lost the Watch. It's no longer valid, though the Watch's session may run on and reconnect
         /// as a new instance.
         case instanceDisconnected(Instance)
@@ -106,7 +112,7 @@ where Instant.Duration == Duration {
             guard let current else { return [] }
             return [.send(.update(state), to: current)] + (hadEnded ? [] : ending(current))
         case .instanceArrived(let instance, let start, let arrival):
-            guard let running, start >= running.start, end.map({ start < $0 }) ?? true else {
+            guard let running, belongs(start: start, to: running) else {
                 return [.send(.discard, to: instance)]
             }
             current = instance
@@ -141,6 +147,13 @@ where Instant.Duration == Duration {
             }
             return [.apply(command, at: placed)]
         }
+    }
+
+    /// Whether a session that started at `start` collected during `running`. With no start date, only the first
+    /// session to arrive is in doubt, and only once the Workout has ended.
+    private func belongs(start: Date?, to running: Running) -> Bool {
+        guard let start else { return end == nil || inTime != nil }
+        return start >= running.start && end.map { start < $0 } ?? true
     }
 
     private var hasEnded: Bool {
