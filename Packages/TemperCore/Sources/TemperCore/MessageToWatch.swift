@@ -5,7 +5,8 @@ import Foundation
 /// Every mirrored instance that belongs to the running Workout gets `begin`, then the latest `update`, then `end` once
 /// the Workout has ended, so a Watch that connects late or reconnects catches up the same way. There are no
 /// acknowledgements: the iPhone sees the Watch's session end through the mirrored session's own state. An update is
-/// under 1 KB, far inside the session's limit of 100 KB per 10 s, so nothing throttles.
+/// under 1 KB, far inside the session's limit of 100 KB per 10 s. Only `end` grows with the Workout, and even 200
+/// Rounds of Open Rounds stay under half that limit, so nothing throttles.
 public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     /// The version of these messages. A Watch that gets a `begin` with another version shows "Update Temper" and ends
     /// without saving, and the iPhone's own Health workout covers the Workout. Raise it whenever a message changes

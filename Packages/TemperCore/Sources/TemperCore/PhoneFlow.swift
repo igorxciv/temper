@@ -5,8 +5,8 @@ import Foundation
 /// At Start the iPhone opens the Watch, whose workout session arrives back as a mirrored instance. Every instance
 /// that started at or after the running Workout's Start belongs to it, and gets `begin`, then the latest update, then
 /// `end` once the Workout has ended, after which the iPhone stops the session. So a Watch that reconnects catches up
-/// the same way as one arriving for the first time. For now `end` never carries a record, so the Watch saves nothing
-/// and the iPhone's own Health workout covers every Workout.
+/// the same way as one arriving for the first time. `end` carries the same Health record the iPhone saves itself, so
+/// the Watch's copy, which Health keeps in place of the iPhone's, has identical times.
 ///
 /// Each tap from the Watch goes to the engine placed back by its age on arrival, or is refused when it's more than
 /// 2 s old. The engine then clamps it, so a Watch tap placed before a Live Activity press the engine already applied
@@ -19,6 +19,9 @@ where Instant.Duration == Duration {
         /// The engine set the Workout's fixed start point, at `start` on the wall clock. `workoutsAllowed` is the
         /// iPhone's workout write status, which is also the Watch's.
         case started(workoutID: UUID, workoutType: WorkoutType, start: Date, workoutsAllowed: Bool)
+        /// The Health record the iPhone saves for the Workout that just ended, or `nil` when there's none, as for a
+        /// Workout under 1 minute. It comes before the ended state, which sends it in `end`.
+        case recordReady(HealthRecord?)
         /// The Watch's state after an engine event.
         case published(WatchState)
         /// A mirrored session arrived, which started on the Watch at `start` and reached the iPhone `at`.
@@ -57,6 +60,9 @@ where Instant.Duration == Duration {
     private var current: Instance?
     /// Whether the Watch's first session arrived within ``window``, fixed then for the rest of the Workout.
     private var inTime: Bool?
+    /// The record `end` carries. It's held only in memory, until the session it went to has ended: a Watch that
+    /// connects after a Stop gets it, and if the app dies first, the Watch's own fallback covers the Workout.
+    private var record: HealthRecord?
 
     public init() {}
 
@@ -66,6 +72,10 @@ where Instant.Duration == Duration {
             self = Self()
             running = Running(workoutID: workoutID, workoutType: workoutType, start: start)
             return workoutsAllowed ? [.startWatchApp(workoutType)] : []
+        case .recordReady(let record):
+            guard running != nil else { return [] }
+            self.record = record
+            return []
         case .published(let state):
             guard running != nil else { return [] }
             let hadEnded = hasEnded
@@ -85,6 +95,10 @@ where Instant.Duration == Duration {
         case .instanceEnded(let instance):
             if current == instance {
                 current = nil
+                // Its `end` has gone out with the record, so the Watch has what it needs.
+                if hasEnded {
+                    record = nil
+                }
             }
             return []
         case .received(.tap(let command, let tap), let instance, let arrival):
@@ -100,8 +114,8 @@ where Instant.Duration == Duration {
         if case .ended = latest { true } else { false }
     }
 
-    /// Once the Workout has ended, `end` and a stop for `instance`, which by then has the ended state.
+    /// Once the Workout has ended, `end` with the record and a stop for `instance`, which by then has the ended state.
     private func ending(_ instance: Instance) -> [Effect] {
-        hasEnded ? [.send(.end(nil), to: instance), .stopActivity(instance)] : []
+        hasEnded ? [.send(.end(record), to: instance), .stopActivity(instance)] : []
     }
 }

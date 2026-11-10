@@ -24,6 +24,15 @@ nonisolated struct PhoneFlowTests {
                 countsUp: true, line: .value("1", caption: .before("Round"), spoken: "Round 1"), capsule: .done))
     }
 
+    private var record: HealthRecord {
+        HealthRecord(
+            WorkoutRecord(
+                start: ManualClock.Instant(offset: .zero), end: ManualClock.Instant(offset: .seconds(90)), pauses: [],
+                phases: [.init(kind: .work, round: 1, start: .init(offset: .zero), end: .init(offset: .seconds(90)))]),
+            of: .openRounds, workoutID: workoutID, attempt: 1,
+            anchor: ClockAnchor(instant: ManualClock.Instant(offset: .zero), date: start))!
+    }
+
     private func started(workoutsAllowed: Bool = true) -> Flow {
         var flow = Flow()
         _ = flow.handle(
@@ -100,13 +109,53 @@ nonisolated struct PhoneFlowTests {
         #expect(flow.handle(.published(phase(.work, startingAt: 0))) == [])
     }
 
-    @Test func `At the end the iPhone sends the ended state, then no record, then stops the Watch's session`() {
+    @Test func `At the end the iPhone sends the record it saves itself, then stops the Watch's session`() {
         var flow = started()
         _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
 
-        let effects = flow.handle(.published(.ended(nil)))
+        let effects = flow.handle(.recordReady(record)) + flow.handle(.published(.ended(nil)))
+
+        #expect(effects == [.send(.update(.ended(nil)), to: 1), .send(.end(record), to: 1), .stopActivity(1)])
+    }
+
+    /// A Workout under 1 minute has no record, so the Watch ends without saving too.
+    @Test func `With no record, the iPhone's end carries none`() {
+        var flow = started()
+        _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
+
+        let effects = flow.handle(.recordReady(nil)) + flow.handle(.published(.ended(nil)))
 
         #expect(effects == [.send(.update(.ended(nil)), to: 1), .send(.end(nil), to: 1), .stopActivity(1)])
+    }
+
+    /// A Stop during a dropout reaches the Watch when it reconnects.
+    @Test func `A session arriving after the end gets the record`() {
+        var flow = started()
+        _ = flow.handle(.recordReady(record))
+        _ = flow.handle(.published(.ended(nil)))
+
+        let effects = flow.handle(
+            .instanceArrived(1, start: start.addingTimeInterval(3), at: start.addingTimeInterval(400)))
+
+        #expect(
+            effects == [
+                .send(begin(inTime: false), to: 1), .send(.update(.ended(nil)), to: 1), .send(.end(record), to: 1),
+                .stopActivity(1),
+            ])
+    }
+
+    /// The record is held only in memory, until the session it went to has ended.
+    @Test func `Once the session that got the record ends, the record is let go`() {
+        var flow = started()
+        _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
+        _ = flow.handle(.recordReady(record))
+        _ = flow.handle(.published(.ended(nil)))
+
+        _ = flow.handle(.instanceEnded(1))
+        let effects = flow.handle(
+            .instanceArrived(2, start: start.addingTimeInterval(3), at: start.addingTimeInterval(400)))
+
+        #expect(effects.contains(.send(.end(nil), to: 2)))
     }
 
     @Test func `A session arriving after the end catches up to the end, and is stopped`() {

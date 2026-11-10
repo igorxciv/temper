@@ -52,6 +52,13 @@ final class WatchLink: NSObject {
             .started(workoutID: workoutID, workoutType: workoutType, start: start, workoutsAllowed: workoutsAllowed()))
     }
 
+    /// Holds the Health record the iPhone saves for the Workout that just ended, or `nil` for none, until the Watch's
+    /// session has ended. It comes before the ended state, which sends it to the Watch in `end`. It's kept only in
+    /// memory: if the app dies first, the Watch's own fallback covers the Workout.
+    func hold(_ record: HealthRecord?) {
+        handle(.recordReady(record))
+    }
+
     /// Sends the Watch's state after each engine event.
     func show(_ state: WatchState) {
         handle(.published(state))

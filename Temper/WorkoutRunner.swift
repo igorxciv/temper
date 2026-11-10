@@ -178,9 +178,14 @@ extension WorkoutRunner {
     /// Builds the Workout's Health record and hands it to Health the first time an ended snapshot arrives, before the
     /// screens let go of anything, so the save's background task begins while the app is surely running. The record
     /// is `nil` for a Workout too short to save.
+    ///
+    /// The Watch gets the same record in `end`, before it hears the Workout ended, and saves it with heart rate. Both
+    /// copies carry identical times, and Health keeps the Watch's in place of this one.
     fileprivate func saveToHealth(_ snapshot: Snapshot) {
         guard let record = snapshot.record, let workoutID = healthWorkoutID.take() else { return }
-        health.save(HealthRecord(record, of: workoutType, workoutID: workoutID, attempt: 1, anchor: .now))
+        let healthRecord = HealthRecord(record, of: workoutType, workoutID: workoutID, attempt: 1, anchor: .now)
+        watch.hold(healthRecord)
+        health.save(healthRecord)
     }
 }
 

@@ -5,8 +5,10 @@ import Foundation
 ///
 /// The iPhone opens the Watch at Start. The Watch starts its own workout session and follows what the iPhone sends.
 /// It keeps no Workout logic of its own and persists nothing. Its capsule and secondary page are a remote: each tap
-/// goes to the iPhone dated when it was made, and the update it causes shows it worked. For now the Watch ends its
-/// session without saving, so the iPhone's own Health workout covers every Workout.
+/// goes to the iPhone dated when it was made, and the update it causes shows it worked. Its session pauses and resumes
+/// with each update, so active time and energy follow the Workout. At the end it saves the Health record the iPhone
+/// sends, at ``HealthRecord/watchSyncVersion``, so Health keeps the Watch's copy, with heart rate, in place of the
+/// iPhone's.
 public nonisolated struct WatchFlow: Equatable, Sendable {
     public enum Screen: Equatable, Sendable {
         /// "Start on iPhone", or the Health hint when workouts aren't allowed.
@@ -39,6 +41,12 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case startSession
         /// Begin the session's collection at the Workout's Start, so the Watch's copy spans what the iPhone's does.
         case beginCollection(at: Date)
+        /// Pause the session, so it stops counting active time and energy. It adds no event: the record's Pauses do.
+        case pauseSession
+        case resumeSession
+        /// Add the record's Phases as activities and its Pauses as events, end collection at its end, save under its
+        /// sync identifier and version, and end the session.
+        case endAndSave(HealthRecord)
         /// Discard what the session collected and end it.
         case endWithoutSaving
         /// Send a message to the iPhone over the session.
@@ -52,6 +60,8 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
     private var workoutID: UUID?
     /// True from starting a session until it's told to end, or ends by itself, so it's ended only once.
     private var hasSession = false
+    /// Whether the session was last told to pause rather than resume.
+    private var isSessionPaused = false
 
     public init() {}
 
@@ -63,10 +73,14 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
             screen = .waiting
             workoutID = nil
             hasSession = true
+            isSessionPaused = false
             return ending + [.startSession]
         case .received(let message):
             return receive(message)
         case .sessionStopped:
+            // The iPhone stops a session tied to a Workout only after sending `end`, which can arrive just after the
+            // stop. So that session waits for it, which saves or not, and only a session tied to nothing ends here.
+            guard workoutID == nil else { return [] }
             return endSession()
         case .sessionEnded:
             hasSession = false
@@ -97,14 +111,15 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case .update(let state):
             guard workoutID != nil else { return [] }
             show(state)
-            return []
+            return followPause(of: state)
         case .refused(let command):
             guard workoutID != nil else { return [] }
             return [.signalRefused(command)]
-        case .end:
+        case .end(let record):
             guard workoutID != nil else { return [] }
             leaveRunning()
-            return endSession()
+            guard let record else { return endSession() }
+            return endSession(saving: record.withSyncVersion(HealthRecord.watchSyncVersion))
         }
     }
 
@@ -125,9 +140,20 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         }
     }
 
-    private mutating func endSession() -> [Effect] {
+    /// Pauses or resumes the session when a running Phase's pause changes. An ended Workout leaves it as it is, since
+    /// `end` follows.
+    private mutating func followPause(of state: WatchState) -> [Effect] {
+        guard hasSession, case .phase(let phase) = state else { return [] }
+        let isPaused = phase.pausedAt != nil
+        guard isPaused != isSessionPaused else { return [] }
+        isSessionPaused = isPaused
+        return [isPaused ? .pauseSession : .resumeSession]
+    }
+
+    /// Ends the session once, saving `record` if there is one.
+    private mutating func endSession(saving record: HealthRecord? = nil) -> [Effect] {
         guard hasSession else { return [] }
         hasSession = false
-        return [.endWithoutSaving]
+        return [record.map(Effect.endAndSave) ?? .endWithoutSaving]
     }
 }
