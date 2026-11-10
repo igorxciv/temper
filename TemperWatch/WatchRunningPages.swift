@@ -7,6 +7,7 @@ import TemperCore
 /// secondary page. Stop lives only there, away from the capsule, so a Workout runs from Start to Stop on the Watch.
 struct WatchRunningPages: View {
     let phase: WatchPhase
+    let heartRate: LiveHeartRate
     /// Sends a tap to the iPhone. The update it causes redraws the pages.
     let tap: (WatchCommand) -> Void
 
@@ -27,7 +28,7 @@ struct WatchRunningPages: View {
                 }
             }
             .tag(Page.controls)
-            WatchRunningScreen(phase: phase, tap: tap)
+            WatchRunningScreen(phase: phase, heartRate: heartRate, tap: tap)
                 .tag(Page.running)
         }
         .tabViewStyle(.page)
@@ -88,5 +89,5 @@ private struct WatchControlsPage: View {
         phase: WatchPhase(
             kind: .work, round: 2, start: .now.addingTimeInterval(-40), end: nil, pausedAt: nil, countsUp: true,
             line: .value("2", caption: .before("Round"), spoken: "Round 2"), capsule: .done),
-        tap: { _ in })
+        heartRate: LiveHeartRate(), tap: { _ in })
 }

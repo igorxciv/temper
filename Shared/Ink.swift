@@ -2,7 +2,7 @@ import SwiftUI
 import TemperCore
 
 extension Color {
-    fileprivate init(hex: UInt32) {
+    init(hex: UInt32) {
         self.init(
             red: Double(hex >> 16 & 0xFF) / 255,
             green: Double(hex >> 8 & 0xFF) / 255,

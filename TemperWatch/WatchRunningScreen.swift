@@ -10,6 +10,7 @@ import TemperCore
 /// Only the capsule takes a tap, so a tap anywhere above it does nothing.
 struct WatchRunningScreen: View {
     let phase: WatchPhase
+    let heartRate: LiveHeartRate
     /// Sends a tap to the iPhone. The update it causes redraws the screen.
     let tap: (WatchCommand) -> Void
 
@@ -28,7 +29,7 @@ struct WatchRunningScreen: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 2)
-                HeartRateSlot()
+                HeartRateSlot(heartRate: heartRate, colors: colors, dim: dim)
             }
             // Aligned to the Phase's start, every whole second of the time lands on a tick. Awake, the bar moves
             // four times a second. Paused, nothing moves.
@@ -56,12 +57,51 @@ struct WatchRunningScreen: View {
     }
 }
 
-/// Where the heart rate and its Zone will show. Empty until the Watch reads heart rate.
+/// A red heart, the latest bpm, and the Zone meter. "-- bpm" with no meter until the first reading, and no meter for
+/// a Workout without Zones. Only this view observes the heart rate, so a reading redraws nothing else.
 private struct HeartRateSlot: View {
+    let heartRate: LiveHeartRate
+    let colors: PhaseColors
+    let dim: Bool
+
     var body: some View {
-        Color.clear
-            .frame(width: 0, height: 0)
-            .accessibilityHidden(true)
+        let current = heartRate.current
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(dim ? colors.text.opacity(0.4) : HeartRateInk.heart)
+            Text(current.bpmText)
+                .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                .foregroundStyle(colors.text.opacity(dim ? 0.7 : 1))
+            Text("bpm")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(colors.text.opacity(dim ? 0.4 : 0.72))
+            if let zone = current.zone {
+                ZoneMeter(zone: zone, colors: colors, dim: dim)
+            }
+        }
+        .lineLimit(1)
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(current.spokenText)
+    }
+}
+
+/// Five short bars rising left to right, with only the current Zone's bar lit, in that Zone's color.
+private struct ZoneMeter: View {
+    let zone: Int
+    let colors: PhaseColors
+    let dim: Bool
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 1.5) {
+            ForEach(1...5, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(index == zone ? HeartRateInk.zone(index).opacity(dim ? 0.55 : 1) : colors.track)
+                    .frame(width: 3.5, height: 5 + Double(index) * 1.6)
+            }
+        }
+        .padding(.leading, 1)
     }
 }
 
@@ -160,7 +200,7 @@ private struct QuickActionCapsule: View {
         phase: WatchPhase(
             kind: .work, round: 4, start: .now.addingTimeInterval(-12), end: .now.addingTimeInterval(28), pausedAt: nil,
             countsUp: false, line: .value("4", caption: .after("of 8"), spoken: "Round 4 of 8"), capsule: .pause),
-        tap: { _ in })
+        heartRate: .preview(bpm: 152), tap: { _ in })
 }
 
 #Preview("Open Rounds Rest") {
@@ -170,7 +210,7 @@ private struct QuickActionCapsule: View {
             countsUp: false,
             line: .value("1:42", caption: .before("Round 3 · Work"), spoken: "Round 3, Work 1 minute 42 seconds"),
             capsule: .doneDimmed),
-        tap: { _ in })
+        heartRate: .preview(bpm: 118), tap: { _ in })
 }
 
 #Preview("Stopwatch, Paused") {
@@ -178,5 +218,19 @@ private struct QuickActionCapsule: View {
         phase: WatchPhase(
             kind: .work, round: nil, start: .now.addingTimeInterval(-134), end: .now.addingTimeInterval(466),
             pausedAt: .now, countsUp: true, line: .paused, capsule: .resume),
-        tap: { _ in })
+        heartRate: LiveHeartRate(), tap: { _ in })
+}
+
+extension LiveHeartRate {
+    /// A reading in Zones worked out for a 40-year-old with a resting rate of 60: boundaries at 132, 144, 156 and 168.
+    fileprivate static func preview(bpm: Double) -> LiveHeartRate {
+        let heartRate = LiveHeartRate()
+        let start = Date.now
+        let birth = Calendar.current.dateComponents(
+            [.year, .month, .day], from: start.addingTimeInterval(-41 * 365 * 86_400))
+        heartRate.current = WorkoutHeartRate(
+            zones: Zones(dateOfBirth: birth, restingHeartRate: 60, start: start, calendar: .current))
+        heartRate.current.record(latest: bpm, average: bpm - 14, maximum: bpm + 9)
+        return heartRate
+    }
 }
