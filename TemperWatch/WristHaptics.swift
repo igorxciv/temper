@@ -24,7 +24,8 @@ final class WristHaptics {
         }
     }
 
-    /// Cancels every haptic due after `date`. One due by then has started, or is about to, and plays out.
+    /// Cancels every haptic due after `date`. One due by then has started, or is about to, and plays out. `date` must
+    /// be read in the same main-actor turn as this call, so no haptic can start between the two.
     func cancel(after date: Date) {
         for (id, haptic) in haptics where haptic.date > date {
             haptic.task.cancel()
@@ -32,11 +33,18 @@ final class WristHaptics {
         }
     }
 
+    /// Cancels every haptic, including one partway through its taps.
+    func cancelAll() {
+        for haptic in haptics.values {
+            haptic.task.cancel()
+        }
+        haptics = [:]
+    }
+
     private func start(_ cue: Cue, at date: Date) {
-        guard let haptic = cue.wristHaptic else { return }
         let id = UUID()
         let task = Task { [weak self] in
-            await self?.play(haptic, at: date)
+            await self?.play(cue.wristHaptic, at: date)
             self?.haptics[id] = nil
         }
         haptics[id] = (date, task)

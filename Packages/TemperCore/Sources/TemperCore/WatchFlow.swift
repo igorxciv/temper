@@ -41,6 +41,8 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case endWithoutSaving
         /// Cancel every Cue's haptic scheduled for after `after`. One due by then has started, and plays out.
         case cancelHaptics(after: Date)
+        /// Cancel every Cue's haptic, under way or still to come, as the session goes.
+        case cancelAllHaptics
         /// Play a Cue's haptic now.
         case playHaptic(Cue)
         /// Play each Cue's haptic at its date.
@@ -65,6 +67,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
             screen = .waiting
             workoutID = nil
             hasSession = true
+            haptics = CueHaptics()
             return ending + [.startSession]
         case .received(let message, let arrival):
             return receive(message, at: arrival)
@@ -144,6 +147,6 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
 
     /// The session is going, so no haptic still to come can play.
     private mutating func cancelHaptics() -> [Effect] {
-        haptics.cancelAll() ? [.cancelHaptics(after: .distantPast)] : []
+        haptics.cancelAll() ? [.cancelAllHaptics] : []
     }
 }

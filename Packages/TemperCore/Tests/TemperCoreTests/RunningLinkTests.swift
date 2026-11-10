@@ -105,6 +105,7 @@ nonisolated struct RunningLinkTests {
             for effect in watch.handle(event) {
                 switch effect {
                 case .cancelHaptics(let after): scheduled.removeAll { $0.date > after }
+                case .cancelAllHaptics: scheduled = []
                 case .playHaptic(let cue): taps.append(WristTap(cue, at: arrival))
                 case .scheduleHaptics(let cues): scheduled += cues
                 case .startSession, .beginCollection, .endWithoutSaving: watchEffects.append(effect)
@@ -239,6 +240,7 @@ nonisolated struct RunningLinkTests {
         #expect(
             link.screens == ["waiting", "Prepare · pause", "Work · pause", "Work · done", "complete 11:45", "idle"])
         #expect(link.watchEffects == [.startSession, .beginCollection(at: link.epoch), .endWithoutSaving])
+        #expect(link.taps == [WristTap(.work, at: 10), WristTap(.finish, at: 610)])
     }
 
     @Test func `Open Rounds shows on the Watch, Round by Round, and ends on its Rounds complete screen`() async throws {

@@ -2,8 +2,8 @@ import Foundation
 
 /// A wrist haptic the Watch plays for a Cue: one kind of tap, a few times over, with no sound.
 ///
-/// A count is the simplest difference to feel mid-set, and the iPhone still speaks every Cue, so the haptic mostly needs
-/// to be felt rather than told apart.
+/// A count is the simplest difference to feel mid-Work, and the iPhone still speaks every Cue, so the haptic mostly
+/// needs to be felt rather than told apart.
 public nonisolated struct WristHaptic: Equatable, Sendable {
     /// The `WKHapticType` each tap plays.
     public enum Tap: Equatable, Sendable {
@@ -21,24 +21,24 @@ public nonisolated struct WristHaptic: Equatable, Sendable {
         self.count = count
     }
 
-    /// When each tap starts, after the first.
+    /// When each tap starts, measured from the first.
     public var offsets: [Duration] {
         (0..<count).map { Self.gap * $0 }
     }
 }
 
 nonisolated extension Cue {
-    /// Its wrist haptic, by scheme B: `notification` counts Phase changes, `success` ends the Workout, and the weak
-    /// `click` is kept for "10 seconds", which comes in a Rest while the wrist is still. Finish came after the scheme
-    /// and has none yet.
-    public var wristHaptic: WristHaptic? {
+    /// Its wrist haptic: `notification` counts Phase changes, and the weak `click` is kept for "10 seconds", which
+    /// comes in a Rest while the wrist is still. `success` marks the end of what the owner set out to do: Workout
+    /// complete, or "Finish" as a Stopwatch reaches its set length, the moment Workout complete marked before a
+    /// Stopwatch ran on past it.
+    public var wristHaptic: WristHaptic {
         switch self {
         case .work: WristHaptic(tap: .notification, count: 2)
         case .rest: WristHaptic(tap: .notification, count: 1)
         case .cooldown: WristHaptic(tap: .notification, count: 3)
-        case .workoutComplete: WristHaptic(tap: .success, count: 2)
+        case .workoutComplete, .finish: WristHaptic(tap: .success, count: 2)
         case .tenSeconds: WristHaptic(tap: .click, count: 3)
-        case .finish: nil
         }
     }
 }
@@ -87,9 +87,14 @@ public nonisolated struct CueHaptics: Equatable, Sendable {
     /// nothing for a Phase change long past.
     public mutating func plan(for state: WatchState, arrivingAt arrival: Date) -> Plan {
         let played = scheduled.filter { $0.date <= arrival }.map(\.cue)
-        var plan = Plan(cancelsScheduled: scheduled.contains { $0.date > arrival })
+        let cancelled = scheduled.filter { $0.date > arrival }.map(\.cue)
+        var plan = Plan(cancelsScheduled: !cancelled.isEmpty)
         scheduled = []
         guard case .phase(let current) = state else {
+            // Only Intervals says Workout complete, and it ends on a complete screen only when it finishes, not at Stop.
+            if case .ended(.some) = state, cancelled.contains(.workoutComplete) {
+                plan.playsNow = .workoutComplete
+            }
             phase = nil
             return plan
         }
@@ -101,7 +106,7 @@ public nonisolated struct CueHaptics: Equatable, Sendable {
         {
             plan.playsNow = cue
         }
-        scheduled = current.cues.filter { $0.date > arrival && $0.cue.wristHaptic != nil }
+        scheduled = current.cues.filter { $0.date > arrival }
         plan.schedules = scheduled
         return plan
     }

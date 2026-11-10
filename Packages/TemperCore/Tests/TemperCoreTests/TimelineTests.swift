@@ -240,7 +240,7 @@ nonisolated struct TimelineTests {
         #expect(openTimeline.position(at: .seconds(500)).cues == [])
     }
 
-    @Test func `A Phase that runs past its set length has Finish to come, and nothing once past it`() {
+    @Test func `A Phase that runs past its set length has "Finish" to come, and nothing once past it`() {
         #expect(stopwatch.position(at: .seconds(300)).cues == [UpcomingCue(cue: .finish, due: .seconds(610))])
         #expect(stopwatch.position(at: .seconds(610)).cues == [])
     }

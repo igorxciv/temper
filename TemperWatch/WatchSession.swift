@@ -60,6 +60,8 @@ final class WatchSession: NSObject {
             session?.end()
         case .cancelHaptics(let date):
             haptics.cancel(after: date)
+        case .cancelAllHaptics:
+            haptics.cancelAll()
         case .playHaptic(let cue):
             haptics.play(cue)
         case .scheduleHaptics(let cues):
@@ -123,10 +125,12 @@ final class WatchSession: NSObject {
         }
     }
 
-    private func received(_ messages: [MessageToWatch], from session: HKWorkoutSession, at arrival: Date) {
+    /// Each message is timed as it's handled, in the same main-actor turn as the haptics it cancels, so no haptic can
+    /// start between the two and be counted as cancelled.
+    private func received(_ messages: [MessageToWatch], from session: HKWorkoutSession) {
         guard session === self.session else { return }
         for message in messages {
-            apply(.received(message, at: arrival))
+            apply(.received(message, at: .now))
         }
     }
 }
@@ -146,8 +150,6 @@ extension WatchSession: HKWorkoutSessionDelegate {
     ) {
         // Data this build can't read is dropped. A `begin` of another version still decodes, and shows Update Temper.
         let messages = data.compactMap { try? MessageToWatch(json: $0) }
-        // Timed here rather than after the hop, so a haptic due on arrival is judged by when the message came.
-        let arrival = Date.now
-        Task { @MainActor in self.received(messages, from: workoutSession, at: arrival) }
+        Task { @MainActor in self.received(messages, from: workoutSession) }
     }
 }

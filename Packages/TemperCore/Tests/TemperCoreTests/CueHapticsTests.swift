@@ -51,11 +51,10 @@ nonisolated struct CueHapticsTests {
         #expect(plan(after: (prepare, 0)) == expected(schedules: [cue(.work, at: 10)]))
     }
 
-    /// Finish came after the haptics were chosen, and has none of its own yet.
-    @Test func `A Cue with no wrist haptic is never scheduled`() {
+    @Test func `A Stopwatch's Work schedules "Finish" at its set length`() {
         let work = phase(.work, round: nil, start: -5, cues: [cue(.finish, at: 600)])
 
-        #expect(plan(after: (work, 0)) == expected())
+        #expect(plan(after: (work, 0)) == expected(schedules: [cue(.finish, at: 600)]))
     }
 
     @Test func `A haptic that came due before the next Phase's update played on time, so it doesn't play again`() {
@@ -123,6 +122,15 @@ nonisolated struct CueHapticsTests {
         #expect(plan(after: (work, 0), (.ended(.total(.seconds(20))), 20.05)) == expected())
     }
 
+    /// Only Intervals says Workout complete, and it ends on its complete screen only when it finishes.
+    @Test func `A finish that arrives before Workout complete's haptic plays it on arrival instead`() {
+        let work = phase(.work, start: 0, cues: [cue(.workoutComplete, at: 20)])
+
+        #expect(
+            plan(after: (work, 0), (.ended(.total(.seconds(20))), 19.99))
+                == expected(cancels: true, now: .workoutComplete))
+    }
+
     @Test func `A Stop cancels the haptics still to come`() {
         let work = phase(.work, start: 0, cues: [cue(.rest, at: 20)])
 
@@ -141,7 +149,7 @@ nonisolated struct CueHapticsTests {
         #expect(!cancelledAgain)
     }
 
-    // MARK: Scheme B
+    // MARK: Each Cue's haptic
 
     @Test(arguments: [
         (Cue.work, WristHaptic.Tap.notification, 2),
@@ -149,13 +157,10 @@ nonisolated struct CueHapticsTests {
         (.cooldown, .notification, 3),
         (.workoutComplete, .success, 2),
         (.tenSeconds, .click, 3),
+        (.finish, .success, 2),
     ])
     func `Each Cue has its own count of one kind of tap`(cue: Cue, tap: WristHaptic.Tap, count: Int) {
         #expect(cue.wristHaptic == WristHaptic(tap: tap, count: count))
-    }
-
-    @Test func `Finish has no wrist haptic`() {
-        #expect(Cue.finish.wristHaptic == nil)
     }
 
     @Test func `The taps start 0.7 s apart`() {

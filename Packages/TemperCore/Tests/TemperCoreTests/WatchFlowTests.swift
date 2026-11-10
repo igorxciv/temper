@@ -245,7 +245,20 @@ nonisolated struct WatchFlowTests {
 
         let effects = flow.handle(.sessionStopped)
 
-        #expect(effects == [.cancelHaptics(after: .distantPast), .endWithoutSaving])
+        #expect(effects == [.cancelAllHaptics, .endWithoutSaving])
+    }
+
+    /// A new Workout's first Phase can share its kind and Round with the last Workout's last.
+    @Test func `Opened for a new Workout, the Watch forgets the last one's Phase`() {
+        var flow = running()
+        let work = WatchPhase(
+            kind: .work, round: 1, start: now, end: nil, pausedAt: nil, countsUp: true, line: nil, capsule: .done)
+        _ = flow.handle(.launched(workoutsAllowed: true))
+        _ = flow.handle(.received(begin, at: now))
+
+        let effects = flow.handle(.received(.update(.phase(work)), at: now.addingTimeInterval(0.05)))
+
+        #expect(effects == [.playHaptic(.work)])
     }
 
     /// With the wrist down, a Watch app plays haptics only while its workout session runs.
