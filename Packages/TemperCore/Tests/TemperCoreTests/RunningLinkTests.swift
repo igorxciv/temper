@@ -71,7 +71,7 @@ nonisolated struct RunningLinkTests {
             }
             let display = RunningDisplay(workoutType: workoutType, workout: workout, snapshot: snapshot)
             route(phone.handle(.published(display.watchState(at: now, date: date(of: now)))))
-            if case .running(let phase) = watch.screen {
+            if case .running(let phase, _) = watch.screen {
                 // The Watch keeps up: it draws the same time as the iPhone's ring.
                 let later = now.advanced(by: .seconds(2.5))
                 #expect(phase.time(at: date(of: now)) == display.ring(at: now).time)
@@ -118,7 +118,7 @@ nonisolated struct RunningLinkTests {
                     watchHandles(.received(try! MessageToWatch(json: message.json()), at: arrival))
                 case .stopActivity(1):
                     watchHandles(.sessionStopped)
-                    watchHandles(.sessionEnded)
+                    watchHandles(.sessionEnded(at: arrival))
                     route(phone.handle(.instanceEnded(1)))
                 case .apply(let command, let placed):
                     commands.append((command, placed))
@@ -147,7 +147,7 @@ nonisolated struct RunningLinkTests {
                 case .playHaptic(let cue): taps.append(WristTap(cue, at: arrival))
                 case .scheduleHaptics(let cues): scheduled += cues
                 case .startSession, .beginCollection, .pauseSession, .resumeSession, .endAndSave, .endWithoutSaving,
-                    .send, .signalRefused:
+                    .send, .signalRefused, .startOutOfContactTimer, .stopOutOfContactTimer:
                     watchEffects.append(effect)
                 }
             }
@@ -162,7 +162,7 @@ nonisolated struct RunningLinkTests {
             case .idle: "idle"
             case .waiting: "waiting"
             case .updateNeeded: "update needed"
-            case .running(let phase):
+            case .running(let phase, _):
                 [
                     phase.kind.name, phase.round.map(String.init), phase.pausedAt == nil ? nil : "paused", "·",
                     "\(phase.capsule)",

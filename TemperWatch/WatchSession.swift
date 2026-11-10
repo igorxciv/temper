@@ -12,6 +12,11 @@ import WatchKit
 ///
 /// The session collects heart rate and energy, and pauses and resumes live, but collects no events of its own. At the
 /// end the Phases and Pauses come from the iPhone's Health record, so the Watch's copy carries the iPhone's times.
+///
+/// The Watch owns the session, though the iPhone runs the Workout, because only a workout session keeps the Watch app
+/// awake and reachable with the wrist down. So a dropout doesn't stop the recording: HealthKit reconnects the session
+/// by itself, and the iPhone catches the Watch up through the new mirrored instance. After a Watch app crash,
+/// HealthKit hands the session back and the same thing happens.
 @Observable
 final class WatchSession: NSObject {
     static let shared = WatchSession()
@@ -38,11 +43,26 @@ final class WatchSession: NSObject {
     @ObservationIgnored private var zoneInputs: WatchHealth.ZoneInputs?
     /// The Workout's Start, from the iPhone's `begin`, which dates the age the Zones use.
     @ObservationIgnored private var workoutStart: Date?
+    /// Counts the time out of contact during a dropout, for the flow.
+    @ObservationIgnored private var outOfContactTimer: Task<Void, Never>?
 
     /// Called from the app delegate's `handle(_:)`, after the iPhone's `startWatchApp` at Start.
     func handle(_ configuration: HKWorkoutConfiguration) {
         self.configuration = configuration
         apply(.launched(workoutsAllowed: WatchHealth.workoutsAllowed))
+    }
+
+    /// Called from the app delegate's `handleActiveWorkoutRecovery()`, when the Watch app opens again after a crash
+    /// during a Workout. The Watch persisted nothing, so it takes the session back and waits for the iPhone.
+    func recover() {
+        Task {
+            guard let session = try? await store.recoverActiveWorkoutSession(), self.session == nil else { return }
+            follow(session)
+            apply(.recovered(isPaused: session.state == .paused))
+            // Asked again in case the crash cost the session its mirroring. Any error is ignored: if the iPhone
+            // can't be reached now, the dropout rules cover it.
+            try? await session.startMirroringToCompanionDevice()
+        }
     }
 
     /// Done on the complete screen.
@@ -83,8 +103,9 @@ final class WatchSession: NSObject {
                 return
             }
             pendingSave = record
-            // Stopped at the record's end, then saved once it has stopped, as the Health probe for #108 did.
-            if session.state == .stopped {
+            // Stopped at the record's end, then saved once it has stopped, as the Health probe for #108 did. A
+            // session another workout app took over has ended already, and its builder can still save.
+            if session.state == .stopped || session.state == .ended {
                 save(session)
             } else {
                 session.stopActivity(with: record.end)
@@ -100,6 +121,18 @@ final class WatchSession: NSObject {
             send(message)
         case .signalRefused:
             WKInterfaceDevice.current().play(.failure)
+        case .startOutOfContactTimer:
+            outOfContactTimer?.cancel()
+            outOfContactTimer = Task {
+                // The continuous clock keeps counting while the Watch sleeps.
+                try? await Task.sleep(for: WatchFlow.outOfContactLimit, clock: .continuous)
+                // A dropout that ended as the time ran out has cancelled this.
+                guard !Task.isCancelled else { return }
+                apply(.outOfContactTimerFired)
+            }
+        case .stopOutOfContactTimer:
+            outOfContactTimer?.cancel()
+            outOfContactTimer = nil
         case .cancelHaptics(let date):
             haptics.cancel(after: date)
         case .cancelAllHaptics:
@@ -111,7 +144,8 @@ final class WatchSession: NSObject {
         }
     }
 
-    /// A send that fails, as it does with the link down, loses the tap. Showing that is the dropout's work.
+    /// A send that fails, as it can in the moments before a dropout is noticed, loses the tap. During a dropout the
+    /// flow sends none.
     private func send(_ message: MessageFromWatch) {
         guard let session, let data = try? message.json() else { return }
         Task { try? await session.sendToRemoteWorkoutSession(data: data) }
@@ -121,11 +155,18 @@ final class WatchSession: NSObject {
         guard let configuration,
             let session = try? HKWorkoutSession(healthStore: store, configuration: configuration)
         else {
-            apply(.sessionEnded)
+            apply(.sessionEnded(at: .now))
             return
         }
+        follow(session)
+        session.prepare()
+    }
+
+    /// Takes on a session, new or recovered after a crash, and reads what its Zones need.
+    private func follow(_ session: HKWorkoutSession) {
         let builder = session.associatedWorkoutBuilder()
-        builder.dataSource = HKLiveWorkoutDataSource(healthStore: store, workoutConfiguration: configuration)
+        builder.dataSource = HKLiveWorkoutDataSource(
+            healthStore: store, workoutConfiguration: session.workoutConfiguration)
         // The Pauses come from the iPhone's record at the end, with its times, rather than from the session's live
         // pauses, which reach the Watch moments late.
         builder.shouldCollectWorkoutEvents = false
@@ -135,12 +176,12 @@ final class WatchSession: NSObject {
         self.builder = builder
         haptics.session = session
         collectionStart = nil
-        hasBegunCollection = false
+        // A recovered session's builder may have begun before the crash.
+        hasBegunCollection = builder.startDate != nil
         pendingSave = nil
         heartRate.current = WorkoutHeartRate(zones: nil)
         zoneInputs = nil
         workoutStart = nil
-        session.prepare()
         Task {
             let inputs = await WatchHealth.zoneInputs()
             guard session === self.session else { return }
@@ -158,10 +199,12 @@ final class WatchSession: NSObject {
     }
 
     /// The session mirrors before its activity starts, so the iPhone's `begin` can arrive while it's only prepared.
-    /// Collection begins once it runs, dated at the Workout's Start either way.
+    /// Collection begins once it runs, dated at the Workout's Start either way. A session recovered after a crash
+    /// has usually begun already, and the iPhone's `begin` to it changes nothing.
     private func beginCollectionIfRunning() {
         guard let start = collectionStart, let session, let builder, session.state == .running else { return }
         collectionStart = nil
+        guard !hasBegunCollection else { return }
         hasBegunCollection = true
         Task { try? await builder.beginCollection(at: start) }
     }
@@ -198,7 +241,7 @@ final class WatchSession: NSObject {
         }
     }
 
-    private func stateChanged(_ session: HKWorkoutSession, to state: HKWorkoutSessionState) {
+    private func stateChanged(_ session: HKWorkoutSession, to state: HKWorkoutSessionState, at date: Date) {
         guard session === self.session else { return }
         switch state {
         case .prepared:
@@ -211,14 +254,25 @@ final class WatchSession: NSObject {
             }
             apply(.sessionStopped)
         case .ended:
+            // The flow hears of it while the builder is still here. A session the Watch didn't end was ended by the
+            // system, as when another workout app starts its own, and the flow may save what it collected. HealthKit
+            // reports that error before this change of state, so the change alone is acted on.
+            apply(.sessionEnded(at: date))
+            if pendingSave != nil {
+                save(session)
+            }
             self.session = nil
             builder = nil
-            apply(.sessionEnded)
         case .notStarted, .paused:
             break
         @unknown default:
             break
         }
+    }
+
+    private func disconnected(_ session: HKWorkoutSession, at date: Date) {
+        guard session === self.session else { return }
+        apply(.disconnected(at: date))
     }
 
     private func collected(_ reading: HeartRateReading, from builder: HKLiveWorkoutBuilder) {
@@ -241,10 +295,19 @@ extension WatchSession: HKWorkoutSessionDelegate {
         _ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState,
         from fromState: HKWorkoutSessionState, date: Date
     ) {
-        Task { @MainActor in self.stateChanged(workoutSession, to: toState) }
+        Task { @MainActor in self.stateChanged(workoutSession, to: toState, at: date) }
     }
 
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: any Error) {}
+
+    /// Only this starts a dropout. HealthKit then tries to reconnect by itself, and the iPhone's messages through
+    /// the new mirrored instance end the dropout.
+    nonisolated func workoutSession(
+        _ workoutSession: HKWorkoutSession, didDisconnectFromRemoteDeviceWithError error: (any Error)?
+    ) {
+        let date = Date.now
+        Task { @MainActor in self.disconnected(workoutSession, at: date) }
+    }
 
     nonisolated func workoutSession(
         _ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]

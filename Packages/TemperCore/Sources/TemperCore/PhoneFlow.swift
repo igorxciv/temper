@@ -8,6 +8,10 @@ import Foundation
 /// the same way as one arriving for the first time. `end` carries the same Health record the iPhone saves itself, so
 /// the Watch's copy, which Health keeps in place of the iPhone's, has identical times.
 ///
+/// The iPhone shows nothing during a dropout. An instance that disconnects gets nothing more, the Workout runs on,
+/// and the Watch's session reconnects by itself as a new instance. A Stop during the dropout reaches the Watch then,
+/// because the record is held until the session `end` went to has ended.
+///
 /// Each tap from the Watch goes to the engine placed back by its age on arrival, or is refused when it's more than
 /// 2 s old. The engine then clamps it, so a Watch tap placed before a Live Activity press the engine already applied
 /// lands just after that press.
@@ -26,6 +30,9 @@ where Instant.Duration == Duration {
         case published(WatchState)
         /// A mirrored session arrived, which started on the Watch at `start` and reached the iPhone `at`.
         case instanceArrived(Instance, start: Date, at: Date)
+        /// A mirrored session lost the Watch. It's no longer valid, though the Watch's session may run on and reconnect
+        /// as a new instance.
+        case instanceDisconnected(Instance)
         /// A mirrored session reached its end, so the link through it is gone.
         case instanceEnded(Instance)
         /// A message from the Watch through `instance`, with the engine clock and wall clock read as it arrived.
@@ -92,6 +99,12 @@ where Instant.Duration == Duration {
                 inTime: inTime, version: MessageToWatch.version)
             return [.send(begin, to: instance)] + (latest.map { [.send(.update($0), to: instance)] } ?? [])
                 + ending(instance)
+        case .instanceDisconnected(let instance):
+            // The record is kept: the Watch's session hasn't ended, and the instance it reconnects as needs `end`.
+            if current == instance {
+                current = nil
+            }
+            return []
         case .instanceEnded(let instance):
             if current == instance {
                 current = nil
