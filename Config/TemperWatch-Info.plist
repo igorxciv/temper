@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The Watch never asks for Health, because it shares the iPhone's grant. It keeps both strings, worded as on
+	     the iPhone, in case a later watchOS separates the grants. -->
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Temper saves each Workout to Health when it ends.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Temper reads your heart rate during a Workout on Apple Watch, and your date of birth and resting heart rate to work out heart-rate zones.</string>
+	<!-- Tapping the Live Activity in the Smart Stack opens this app. An empty array means every Live Activity of
+	     the app, and Temper has one, WorkoutAttributes. Apple doesn't say how to name a single type. -->
+	<key>WKSupportsLiveActivityLaunchAttributeTypes</key>
+	<array/>
+</dict>
+</plist>

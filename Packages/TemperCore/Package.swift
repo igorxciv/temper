@@ -12,7 +12,7 @@ let settings: [SwiftSetting] = [
 
 let package = Package(
     name: "TemperCore",
-    platforms: [.iOS(.v27), .macOS(.v27)],
+    platforms: [.iOS(.v27), .macOS(.v27), .watchOS(.v26)],
     products: [.library(name: "TemperCore", targets: ["TemperCore"])],
     targets: [
         .target(name: "TemperCore", swiftSettings: settings),

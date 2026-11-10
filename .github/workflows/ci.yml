@@ -49,6 +49,16 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
           SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
           test
+      # The test run above already carries the Watch app inside the iPhone app. This builds it on its own, for the
+      # watchOS 26 deployment target, so a Watch-only break reads clearly.
+      - name: Build the Watch app for Simulator, unsigned
+        run: >
+          xcodebuild -scheme TemperWatch
+          -destination 'generic/platform=watchOS Simulator'
+          -quiet
+          CODE_SIGNING_ALLOWED=NO
+          SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+          build
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
