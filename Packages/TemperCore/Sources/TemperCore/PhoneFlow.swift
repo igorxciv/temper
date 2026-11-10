@@ -12,8 +12,13 @@ import Foundation
 /// leftover and gets `discard`. So does one that started only once the Workout had ended, which collected nothing
 /// during it. The match has no slack, because the two clocks agree within about 8 ms.
 ///
-/// The instance is generic so tests can stand in for HealthKit's session.
-public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
+/// Each tap from the Watch goes to the engine placed back by its age on arrival, or is refused when it's more than
+/// 2 s old. The engine then clamps it, so a Watch tap placed before a Live Activity press the engine already applied
+/// lands just after that press.
+///
+/// The instance and the engine's instant are generic so tests can stand in for HealthKit's session and the clock.
+public nonisolated struct PhoneFlow<Instance: Hashable & Sendable, Instant: InstantProtocol>: Sendable
+where Instant.Duration == Duration {
     public enum Event: Equatable, Sendable {
         /// The engine set the Workout's fixed start point, at `start` on the wall clock. `workoutsAllowed` is the
         /// iPhone's workout write status, which is also the Watch's.
@@ -29,6 +34,8 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
         case instanceArrived(Instance, start: Date, at: Date)
         /// A mirrored session reached its end, so the link through it is gone.
         case instanceEnded(Instance)
+        /// A message from the Watch through `instance`, with the engine clock and wall clock read as it arrived.
+        case received(MessageFromWatch, from: Instance, arrival: ClockAnchor<Instant>)
     }
 
     public enum Effect: Equatable, Sendable {
@@ -38,6 +45,8 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
         case send(MessageToWatch, to: Instance)
         /// Stop the Watch's session from this side, once the messages before it have been sent.
         case stopActivity(Instance)
+        /// Give the engine a tap from the Watch, at its placed instant. It doesn't wait on the messages before it.
+        case apply(WatchCommand, at: Instant)
     }
 
     private struct Running: Sendable {
@@ -112,6 +121,12 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
                 }
             }
             return []
+        case .received(.tap(let command, let tap), let instance, let arrival):
+            guard instance == current, !hasEnded else { return [] }
+            guard let placed = WatchTap.instant(of: tap, arrival: arrival) else {
+                return [.send(.refused(command), to: instance)]
+            }
+            return [.apply(command, at: placed)]
         }
     }
 

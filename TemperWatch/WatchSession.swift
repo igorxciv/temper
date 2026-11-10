@@ -2,12 +2,13 @@ import Foundation
 import HealthKit
 import Observation
 import TemperCore
+import WatchKit
 
 /// The Watch's workout session, which carries the running link to the iPhone.
 ///
 /// `WatchFlow` decides what to show and do. This adapter only calls HealthKit: it starts the session the iPhone asked
-/// for, mirrors it once it's prepared, hands each message to the flow, and carries out the flow's effects. Alongside
-/// the flow, it reads what the Zones need when the session starts and passes on each heart-rate reading.
+/// for, mirrors it once it's prepared, hands each message and tap to the flow, and carries out the flow's effects.
+/// Alongside the flow, it reads what the Zones need when the session starts and passes on each heart-rate reading.
 ///
 /// The session collects heart rate and energy, and pauses and resumes live, but collects no events of its own. At the
 /// end the Phases and Pauses come from the iPhone's Health record, so the Watch's copy carries the iPhone's times.
@@ -49,6 +50,11 @@ final class WatchSession: NSObject {
     /// Done on the complete screen.
     func done() {
         apply(.doneTapped)
+    }
+
+    /// A tap on the running screen's capsule or the secondary page, dated now on the Watch's clock.
+    func tap(_ command: WatchCommand) {
+        apply(.tapped(command, at: .now))
     }
 
     private func apply(_ event: WatchFlow.Event) {
@@ -100,6 +106,10 @@ final class WatchSession: NSObject {
                 builder?.discardWorkout()
             }
             session?.end()
+        case .send(let message):
+            send(message)
+        case .signalRefused:
+            WKInterfaceDevice.current().play(.failure)
         case .cancelHaptics(let date):
             haptics.cancel(after: date)
         case .cancelAllHaptics:
@@ -109,6 +119,12 @@ final class WatchSession: NSObject {
         case .scheduleHaptics(let cues):
             haptics.schedule(cues)
         }
+    }
+
+    /// A send that fails, as it does with the link down, loses the tap. Showing that is the dropout's work.
+    private func send(_ message: MessageFromWatch) {
+        guard let session, let data = try? message.json() else { return }
+        Task { try? await session.sendToRemoteWorkoutSession(data: data) }
     }
 
     private func startSession() {

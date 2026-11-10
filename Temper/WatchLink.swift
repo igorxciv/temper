@@ -6,12 +6,13 @@ import TemperCore
 ///
 /// `PhoneFlow` decides what to send and when. This adapter only calls HealthKit: it opens the Watch, keeps the
 /// mirrored sessions the flow takes, and carries out the flow's effects one at a time, in order, so `end` lands
-/// before the session is stopped.
+/// before the session is stopped. A tap from the Watch skips that queue: it goes to `tapped` as soon as it's placed,
+/// so the Rest it begins isn't held up behind a send.
 ///
 /// One link serves the app for as long as it runs. It's made at launch, because HealthKit may launch the app in the
 /// background to hand over a mirrored session.
 final class WatchLink: NSObject {
-    private typealias Flow = PhoneFlow<ObjectIdentifier>
+    private typealias Flow = PhoneFlow<ObjectIdentifier, ContinuousClock.Instant>
 
     private let store = HKHealthStore()
     private let workoutsAllowed: () -> Bool
@@ -22,6 +23,9 @@ final class WatchLink: NSObject {
     /// each arrived. Each is matched once it reports running.
     private var unstarted: [ObjectIdentifier: (session: HKWorkoutSession, arrival: Date)] = [:]
     private let effects: AsyncStream<Flow.Effect>.Continuation
+
+    /// Gives the engine a tap from the Watch, at the instant the flow placed it on the engine clock.
+    var tapped: (WatchCommand, ContinuousClock.Instant) -> Void = { _, _ in }
 
     /// `workoutsAllowed` reads the iPhone's workout write status, which is also the Watch's.
     init(workoutsAllowed: @escaping () -> Bool = { HealthKitWorkouts().writeStatus == .allowed }) {
@@ -89,13 +93,25 @@ final class WatchLink: NSObject {
         handle(.instanceEnded(id))
     }
 
+    private func received(
+        _ messages: [MessageFromWatch], from id: ObjectIdentifier, arrival: ClockAnchor<ContinuousClock.Instant>
+    ) {
+        for message in messages {
+            handle(.received(message, from: id, arrival: arrival))
+        }
+    }
+
     private func handle(_ event: Flow.Event) {
         enqueue(flow.handle(event))
     }
 
     private func enqueue(_ effects: [Flow.Effect]) {
         for effect in effects {
-            self.effects.yield(effect)
+            if case .apply(let command, let tap) = effect {
+                tapped(command, tap)
+            } else {
+                self.effects.yield(effect)
+            }
         }
     }
 
@@ -116,6 +132,9 @@ final class WatchLink: NSObject {
             try? await session.sendToRemoteWorkoutSession(data: data)
         case .stopActivity(let id):
             sessions[id]?.stopActivity(with: .now)
+        case .apply:
+            // Handed to the engine on the spot, in `enqueue(_:)`.
+            break
         }
     }
 }
@@ -134,4 +153,15 @@ extension WatchLink: HKWorkoutSessionDelegate {
     }
 
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: any Error) {}
+
+    nonisolated func workoutSession(
+        _ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]
+    ) {
+        // Read on arrival, before the hop to the main actor, so the 2 s limit measures the trip from the Watch alone.
+        let arrival = ClockAnchor<ContinuousClock.Instant>.now
+        let id = ObjectIdentifier(workoutSession)
+        // Data this build can't read is dropped.
+        let messages = data.compactMap { try? MessageFromWatch(json: $0) }
+        Task { @MainActor in self.received(messages, from: id, arrival: arrival) }
+    }
 }

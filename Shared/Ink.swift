@@ -70,3 +70,22 @@ struct PhaseColors {
         text = Color(hex: hex.text)
     }
 }
+
+/// The Watch's Stop: red on a dark red fill, and solid red with dark text once it asks for a second tap.
+struct StopColors {
+    let red: Color
+    let darkRed: Color
+    let onRed: Color
+
+    init(contrast: ColorSchemeContrast) {
+        if contrast == .increased {
+            red = Color(hex: 0xFF8085)
+            darkRed = Color(hex: 0x4D161A)
+            onRed = Color(hex: 0x000000)
+        } else {
+            red = Color(hex: 0xFF5A5F)
+            darkRed = Color(hex: 0x40161A)
+            onRed = Color(hex: 0x1A0506)
+        }
+    }
+}

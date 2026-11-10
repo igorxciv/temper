@@ -25,12 +25,20 @@ nonisolated struct MessageToWatchTests {
                     kind: .work, round: nil, start: start, end: start.addingTimeInterval(600), pausedAt: nil,
                     countsUp: true, line: .value("10:00", caption: .before("of"), spoken: "of 10 minutes"),
                     capsule: .pause))),
+        .refused(.stop),
         .end(nil),
         .end(record),
         .discard,
     ])
     func `A message arrives as it was sent`(message: MessageToWatch) throws {
         #expect(try MessageToWatch(json: message.json()) == message)
+    }
+
+    @Test(arguments: [WatchCommand.done, .pause, .resume, .stop])
+    func `A tap from the Watch arrives as it was sent, with its date`(command: WatchCommand) throws {
+        let message = MessageFromWatch.tap(command, at: Self.start.addingTimeInterval(12.25))
+
+        #expect(try MessageFromWatch(json: message.json()) == message)
     }
 
     @Test func `Data that isn't a message fails to decode`() {
