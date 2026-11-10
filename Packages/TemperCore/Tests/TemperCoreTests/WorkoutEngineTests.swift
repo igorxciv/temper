@@ -29,8 +29,11 @@ nonisolated struct WorkoutEngineTests {
         ManualClock.Instant(offset: .seconds(seconds))
     }
 
-    private func running(_ phase: Phase, endsAt end: Double) -> Snapshot {
-        Snapshot(progress: .running(phase: phase, endsAt: at(end)), rounds: 2)
+    /// A running Phase, with the Cue of what follows it due at its end.
+    private func running(_ phase: Phase, endsAt end: Double, then next: Cue) -> Snapshot {
+        Snapshot(
+            progress: .running(phase: phase, endsAt: at(end)), rounds: 2,
+            cues: [Snapshot.TimedCue(cue: next, due: at(end))])
     }
 
     @Test func `Start publishes the first Phase, ending its full length after the start point`() async {
@@ -40,7 +43,7 @@ nonisolated struct WorkoutEngineTests {
 
         await engine.start()
 
-        #expect(await snapshots.next() == running(prepare, endsAt: 17))
+        #expect(await snapshots.next() == running(prepare, endsAt: 17, then: .work))
     }
 
     @Test func `Start returns its fixed start point`() async {
@@ -70,16 +73,16 @@ nonisolated struct WorkoutEngineTests {
         _ = await snapshots.next()
 
         clock.advance(by: .seconds(10))
-        #expect(await snapshots.next() == running(firstWork, endsAt: 40))
+        #expect(await snapshots.next() == running(firstWork, endsAt: 40, then: .rest))
 
         clock.advance(by: .seconds(30))
-        #expect(await snapshots.next() == running(rest, endsAt: 55))
+        #expect(await snapshots.next() == running(rest, endsAt: 55, then: .work))
 
         clock.advance(by: .seconds(15))
-        #expect(await snapshots.next() == running(secondWork, endsAt: 85))
+        #expect(await snapshots.next() == running(secondWork, endsAt: 85, then: .cooldown))
 
         clock.advance(by: .seconds(30))
-        #expect(await snapshots.next() == running(cooldown, endsAt: 145))
+        #expect(await snapshots.next() == running(cooldown, endsAt: 145, then: .workoutComplete))
     }
 
     @Test func `The Workout finishes at its total length and the snapshots end`() async {
@@ -149,7 +152,7 @@ nonisolated struct WorkoutEngineTests {
 
         clock.advance(by: .milliseconds(10_500))
 
-        #expect(await snapshots.next() == running(firstWork, endsAt: 40))
+        #expect(await snapshots.next() == running(firstWork, endsAt: 40, then: .rest))
     }
 
     @Test func `A late wake passes missed Phases silently`() async {
@@ -160,7 +163,7 @@ nonisolated struct WorkoutEngineTests {
 
         clock.advance(by: .seconds(60))
 
-        #expect(await snapshots.next() == running(secondWork, endsAt: 85))
+        #expect(await snapshots.next() == running(secondWork, endsAt: 85, then: .cooldown))
     }
 
     @Test func `A wake past the finish goes straight to finished`() async {
@@ -217,11 +220,8 @@ nonisolated struct WorkoutEngineTests {
 
         let resumedAt = active + .seconds(500)
         #expect(
-            await snapshots.next()
-                == Snapshot(
-                    progress: .running(phase: phase, endsAt: at(0).advanced(by: resumedAt + .seconds(timeLeft))),
-                    rounds: 2
-                )
+            await snapshots.next()?.progress
+                == .running(phase: phase, endsAt: at(0).advanced(by: resumedAt + .seconds(timeLeft)))
         )
     }
 
@@ -250,10 +250,7 @@ nonisolated struct WorkoutEngineTests {
 
         clock.advance(by: .seconds(500))
         await engine.resume(at: clock.now)
-        #expect(
-            await snapshots.next()
-                == Snapshot(progress: .running(phase: phase, endsAt: at(active + 500 + timeLeft)), rounds: 0)
-        )
+        #expect(await snapshots.next()?.progress == .running(phase: phase, endsAt: at(active + 500 + timeLeft)))
     }
 
     @Test func `A Pause uses the time of the tap, however late the engine hears of it`() async {
@@ -276,7 +273,7 @@ nonisolated struct WorkoutEngineTests {
 
         await engine.resume(at: tap)
 
-        #expect(await snapshots.next() == running(prepare, endsAt: 20))
+        #expect(await snapshots.next() == running(prepare, endsAt: 20, then: .work))
     }
 
     @Test func `A Pause tapped just before a Phase's end holds that Phase, even if the engine moved on first`() async {
@@ -311,7 +308,7 @@ nonisolated struct WorkoutEngineTests {
 
         clock.advance(by: .seconds(6))
 
-        #expect(await snapshots.next() == running(firstWork, endsAt: 140))
+        #expect(await snapshots.next() == running(firstWork, endsAt: 140, then: .rest))
     }
 
     @Test func `Pausing twice and resuming twice change nothing`() async {
@@ -401,7 +398,7 @@ nonisolated struct WorkoutEngineTests {
 
         await engine.refresh()
 
-        #expect(await snapshots.next() == running(rest, endsAt: 55))
+        #expect(await snapshots.next() == running(rest, endsAt: 55, then: .work))
     }
 
     @Test func `Returning to the front always publishes, even with nothing changed`() async {
@@ -409,7 +406,7 @@ nonisolated struct WorkoutEngineTests {
 
         await engine.refresh()
 
-        #expect(await snapshots.next() == running(prepare, endsAt: 10))
+        #expect(await snapshots.next() == running(prepare, endsAt: 10, then: .work))
     }
 
     @Test func `Returning to the front during a Pause republishes the time left`() async {
@@ -441,7 +438,40 @@ nonisolated struct WorkoutEngineTests {
 
         clock.advance(by: .seconds(11))
 
-        #expect(await snapshots.next() == running(secondWork, endsAt: 85))
+        #expect(await snapshots.next() == running(secondWork, endsAt: 85, then: .cooldown))
+    }
+
+    // MARK: The Cues to come
+
+    private func cue(_ cue: Cue, at seconds: Double) -> Snapshot.TimedCue {
+        Snapshot.TimedCue(cue: cue, due: at(seconds))
+    }
+
+    @Test func `A running Phase carries its Cues to come, at the instants they're due`() async {
+        let engine = makeEngine()
+        clock.advance(by: .seconds(7))
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+
+        #expect(await snapshots.next()?.cues == [cue(.work, at: 17)])
+
+        clock.advance(by: .seconds(10))
+        #expect(await snapshots.next()?.cues == [cue(.rest, at: 47)])
+    }
+
+    @Test func `A Paused Phase carries no Cue, and Resume places its Cues later by the Pause`() async {
+        let engine = makeEngine()
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        _ = await snapshots.next()
+        clock.advance(by: .seconds(4))
+
+        await engine.pause(at: clock.now)
+        #expect(await snapshots.next()?.cues == [])
+
+        clock.advance(by: .seconds(100))
+        await engine.resume(at: clock.now)
+        #expect(await snapshots.next()?.cues == [cue(.work, at: 110)])
     }
 
     // MARK: Open Phases
@@ -516,11 +546,13 @@ nonisolated struct WorkoutEngineTests {
     }
 
     /// A Phase after Done, carrying the time of the open Work just before it, if there was one.
+    /// The Rest has the last Work to come at its end, and the last Work has Workout complete.
     private func runningAfterDone(_ phase: Phase, endsAt end: Double, workTime: Double? = nil) -> Snapshot {
         Snapshot(
             progress: .running(phase: phase, endsAt: at(end)),
             rounds: nil,
-            previousOpenPhaseTime: workTime.map { .seconds($0) }
+            previousOpenPhaseTime: workTime.map { .seconds($0) },
+            cues: [Snapshot.TimedCue(cue: phase == lastWork ? .workoutComplete : .work, due: at(end))]
         )
     }
 
@@ -751,7 +783,10 @@ extension WorkoutEngineTests {
 
         clock.advance(by: .seconds(10))
         #expect(
-            await snapshots.next() == Snapshot(progress: .running(phase: stopwatchWork, endsAt: at(610)), rounds: 0))
+            await snapshots.next()
+                == Snapshot(
+                    progress: .running(phase: stopwatchWork, endsAt: at(610)), rounds: 0,
+                    cues: [Snapshot.TimedCue(cue: .finish, due: at(610))]))
 
         clock.advance(by: .seconds(600))
         #expect(
@@ -904,7 +939,27 @@ extension WorkoutEngineTests {
     /// A Rest, carrying the time of the Work it follows.
     private func openRoundsRest(round: Int, endsAt end: ManualClock.Instant, workTime: Duration) -> Snapshot {
         let phase = Phase(kind: .rest, duration: .seconds(60), round: round)
-        return Snapshot(progress: .running(phase: phase, endsAt: end), rounds: nil, previousOpenPhaseTime: workTime)
+        return Snapshot(
+            progress: .running(phase: phase, endsAt: end), rounds: nil, previousOpenPhaseTime: workTime,
+            cues: [
+                Snapshot.TimedCue(cue: .tenSeconds, due: end.advanced(by: .seconds(-10))),
+                Snapshot.TimedCue(cue: .work, due: end),
+            ])
+    }
+
+    @Test func `An Open Rounds Rest carries "10 seconds" and then the next Round's Work`() async {
+        let engine = makeOpenRoundsEngine(rest: 30)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+        await engine.start()
+        #expect(await snapshots.next()?.cues == [])
+        clock.advance(by: .seconds(40))
+
+        await engine.done(at: clock.now)
+
+        #expect(
+            await snapshots.next()?.cues == [
+                Snapshot.TimedCue(cue: .tenSeconds, due: at(60)), Snapshot.TimedCue(cue: .work, due: at(70)),
+            ])
     }
 
     @Test func `Open Rounds starts straight into Round 1's open Work, with no set number of Rounds`() async {
@@ -1135,7 +1190,7 @@ extension WorkoutEngineTests {
 
         await engine.resume(at: at(3.5))
 
-        #expect(await snapshots.next() == running(prepare, endsAt: 10))
+        #expect(await snapshots.next() == running(prepare, endsAt: 10, then: .work))
     }
 
     @Test func `A Resume dated after now is placed at now`() async {
@@ -1146,7 +1201,7 @@ extension WorkoutEngineTests {
 
         await engine.resume(at: at(15))
 
-        #expect(await snapshots.next() == running(prepare, endsAt: 20))
+        #expect(await snapshots.next() == running(prepare, endsAt: 20, then: .work))
     }
 
     @Test func `A Resume dated before the start of the Phase a Done began never runs the Phase before it`() async {

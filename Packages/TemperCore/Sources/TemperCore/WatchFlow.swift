@@ -6,9 +6,9 @@ import Foundation
 /// The iPhone opens the Watch at Start. The Watch starts its own workout session and follows what the iPhone sends.
 /// It keeps no Workout logic of its own and persists nothing. Its capsule and secondary page are a remote: each tap
 /// goes to the iPhone dated when it was made, and the update it causes shows it worked. Its session pauses and resumes
-/// with each update, so active time and energy follow the Workout. At the end it saves the Health record the iPhone
-/// sends, at ``HealthRecord/watchSyncVersion``, so Health keeps the Watch's copy, with heart rate, in place of the
-/// iPhone's.
+/// with each update, so active time and energy follow the Workout, and while it runs the Watch taps the wrist at each
+/// Cue. At the end it saves the Health record the iPhone sends, at ``HealthRecord/watchSyncVersion``, so Health keeps
+/// the Watch's copy, with heart rate, in place of the iPhone's.
 public nonisolated struct WatchFlow: Equatable, Sendable {
     public enum Screen: Equatable, Sendable {
         /// "Start on iPhone", or the Health hint when workouts aren't allowed.
@@ -25,7 +25,8 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
     public enum Event: Equatable, Sendable {
         /// The iPhone opened the Watch for a Workout, with `workoutsAllowed` read from the Watch's own Health status.
         case launched(workoutsAllowed: Bool)
-        case received(MessageToWatch)
+        /// A message from the iPhone arrived, at `at` on the Watch's clock.
+        case received(MessageToWatch, at: Date)
         /// The session stopped, from the iPhone's side or the Watch's.
         case sessionStopped
         /// The session ended, and the link with it.
@@ -53,6 +54,14 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case send(MessageFromWatch)
         /// Show that the iPhone refused a tap, which reached it too late to place.
         case signalRefused(WatchCommand)
+        /// Cancel every Cue's haptic scheduled for after `after`. One due by then has started, and plays out.
+        case cancelHaptics(after: Date)
+        /// Cancel every Cue's haptic, under way or still to come, as the session goes.
+        case cancelAllHaptics
+        /// Play a Cue's haptic now.
+        case playHaptic(Cue)
+        /// Play each Cue's haptic at its date.
+        case scheduleHaptics([WatchCue])
     }
 
     public private(set) var screen = Screen.idle
@@ -62,6 +71,8 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
     private var hasSession = false
     /// Whether the session was last told to pause rather than resume.
     private var isSessionPaused = false
+    /// The haptics the updates have scheduled and played, which only a running session can play with the wrist down.
+    private var haptics = CueHaptics()
 
     public init() {}
 
@@ -74,9 +85,10 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
             workoutID = nil
             hasSession = true
             isSessionPaused = false
+            haptics = CueHaptics()
             return ending + [.startSession]
-        case .received(let message):
-            return receive(message)
+        case .received(let message, let arrival):
+            return receive(message, at: arrival)
         case .sessionStopped:
             // The iPhone stops a session tied to a Workout only after sending `end`, which can arrive just after the
             // stop. So that session waits for it, which saves or not, and only a session tied to nothing ends here.
@@ -85,7 +97,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case .sessionEnded:
             hasSession = false
             leaveRunning()
-            return []
+            return cancelHaptics()
         case .doneTapped:
             if case .complete = screen {
                 screen = .idle
@@ -97,7 +109,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         }
     }
 
-    private mutating func receive(_ message: MessageToWatch) -> [Effect] {
+    private mutating func receive(_ message: MessageToWatch, at arrival: Date) -> [Effect] {
         guard screen != .updateNeeded else { return [] }
         switch message {
         case .begin(let workoutID, let start, _, _, let version):
@@ -111,7 +123,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case .update(let state):
             guard workoutID != nil else { return [] }
             show(state)
-            return followPause(of: state)
+            return followPause(of: state) + (hasSession ? hapticEffects(for: state, at: arrival) : [])
         case .refused(let command):
             guard workoutID != nil else { return [] }
             return [.signalRefused(command)]
@@ -154,6 +166,26 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
     private mutating func endSession(saving record: HealthRecord? = nil) -> [Effect] {
         guard hasSession else { return [] }
         hasSession = false
-        return [record.map(Effect.endAndSave) ?? .endWithoutSaving]
+        return cancelHaptics() + [record.map(Effect.endAndSave) ?? .endWithoutSaving]
+    }
+
+    private mutating func hapticEffects(for state: WatchState, at arrival: Date) -> [Effect] {
+        let plan = haptics.plan(for: state, arrivingAt: arrival)
+        var effects: [Effect] = []
+        if plan.cancelsScheduled {
+            effects.append(.cancelHaptics(after: arrival))
+        }
+        if let cue = plan.playsNow {
+            effects.append(.playHaptic(cue))
+        }
+        if !plan.schedules.isEmpty {
+            effects.append(.scheduleHaptics(plan.schedules))
+        }
+        return effects
+    }
+
+    /// The session is going, so no haptic still to come can play.
+    private mutating func cancelHaptics() -> [Effect] {
+        haptics.cancelAll() ? [.cancelAllHaptics] : []
     }
 }

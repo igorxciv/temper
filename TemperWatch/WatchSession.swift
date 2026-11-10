@@ -25,6 +25,7 @@ final class WatchSession: NSObject {
     @ObservationIgnored private let store = HKHealthStore()
     @ObservationIgnored private var session: HKWorkoutSession?
     @ObservationIgnored private var builder: HKLiveWorkoutBuilder?
+    @ObservationIgnored private let haptics = WristHaptics()
     /// The configuration the iPhone opened the Watch with, for the session the flow starts.
     @ObservationIgnored private var configuration: HKWorkoutConfiguration?
     /// The Workout's Start, held from the iPhone's `begin` until the session runs and collection can begin.
@@ -99,6 +100,14 @@ final class WatchSession: NSObject {
             send(message)
         case .signalRefused:
             WKInterfaceDevice.current().play(.failure)
+        case .cancelHaptics(let date):
+            haptics.cancel(after: date)
+        case .cancelAllHaptics:
+            haptics.cancelAll()
+        case .playHaptic(let cue):
+            haptics.play(cue)
+        case .scheduleHaptics(let cues):
+            haptics.schedule(cues)
         }
     }
 
@@ -124,6 +133,7 @@ final class WatchSession: NSObject {
         session.delegate = self
         self.session = session
         self.builder = builder
+        haptics.session = session
         collectionStart = nil
         hasBegunCollection = false
         pendingSave = nil
@@ -216,10 +226,12 @@ final class WatchSession: NSObject {
         heartRate.current.record(latest: reading.latest, average: reading.average, maximum: reading.maximum)
     }
 
+    /// Each message is timed as it's handled, in the same main-actor turn as the haptics it cancels, so no haptic can
+    /// start between the two and be counted as cancelled.
     private func received(_ messages: [MessageToWatch], from session: HKWorkoutSession) {
         guard session === self.session else { return }
         for message in messages {
-            apply(.received(message))
+            apply(.received(message, at: .now))
         }
     }
 }
