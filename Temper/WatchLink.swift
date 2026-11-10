@@ -9,6 +9,9 @@ import TemperCore
 /// before the session is stopped. A tap from the Watch skips that queue: it goes to `tapped` as soon as it's placed,
 /// so the Rest it begins isn't held up behind a send.
 ///
+/// Only the flow is tested. No protocol stands in for HealthKit here, since this would be its only adapter, so this
+/// adapter is checked on the devices.
+///
 /// One link serves the app for as long as it runs. It's made at launch, because HealthKit may launch the app in the
 /// background to hand over a mirrored session.
 final class WatchLink: NSObject {

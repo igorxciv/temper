@@ -10,6 +10,9 @@ import WatchKit
 /// for, mirrors it once it's prepared, hands each message and tap to the flow, and carries out the flow's effects.
 /// Alongside the flow, it reads what the Zones need when the session starts and passes on each heart-rate reading.
 ///
+/// Only the flow is tested. No protocol stands in for HealthKit here, since this would be its only adapter, so this
+/// adapter is checked on the devices.
+///
 /// The session collects heart rate and energy, and pauses and resumes live, but collects no events of its own. At the
 /// end the Phases and Pauses come from the iPhone's Health record, so the Watch's copy carries the iPhone's times.
 ///
@@ -122,7 +125,7 @@ final class WatchSession: NSObject {
                 return
             }
             pendingSave = record
-            // Stopped at the record's end, then saved once it has stopped, as the Health probe for #108 did. A
+            // Stopped at the record's end, then saved once it has stopped, the order that saved on the devices. A
             // session another workout app took over has ended already, and its builder can still save.
             if session.state == .stopped || session.state == .ended {
                 save(session)
@@ -233,7 +236,7 @@ final class WatchSession: NSObject {
     /// iPhone's own copy, which has every Phase, covers the Workout.
     ///
     /// The live builder adds one activity of its own spanning the whole workout. It's left alone: on the devices it did
-    /// no harm next to the Phases added from the record (#124, run B).
+    /// no harm next to the Phases added from the record.
     private func save(_ session: HKWorkoutSession) {
         guard let record = pendingSave.take(), let builder else {
             session.end()
