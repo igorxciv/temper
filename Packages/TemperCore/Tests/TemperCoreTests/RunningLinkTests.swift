@@ -314,7 +314,7 @@ nonisolated struct RunningLinkTests {
             link.watchEffects == [
                 .startSession, .beginCollection(at: link.epoch), .send(.tap(.done, at: tapped(100))),
                 .send(.tap(.pause, at: tapped(180))), .send(.tap(.resume, at: tapped(190))),
-                .send(.tap(.done, at: tapped(200))), .tapRefused(.done), .send(.tap(.stop, at: tapped(231))),
+                .send(.tap(.done, at: tapped(200))), .signalRefused(.done), .send(.tap(.stop, at: tapped(231))),
                 .endWithoutSaving,
             ])
     }

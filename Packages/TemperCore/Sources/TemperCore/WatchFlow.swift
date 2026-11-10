@@ -44,7 +44,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         /// Send a message to the iPhone over the session.
         case send(MessageFromWatch)
         /// Show that the iPhone refused a tap, which reached it too late to place.
-        case tapRefused(WatchCommand)
+        case signalRefused(WatchCommand)
     }
 
     public private(set) var screen = Screen.idle
@@ -100,7 +100,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
             return []
         case .refused(let command):
             guard workoutID != nil else { return [] }
-            return [.tapRefused(command)]
+            return [.signalRefused(command)]
         case .end:
             guard workoutID != nil else { return [] }
             leaveRunning()

@@ -26,8 +26,8 @@ nonisolated struct WatchPhaseTests {
 
     /// Open Rounds' capsule is Done, so the secondary page is where its Pause and Resume live.
     @Test func `The secondary page offers Pause while the Phase runs and Resume while it's Paused`() {
-        #expect(phase(start: -30, end: 10).pauseCommand == .pause)
-        #expect(phase(start: -30, end: 10, pausedAt: 0).pauseCommand == .resume)
+        #expect(phase(start: -30, end: 10).pauseOrResume == .pause)
+        #expect(phase(start: -30, end: 10, pausedAt: 0).pauseOrResume == .resume)
     }
 
     @Test func `Counting down, the time left rounds up and the bar empties`() {

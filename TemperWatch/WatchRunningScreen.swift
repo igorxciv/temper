@@ -142,29 +142,16 @@ private struct QuickActionCapsule: View {
     let tap: (WatchCommand) -> Void
 
     var body: some View {
-        WatchCapsule(title: title, symbol: symbol, fill: colors.ring, ink: colors.background, dim: dim) {
-            if let command = capsule.command {
+        // A dimmed Done reads as Done but sends nothing.
+        let command = capsule.command
+        let shown = command ?? .done
+        WatchCapsule(title: shown.title, symbol: shown.symbol, fill: colors.ring, ink: colors.background, dim: dim) {
+            if let command {
                 tap(command)
             }
         }
-        .disabled(capsule.command == nil)
-        .opacity(capsule == .doneDimmed ? 0.3 : 1)
-    }
-
-    private var title: String {
-        switch capsule {
-        case .pause: "Pause"
-        case .resume: "Resume"
-        case .done, .doneDimmed: "Done"
-        }
-    }
-
-    private var symbol: String {
-        switch capsule {
-        case .pause: "pause.fill"
-        case .resume: "play.fill"
-        case .done, .doneDimmed: "checkmark"
-        }
+        .disabled(command == nil)
+        .opacity(command == nil ? 0.3 : 1)
     }
 }
 

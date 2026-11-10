@@ -65,21 +65,15 @@ final class WatchSession: NSObject {
             session?.end()
         case .send(let message):
             send(message)
-        case .tapRefused:
+        case .signalRefused:
             WKInterfaceDevice.current().play(.failure)
         }
     }
 
-    /// A tap that can't be sent never reaches the engine, so it fails the same way as one the iPhone refuses.
+    /// A send that fails, as it does with the link down, loses the tap. Showing that is the dropout's work.
     private func send(_ message: MessageFromWatch) {
         guard let session, let data = try? message.json() else { return }
-        Task {
-            do {
-                try await session.sendToRemoteWorkoutSession(data: data)
-            } catch {
-                WKInterfaceDevice.current().play(.failure)
-            }
-        }
+        Task { try? await session.sendToRemoteWorkoutSession(data: data) }
     }
 
     private func startSession() {

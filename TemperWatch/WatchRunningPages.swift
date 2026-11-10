@@ -21,7 +21,7 @@ struct WatchRunningPages: View {
         TabView(selection: $page) {
             WatchControlsPage(phase: phase) { command in
                 tap(command)
-                // Back to the time, to watch the Pause or Resume take hold.
+                // Back to the time, to watch the Pause or Resume take hold, as the prototype the owner judged did.
                 if command != .stop {
                     page = .running
                 }
@@ -36,13 +36,13 @@ struct WatchRunningPages: View {
 
 /// The secondary page: two wide capsules low on the screen, Pause or Resume above Stop.
 ///
-/// Stop asks by a second tap rather than a dialog. The first tap turns it solid red, reading "Tap to end". A second
-/// tap within 3 s ends the Workout, and after 3 s it goes back to Stop.
+/// Stop asks by a second tap rather than a dialog, as ``StopConfirmation`` sets out. A tap on Pause or Resume in
+/// between cancels the ask, so only two taps on Stop in a row end the Workout.
 private struct WatchControlsPage: View {
     let phase: WatchPhase
     let tap: (WatchCommand) -> Void
 
-    @State private var stop = StopConfirmation()
+    @State private var stopConfirmation = StopConfirmation()
 
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
@@ -53,24 +53,24 @@ private struct WatchControlsPage: View {
         let dim = isLuminanceReduced
 
         // Redrawn when an asking Stop goes back to Stop.
-        TimelineView(.explicit(stop.expiry.map { [$0] } ?? [])) { context in
-            let isArmed = stop.isArmed(at: context.date)
+        TimelineView(.explicit(stopConfirmation.expiry.map { [$0] } ?? [])) { context in
+            let isArmed = stopConfirmation.isArmed(at: context.date)
             VStack(spacing: 8) {
                 Spacer(minLength: 0)
                 WatchCapsule(
-                    title: phase.pauseCommand == .pause ? "Pause" : "Resume",
-                    symbol: phase.pauseCommand == .pause ? "pause.fill" : "play.fill",
-                    fill: colors.ring, ink: colors.background, dim: dim
+                    title: phase.pauseOrResume.title, symbol: phase.pauseOrResume.symbol, fill: colors.ring,
+                    ink: colors.background, dim: dim
                 ) {
-                    tap(phase.pauseCommand)
+                    stopConfirmation = StopConfirmation()
+                    tap(phase.pauseOrResume)
                 }
                 WatchCapsule(
-                    title: isArmed ? "Tap to end" : "Stop", symbol: "xmark",
+                    title: isArmed ? "Tap to end" : WatchCommand.stop.title, symbol: WatchCommand.stop.symbol,
                     fill: isArmed ? stopColors.red : stopColors.darkRed,
                     ink: isArmed ? stopColors.onRed : stopColors.red,
                     outline: stopColors.red, dim: dim
                 ) {
-                    if stop.tap(at: .now) == .end {
+                    if stopConfirmation.tap(at: .now) == .end {
                         tap(.stop)
                     }
                 }
@@ -80,41 +80,6 @@ private struct WatchControlsPage: View {
         .padding(.horizontal, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background((dim ? Color.black : colors.background).ignoresSafeArea())
-    }
-}
-
-/// A full-width capsule about 56 pt tall, as on the running screen: filled awake, outlined in Always On.
-struct WatchCapsule: View {
-    let title: String
-    let symbol: String
-    let fill: Color
-    let ink: Color
-    /// The outline and text in Always On, which is the fill unless it's too dark to read on black.
-    var outline: Color?
-    let dim: Bool
-    let action: () -> Void
-
-    var body: some View {
-        let outline = (outline ?? fill).opacity(dim ? 0.55 : 1)
-        Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(.system(size: 21, weight: .bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(maxWidth: .infinity, minHeight: 56)
-                .foregroundStyle(dim ? outline : ink)
-                .background {
-                    if dim {
-                        Capsule().strokeBorder(outline, lineWidth: 2)
-                    } else {
-                        Capsule().fill(fill)
-                    }
-                }
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        // The time is the point of the running screen, so the capsule can't grow into it.
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 

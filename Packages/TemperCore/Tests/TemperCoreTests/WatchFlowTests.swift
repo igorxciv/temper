@@ -219,7 +219,7 @@ nonisolated struct WatchFlowTests {
 
         let effects = flow.handle(.received(.refused(.done)))
 
-        #expect(effects == [.tapRefused(.done)])
+        #expect(effects == [.signalRefused(.done)])
         #expect(flow.screen == .running(work))
     }
 

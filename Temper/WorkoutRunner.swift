@@ -184,11 +184,4 @@ extension WorkoutRunner {
     }
 }
 
-extension ClockAnchor<ContinuousClock.Instant> {
-    /// The engine clock and the wall clock, read together now.
-    nonisolated static var now: Self {
-        Self(instant: ContinuousClock.now, date: Date.now)
-    }
-}
-
 extension WorkoutRunner: WorkoutControls {}

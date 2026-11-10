@@ -70,7 +70,7 @@ public nonisolated struct WatchPhase: Codable, Hashable, Sendable {
 nonisolated extension WatchPhase {
     /// What the secondary page's upper capsule asks: Pause while the Phase runs, Resume while it's Paused. It's there
     /// in every Workout Type, because Open Rounds' capsule is Done.
-    public var pauseCommand: WatchCommand {
+    public var pauseOrResume: WatchCommand {
         pausedAt == nil ? .pause : .resume
     }
 
