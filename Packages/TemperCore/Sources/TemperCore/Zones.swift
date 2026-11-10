@@ -16,7 +16,7 @@ public nonisolated struct Zones: Equatable, Sendable {
         guard let birth = calendar.date(from: dateOfBirth),
             let age = calendar.dateComponents([.year], from: birth, to: start).year
         else { return nil }
-        // In tenths and hundredths, so whole inputs make exact boundaries.
+        // Scaled from whole tenths and percents, so a boundary that is a whole bpm comes out as exactly that bpm.
         let maximum = 208 - Double(7 * age) / 10
         let reserve = maximum - restingHeartRate
         lowerBounds = [60.0, 70, 80, 90].map { restingHeartRate + reserve * $0 / 100 }

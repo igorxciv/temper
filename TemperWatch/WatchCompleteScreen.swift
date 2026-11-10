@@ -87,9 +87,9 @@ private struct HeartRateStat: View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             Image(systemName: "heart.fill")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(dim ? ink.secondary : HeartRateInk.heart)
+                .foregroundStyle(HeartRateInk.heart.opacity(dim ? 0.55 : 1))
             Text(label)
-                .font(.system(size: 13))
+                .font(.footnote)
                 .foregroundStyle(ink.secondary)
             Text(value)
                 .font(.system(size: 16, weight: .semibold).monospacedDigit())

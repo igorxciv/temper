@@ -58,7 +58,7 @@ final class WatchSession: NSObject {
         case .beginCollection(let start):
             collectionStart = start
             workoutStart = start
-            fixZones()
+            settleZones()
             beginCollectionIfRunning()
         case .endWithoutSaving:
             collectionStart = nil
@@ -92,13 +92,13 @@ final class WatchSession: NSObject {
             let inputs = await WatchHealth.zoneInputs()
             guard session === self.session else { return }
             zoneInputs = inputs
-            fixZones()
+            settleZones()
         }
     }
 
     /// Sets the Zones once both the Health reads and the Workout's Start are in, and keeps them until Stop. Without a
     /// date of birth or a resting rate they stay `nil`, and the meter stays hidden.
-    private func fixZones() {
+    private func settleZones() {
         guard let zoneInputs, let workoutStart else { return }
         self.zoneInputs = nil
         heartRate.current.zones = zoneInputs.zones(start: workoutStart)
@@ -201,10 +201,4 @@ extension WatchSession: HKLiveWorkoutBuilderDelegate {
     }
 
     nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
-}
-
-/// The heart rate of the Workout the session follows, from its start until the next one starts.
-@Observable
-final class LiveHeartRate {
-    var current = WorkoutHeartRate(zones: nil)
 }
