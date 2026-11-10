@@ -93,7 +93,7 @@ struct HealthKitWorkouts: HealthWorkoutStore {
 }
 
 extension HealthRecord.ActivityType {
-    fileprivate var healthKit: HKWorkoutActivityType {
+    var healthKit: HKWorkoutActivityType {
         switch self {
         case .highIntensityIntervalTraining: .highIntensityIntervalTraining
         case .other: .other

@@ -1,7 +1,7 @@
 /// The line under the ring: the Round line in Intervals and Open Rounds, and the length in a Stopwatch.
-public nonisolated enum RingLine: Equatable, Sendable {
+public nonisolated enum RingLine: Codable, Hashable, Sendable {
     /// A smaller caption, and which side of the value it sits on.
-    public enum Caption: Equatable, Sendable {
+    public enum Caption: Codable, Hashable, Sendable {
         case before(String)
         case after(String)
     }

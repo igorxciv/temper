@@ -3,9 +3,9 @@
 ///
 /// Every time rounds down, as the time elapsed does on the running screen, so a row matches the Work time the Rest
 /// line showed.
-public nonisolated struct RoundsSummary: Equatable, Sendable {
+public nonisolated struct RoundsSummary: Codable, Hashable, Sendable {
     /// One Round's Work time. The last can be a Work cut short by Stop.
-    public struct Row: Equatable, Sendable, Identifiable {
+    public struct Row: Codable, Hashable, Sendable, Identifiable {
         public let round: Int
         /// The Work time, as `1:42`.
         public let time: String

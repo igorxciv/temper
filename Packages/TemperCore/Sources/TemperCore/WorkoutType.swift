@@ -2,7 +2,7 @@
 ///
 /// The raw value is what's remembered as the last-used Workout Type, and it names the type's Presets and, for every
 /// type but Intervals, its remembered values, so renaming a case forgets them.
-public nonisolated enum WorkoutType: String, CaseIterable, Hashable, Identifiable, Sendable {
+public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     /// A Prepare, then Rounds of Work and Rest, then a Cooldown.
     case intervals
     /// A Prepare, then a single Work that counts up to a set length.

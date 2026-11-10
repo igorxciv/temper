@@ -27,6 +27,8 @@ final class WorkoutRunner {
     @ObservationIgnored private var engine: WorkoutEngine<ContinuousClock>?
     @ObservationIgnored private let cues = CueBank()
     @ObservationIgnored private var liveActivity: LiveActivityAdapter?
+    /// Opens the Watch at each Start and keeps it in step with the Workout.
+    @ObservationIgnored private let watch: WatchLink
 
     /// Saves each ended Workout to Health, and asks for permission from Settings.
     let health: HealthSaves
@@ -40,9 +42,11 @@ final class WorkoutRunner {
         @ObservationIgnored private var timingLog: TimingLog?
     #endif
 
-    /// Rendering begins here, at launch, so the Cues are usually ready before the first Start.
-    init(health: HealthSaves = HealthSaves()) {
+    /// Rendering begins here, at launch, so the Cues are usually ready before the first Start. The Watch link is made
+    /// here too, because HealthKit may launch the app in the background to hand over the Watch's session.
+    init(health: HealthSaves = HealthSaves(), watch: WatchLink = WatchLink()) {
         self.health = health
+        self.watch = watch
         cues.render()
         Task { await LiveActivityAdapter.endLeftovers() }
     }
@@ -51,7 +55,8 @@ final class WorkoutRunner {
         guard engine == nil else { return }
         self.workout = workout
         self.workoutType = workoutType
-        healthWorkoutID = UUID()
+        let workoutID = UUID()
+        healthWorkoutID = workoutID
         startDate = nil
         let audio = AudioAdapter(cues: cues, application: .shared)
         let engine = WorkoutEngine(
@@ -70,7 +75,11 @@ final class WorkoutRunner {
         Task { [cues] in
             await cues.waitForRendering(atMost: renderingWaitLimit)
             if let start = await engine.start() {
-                startDate = ClockAnchor.now.date(of: start)
+                let startDate = ClockAnchor.now.date(of: start)
+                self.startDate = startDate
+                // Opened only once the start point is set, so the Watch's session always starts after it and is
+                // matched to this Workout.
+                watch.start(workoutID: workoutID, workoutType: workoutType, start: startDate)
             }
             for await snapshot in engine.snapshots {
                 show(snapshot)
@@ -118,6 +127,8 @@ final class WorkoutRunner {
         #endif
         saveToHealth(snapshot)
         let display = Display(workoutType: workoutType, workout: workout, snapshot: snapshot)
+        // Before an ended Workout returns to setup, so the Watch hears that it ended.
+        watch.show(display.watchState(at: .now, date: .now))
         // An ended Workout with no complete screen, as after a Stop in Intervals and Stopwatch, returns to setup.
         if snapshot.phase == nil, display.completion == nil {
             finish()
