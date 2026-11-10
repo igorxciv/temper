@@ -4,7 +4,8 @@ import Testing
 @testable import TemperCore
 
 /// A whole Workout of each Workout Type, run by the engine on the iPhone, followed on the Watch: every snapshot goes
-/// through `PhoneFlow`, and every message it sends goes into `WatchFlow`.
+/// through `PhoneFlow`, and every message it sends goes into `WatchFlow`. At the end the Watch saves the iPhone's own
+/// Health record, or nothing when there's none.
 @Suite(.timeLimit(.minutes(1)))
 nonisolated struct RunningLinkTests {
     private typealias Instant = ManualClock.Instant
@@ -15,6 +16,9 @@ nonisolated struct RunningLinkTests {
         let workout: Workout
         /// The wall clock at the engine clock's zero.
         let epoch = Date(timeIntervalSinceReferenceDate: 1_000_000)
+        let workoutID = UUID()
+        /// The Health record the iPhone saved itself, or `nil` before the end or for a Workout too short to save.
+        var phoneRecord: HealthRecord?
 
         var phone = PhoneFlow<Int>()
         var watch = WatchFlow()
@@ -35,7 +39,8 @@ nonisolated struct RunningLinkTests {
         mutating func started(at start: Instant) {
             route(
                 phone.handle(
-                    .started(workoutID: UUID(), workoutType: workoutType, start: date(of: start), workoutsAllowed: true)
+                    .started(
+                        workoutID: workoutID, workoutType: workoutType, start: date(of: start), workoutsAllowed: true)
                 ))
         }
 
@@ -45,8 +50,15 @@ nonisolated struct RunningLinkTests {
             route(phone.handle(.instanceArrived(1, start: date(of: now), at: date(of: now))))
         }
 
-        /// The iPhone publishes the state of `snapshot`, and the Watch draws what it's sent.
+        /// The iPhone publishes the state of `snapshot`, and the Watch draws what it's sent. An ended snapshot's
+        /// Health record goes first, as `WorkoutRunner` hands it to its own save.
         mutating func publish(_ snapshot: WorkoutSnapshot<Instant>, at now: Instant) {
+            if let record = snapshot.record {
+                phoneRecord = HealthRecord(
+                    record, of: workoutType, workoutID: workoutID, attempt: 1,
+                    anchor: ClockAnchor(instant: Instant(offset: .zero), date: epoch))
+                route(phone.handle(.recordReady(phoneRecord)))
+            }
             let display = RunningDisplay(workoutType: workoutType, workout: workout, snapshot: snapshot)
             route(phone.handle(.published(display.watchState(at: now, date: date(of: now)))))
             if case .running(let phase) = watch.screen {
@@ -144,7 +156,15 @@ nonisolated struct RunningLinkTests {
                 "waiting", "Prepare · pause", "Work 1 · pause", "Work 1 paused · resume", "Work 1 · pause",
                 "Rest 1 · pause", "Work 2 · pause", "complete 01:00", "idle",
             ])
-        #expect(link.watchEffects == [.startSession, .beginCollection(at: link.epoch), .endWithoutSaving])
+        // Paused from 15 to 45, ended at 90: the Watch saves those times, the iPhone's own.
+        let record = try #require(link.phoneRecord)
+        #expect(record.pauses == [HealthRecord.Pause(start: link.epoch + 15, end: link.epoch + 45)])
+        #expect(record.end == link.epoch + 90)
+        #expect(
+            link.watchEffects == [
+                .startSession, .beginCollection(at: link.epoch), .pauseSession, .resumeSession,
+                .endAndSave(record.withSyncVersion(1_000_000)),
+            ])
     }
 
     @Test func `A Stop in Intervals takes the Watch straight back to idle`() async throws {
@@ -162,7 +182,9 @@ nonisolated struct RunningLinkTests {
         await engine.stop(at: clock.now)
         link.publish(try #require(await snapshots.next()), at: clock.now)
 
+        // Stopped after 32 s, under the minute a Health workout needs, so neither device saves.
         #expect(link.screens == ["waiting", "Prepare · pause", "Work 1 · pause", "idle"])
+        #expect(link.phoneRecord == nil)
         #expect(link.watchEffects == [.startSession, .beginCollection(at: link.epoch), .endWithoutSaving])
     }
 
@@ -190,7 +212,12 @@ nonisolated struct RunningLinkTests {
 
         #expect(
             link.screens == ["waiting", "Prepare · pause", "Work · pause", "Work · done", "complete 11:45", "idle"])
-        #expect(link.watchEffects == [.startSession, .beginCollection(at: link.epoch), .endWithoutSaving])
+        let record = try #require(link.phoneRecord)
+        #expect(record.end == link.epoch + 705)
+        #expect(
+            link.watchEffects == [
+                .startSession, .beginCollection(at: link.epoch), .endAndSave(record.withSyncVersion(1_000_000)),
+            ])
     }
 
     @Test func `Open Rounds shows on the Watch, Round by Round, and ends on its Rounds complete screen`() async throws {
@@ -220,6 +247,17 @@ nonisolated struct RunningLinkTests {
                 "complete 04:10, 2 Rounds: 1:42, 1:28",
                 "idle",
             ])
-        #expect(link.watchEffects == [.startSession, .beginCollection(at: link.epoch), .endWithoutSaving])
+        // One activity per Phase, with its Round, as the iPhone saves them.
+        let record = try #require(link.phoneRecord)
+        #expect(
+            record.activities == [
+                HealthRecord.Activity(phase: .work, round: 1, start: link.epoch, end: link.epoch + 102),
+                HealthRecord.Activity(phase: .rest, round: 1, start: link.epoch + 102, end: link.epoch + 162),
+                HealthRecord.Activity(phase: .work, round: 2, start: link.epoch + 162, end: link.epoch + 250),
+            ])
+        #expect(
+            link.watchEffects == [
+                .startSession, .beginCollection(at: link.epoch), .endAndSave(record.withSyncVersion(1_000_000)),
+            ])
     }
 }

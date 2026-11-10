@@ -69,6 +69,11 @@ public nonisolated struct HealthRecord: Codable, Hashable, Sendable {
     /// The least active time a Workout needs to be saved.
     public static let minimumActiveTime = Duration.seconds(60)
 
+    /// The sync version the Watch saves its copy at, with heart rate. It's above any attempt the iPhone makes, so
+    /// Health keeps the Watch's copy in place of the iPhone's, in either order, and one Workout leaves one Health
+    /// workout. See ADR 0001.
+    public static let watchSyncVersion = 1_000_000
+
     public let activityType: ActivityType
     /// The Start, which is also the start of the Prepare if there is one. The Health workout spans the whole Workout,
     /// Prepare and Cooldown included, rather than starting at the first Work, so its duration matches the active time
