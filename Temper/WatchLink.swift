@@ -93,6 +93,11 @@ final class WatchLink: NSObject {
         handle(.instanceEnded(id))
     }
 
+    /// The iPhone shows nothing for a dropout. The session is no longer valid, and the Watch's reconnects as a new one.
+    private func disconnected(_ id: ObjectIdentifier) {
+        handle(.instanceDisconnected(id))
+    }
+
     private func received(
         _ messages: [MessageFromWatch], from id: ObjectIdentifier, arrival: ClockAnchor<ContinuousClock.Instant>
     ) {
@@ -153,6 +158,13 @@ extension WatchLink: HKWorkoutSessionDelegate {
     }
 
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: any Error) {}
+
+    nonisolated func workoutSession(
+        _ workoutSession: HKWorkoutSession, didDisconnectFromRemoteDeviceWithError error: (any Error)?
+    ) {
+        let id = ObjectIdentifier(workoutSession)
+        Task { @MainActor in self.disconnected(id) }
+    }
 
     nonisolated func workoutSession(
         _ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]

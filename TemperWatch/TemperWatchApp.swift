@@ -16,10 +16,14 @@ struct TemperWatchApp: App {
     }
 }
 
-/// Receives the iPhone's request to open the Watch for a Workout.
+/// Receives the iPhone's request to open the Watch for a Workout, and the system's after a crash during one.
 final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     func handle(_ workoutConfiguration: HKWorkoutConfiguration) {
         WatchSession.shared.handle(workoutConfiguration)
+    }
+
+    func handleActiveWorkoutRecovery() {
+        WatchSession.shared.recover()
     }
 }
 
@@ -33,8 +37,9 @@ struct WatchRootView: View {
             IdleScreen()
         case .waiting:
             WaitingScreen()
-        case .running(let phase):
-            WatchRunningPages(phase: phase, heartRate: session.heartRate, tap: session.tap)
+        case .running(let phase, let isConnected):
+            WatchRunningPages(
+                phase: phase, isConnected: isConnected, heartRate: session.heartRate, tap: session.tap)
         case .runningOnIPhone:
             RunningOnIPhoneScreen()
         case .complete(let completion):

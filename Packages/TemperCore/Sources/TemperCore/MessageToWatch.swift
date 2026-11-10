@@ -28,6 +28,21 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     /// build that can't read it drops it, and carries on as it did before there was one.
     case discard
 
+    /// What `begin` says of the Workout itself, which the Watch keeps for the Health record it may have to build
+    /// alone. It isn't sent: `begin` carries the same values.
+    public struct Begin: Hashable, Sendable {
+        public let workoutID: UUID
+        /// The Workout's Start.
+        public let start: Date
+        public let workoutType: WorkoutType
+
+        public init(workoutID: UUID, start: Date, workoutType: WorkoutType) {
+            self.workoutID = workoutID
+            self.start = start
+            self.workoutType = workoutType
+        }
+    }
+
     /// Decodes a message from the JSON `json()` made.
     public init(json: Data) throws {
         self = try JSONDecoder().decode(Self.self, from: json)
