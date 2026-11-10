@@ -3,8 +3,8 @@ import Testing
 
 @testable import TemperCore
 
-/// The mirrored session carries at most 100 KB per 10 s. Only `end` grows with the Workout, so it alone could reach
-/// that, and nothing throttles it.
+/// The mirrored session carries at most 100 KB per 10 s, and nothing throttles what the iPhone sends. Only `end` grows
+/// with the Workout. An update stays small however long the Workout runs.
 nonisolated struct MessageToWatchSizeTests {
     private typealias Instant = ManualClock.Instant
 
@@ -36,5 +36,27 @@ nonisolated struct MessageToWatchSizeTests {
         let size = try MessageToWatch.end(longOpenRounds).json().count
 
         #expect(size < 50_000)
+    }
+
+    /// The longest update: an Open Rounds Rest deep into a long Workout, with its full line and both Cues to come, on a
+    /// real wall clock, built the way the iPhone builds it.
+    @Test func `An update stays under 1 KB`() throws {
+        let rest = Phase(kind: .rest, duration: .seconds(60), round: 200)
+        let cues = [
+            WorkoutSnapshot<Instant>.TimedCue(cue: .tenSeconds, due: Instant(offset: .seconds(36_050))),
+            WorkoutSnapshot<Instant>.TimedCue(cue: .work, due: Instant(offset: .seconds(36_060))),
+        ]
+        let snapshot = WorkoutSnapshot(
+            progress: .running(phase: rest, endsAt: Instant(offset: .seconds(36_060))), rounds: nil,
+            previousOpenPhaseTime: .seconds(5_999.987_654), cues: cues)
+        let display = RunningDisplay(
+            workoutType: .openRounds,
+            workout: WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch), snapshot: snapshot)
+        let state = display.watchState(
+            at: Instant(offset: .seconds(36_000.123_457)), date: Date(timeIntervalSince1970: 1_794_321_987.654_321))
+
+        let size = try MessageToWatch.update(state).json().count
+
+        #expect(size < 1_024)
     }
 }

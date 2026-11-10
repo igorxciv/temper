@@ -7,7 +7,9 @@ import TemperCore
 /// The time and bar are drawn from the Phase's dates, so nothing has to arrive from the iPhone between its events.
 /// Always On keeps the same layout on black, so nothing moves on wrist-down.
 ///
-/// Only the capsule takes a tap, so a tap anywhere above it does nothing.
+/// Only the capsule takes a tap, so a tap anywhere above it does nothing. It's the Watch's only input: a Series 8 has
+/// no Double Tap or wrist flick, and a Crown turn as a backup was left out until the capsule fails in real sets, as
+/// with chalky, sweaty or gloved hands.
 ///
 /// During a dropout the time keeps drawing from the last update, and a Phase that ends holds at 00:00 rather than
 /// guessing the next. "iPhone not connected" takes the line's place, and the capsule dims where it is.

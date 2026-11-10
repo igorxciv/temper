@@ -12,6 +12,7 @@ let settings: [SwiftSetting] = [
 
 let package = Package(
     name: "TemperCore",
+    // The Watch app compiles this package, and stays on watchOS 26 because watchOS 27 drops the Series 8.
     platforms: [.iOS(.v27), .macOS(.v27), .watchOS(.v26)],
     products: [.library(name: "TemperCore", targets: ["TemperCore"])],
     targets: [
