@@ -43,6 +43,8 @@ final class WatchSession: NSObject {
     @ObservationIgnored private var zoneInputs: WatchHealth.ZoneInputs?
     /// The Workout's Start, from the iPhone's `begin`, which dates the age the Zones use.
     @ObservationIgnored private var workoutStart: Date?
+    /// When the session last got anything from the iPhone, read as it arrived.
+    @ObservationIgnored private var lastHeard: Date?
     /// Counts the time out of contact during a dropout, for the flow.
     @ObservationIgnored private var outOfContactTimer: Task<Void, Never>?
 
@@ -56,12 +58,19 @@ final class WatchSession: NSObject {
     /// during a Workout. The Watch persisted nothing, so it takes the session back and waits for the iPhone.
     func recover() {
         Task {
-            guard let session = try? await store.recoverActiveWorkoutSession(), self.session == nil else { return }
+            guard let session = try? await store.recoverActiveWorkoutSession() else { return }
+            guard self.session == nil else {
+                // The iPhone opened the Watch for a new Workout meanwhile, so the old session has nothing to follow.
+                session.end()
+                return
+            }
             follow(session)
             apply(.recovered(isPaused: session.state == .paused))
-            // Asked again in case the crash cost the session its mirroring. Any error is ignored: if the iPhone
-            // can't be reached now, the dropout rules cover it.
-            try? await session.startMirroringToCompanionDevice()
+            // A session that was running is left to HealthKit, which reconnects it to the iPhone by itself.
+            if session.state == .prepared {
+                // The crash came before its activity started, and no change of state will say so again.
+                prepared(session)
+            }
         }
     }
 
@@ -179,6 +188,7 @@ final class WatchSession: NSObject {
         // A recovered session's builder may have begun before the crash.
         hasBegunCollection = builder.startDate != nil
         pendingSave = nil
+        lastHeard = nil
         heartRate.current = WorkoutHeartRate(zones: nil)
         zoneInputs = nil
         workoutStart = nil
@@ -270,8 +280,10 @@ final class WatchSession: NSObject {
         }
     }
 
+    /// Each callback hops to the main actor by itself, so a disconnect can be handled after the messages of the
+    /// reconnect that followed it. That one is stale, and would start a dropout nothing ends.
     private func disconnected(_ session: HKWorkoutSession, at date: Date) {
-        guard session === self.session else { return }
+        guard session === self.session, lastHeard.map({ date >= $0 }) ?? true else { return }
         apply(.disconnected(at: date))
     }
 
@@ -282,8 +294,9 @@ final class WatchSession: NSObject {
 
     /// Each message is timed as it's handled, in the same main-actor turn as the haptics it cancels, so no haptic can
     /// start between the two and be counted as cancelled.
-    private func received(_ messages: [MessageToWatch], from session: HKWorkoutSession) {
+    private func received(_ messages: [MessageToWatch], from session: HKWorkoutSession, at arrival: Date) {
         guard session === self.session else { return }
+        lastHeard = max(lastHeard ?? arrival, arrival)
         for message in messages {
             apply(.received(message, at: .now))
         }
@@ -314,7 +327,8 @@ extension WatchSession: HKWorkoutSessionDelegate {
     ) {
         // Data this build can't read is dropped. A `begin` of another version still decodes, and shows Update Temper.
         let messages = data.compactMap { try? MessageToWatch(json: $0) }
-        Task { @MainActor in self.received(messages, from: workoutSession) }
+        let arrival = Date.now
+        Task { @MainActor in self.received(messages, from: workoutSession, at: arrival) }
     }
 }
 

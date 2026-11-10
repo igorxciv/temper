@@ -165,33 +165,36 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
     private mutating func receive(_ message: MessageToWatch, at arrival: Date) -> [Effect] {
         guard screen != .updateNeeded else { return [] }
         // Any message means the iPhone is back.
-        let regaining = regainContact()
+        return regainContact() + act(on: message, at: arrival)
+    }
+
+    private mutating func act(on message: MessageToWatch, at arrival: Date) -> [Effect] {
         switch message {
         case .begin(let workoutID, let start, let workoutType, _, let version):
             guard version == MessageToWatch.version else {
                 screen = .updateNeeded
-                return regaining + endSession()
+                return endSession()
             }
-            guard workoutID != begin?.workoutID else { return regaining }
+            guard workoutID != begin?.workoutID else { return [] }
             begin = MessageToWatch.Begin(workoutID: workoutID, start: start, workoutType: workoutType)
-            return regaining + [.beginCollection(at: start)]
+            return [.beginCollection(at: start)]
         case .update(let state):
-            guard begin != nil else { return regaining }
+            guard begin != nil else { return [] }
             show(state)
-            guard hasSession else { return regaining }
+            guard hasSession else { return [] }
             switch state {
             case .phase(let phase): heard.append(phase)
             case .ended: endHeard = endHeard ?? arrival
             }
-            return regaining + followPause(of: state) + hapticEffects(for: state, at: arrival)
+            return followPause(of: state) + hapticEffects(for: state, at: arrival)
         case .refused(let command):
-            guard begin != nil else { return regaining }
-            return regaining + [.signalRefused(command)]
+            guard begin != nil else { return [] }
+            return [.signalRefused(command)]
         case .end(let record):
-            guard begin != nil else { return regaining }
+            guard begin != nil else { return [] }
             leaveRunning()
-            guard let record else { return regaining + endSession() }
-            return regaining + endSession(saving: record.withSyncVersion(HealthRecord.watchSyncVersion))
+            guard let record else { return endSession() }
+            return endSession(saving: record.withSyncVersion(HealthRecord.watchSyncVersion))
         }
     }
 
