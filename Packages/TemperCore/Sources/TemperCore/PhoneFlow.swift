@@ -8,6 +8,9 @@ import Foundation
 /// the same way as one arriving for the first time. `end` carries the same Health record the iPhone saves itself, so
 /// the Watch's copy, which Health keeps in place of the iPhone's, has identical times.
 ///
+/// An instance that started before the running Workout's Start, or that arrives with no Workout running, is a
+/// leftover and gets `discard`. The match has no slack, because the two clocks agree within about 8 ms.
+///
 /// The instance is generic so tests can stand in for HealthKit's session.
 public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
     public enum Event: Equatable, Sendable {
@@ -17,6 +20,8 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
         /// The Health record the iPhone saves for the Workout that just ended, or `nil` when there's none, as for a
         /// Workout under 1 minute. It comes before the ended state, which sends it in `end`.
         case recordReady(HealthRecord?)
+        /// The iPhone asked the Watch to open, `at` on the wall clock, which starts the window.
+        case watchAppRequested(at: Date)
         /// The Watch's state after an engine event.
         case published(WatchState)
         /// A mirrored session arrived, which started on the Watch at `start` and reached the iPhone `at`.
@@ -40,11 +45,13 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
         let start: Date
     }
 
-    /// How long after Start a Watch session can arrive and still be in time for the Watch's controls. The engine's
-    /// start point and the request to open the Watch are moments apart, so the window is timed from the start point.
+    /// How long after the request to open the Watch its session can arrive and still be in time for the Watch's
+    /// controls. It's timed to the arrival: the request's completion only means it was delivered.
     public static var window: Duration { .seconds(10) }
 
     private var running: Running?
+    /// When the iPhone asked the Watch to open for the running Workout, or `nil` when it hasn't.
+    private var requestedAt: Date?
     /// The latest state published, which each newly arrived session gets after `begin`.
     private var latest: WatchState?
     /// The session that belongs to the running Workout, or `nil` while there's none.
@@ -67,6 +74,10 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
             guard running != nil else { return [] }
             self.record = record
             return []
+        case .watchAppRequested(let date):
+            guard running != nil else { return [] }
+            requestedAt = date
+            return []
         case .published(let state):
             guard running != nil else { return [] }
             let hadEnded = hasEnded
@@ -74,9 +85,11 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable>: Sendable {
             guard let current else { return [] }
             return [.send(.update(state), to: current)] + (hadEnded ? [] : ending(current))
         case .instanceArrived(let instance, let start, let arrival):
-            guard let running, start >= running.start else { return [] }
+            guard let running, start >= running.start else { return [.send(.discard, to: instance)] }
             current = instance
-            let inTime = inTime ?? (arrival.timeIntervalSince(running.start) <= Self.window / .seconds(1))
+            // A Watch the iPhone never asked to open has no window to be in.
+            let inTime =
+                inTime ?? requestedAt.map { arrival.timeIntervalSince($0) <= Self.window / .seconds(1) } ?? false
             self.inTime = inTime
             let begin = MessageToWatch.begin(
                 workoutID: running.workoutID, start: running.start, workoutType: running.workoutType,

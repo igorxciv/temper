@@ -37,6 +37,8 @@ final class WatchSession: NSObject {
     @ObservationIgnored private var zoneInputs: WatchHealth.ZoneInputs?
     /// The Workout's Start, from the iPhone's `begin`, which dates the age the Zones use.
     @ObservationIgnored private var workoutStart: Date?
+    /// The wait for the iPhone's first message. The flow ignores one that runs out after the message came.
+    @ObservationIgnored private var firstMessageWait: Task<Void, Never>?
 
     /// Called from the app delegate's `handle(_:)`, after the iPhone's `startWatchApp` at Start.
     func handle(_ configuration: HKWorkoutConfiguration) {
@@ -61,6 +63,14 @@ final class WatchSession: NSObject {
         switch effect {
         case .startSession:
             startSession()
+        case .awaitFirstMessage(let duration):
+            firstMessageWait?.cancel()
+            // The session keeps the app running with the wrist down, so the wait runs out on time.
+            firstMessageWait = Task {
+                try? await Task.sleep(for: duration)
+                guard !Task.isCancelled else { return }
+                apply(.firstMessageTimedOut)
+            }
         case .beginCollection(let start):
             collectionStart = start
             workoutStart = start

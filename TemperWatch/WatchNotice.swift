@@ -52,6 +52,18 @@ struct WaitingScreen: View {
     }
 }
 
+/// A late Watch, whose session reached the iPhone after the 10 s window. Its session records in the background, which
+/// keeps this screen up until Stop. The iPhone and its Live Activity stay the only controls.
+struct RunningOnIPhoneScreen: View {
+    var body: some View {
+        WatchNotice(
+            title: "Running on iPhone", message: "Control this Workout on the iPhone or its Live Activity."
+        ) {
+            Image(systemName: "iphone")
+        }
+    }
+}
+
 /// The iPhone sent messages of a version this Watch can't follow. The Watch has ended its session without saving, and
 /// the iPhone runs and saves the Workout alone.
 struct UpdateNeededScreen: View {
@@ -67,6 +79,10 @@ struct UpdateNeededScreen: View {
 
 #Preview("Connecting to iPhone") {
     WaitingScreen()
+}
+
+#Preview("Running on iPhone") {
+    RunningOnIPhoneScreen()
 }
 
 #Preview("Update Temper") {

@@ -32,10 +32,11 @@ nonisolated struct PhoneFlowTests {
             anchor: ClockAnchor(instant: ManualClock.Instant(offset: .zero), date: start))!
     }
 
-    private func started(workoutsAllowed: Bool = true) -> Flow {
+    /// A Workout started, and the Watch asked to open `seconds` after the engine set the start point.
+    private func started(requestingAfter seconds: Double = 0) -> Flow {
         var flow = Flow()
-        _ = flow.handle(
-            .started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: workoutsAllowed))
+        _ = flow.handle(.started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: true))
+        _ = flow.handle(.watchAppRequested(at: start.addingTimeInterval(seconds)))
         return flow
     }
 
@@ -46,6 +47,17 @@ nonisolated struct PhoneFlowTests {
             .started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: true))
 
         #expect(effects == [.startWatchApp(.openRounds)])
+    }
+
+    /// A session that turns up without the iPhone having asked for one still records, but had no window to be in.
+    @Test func `A session arriving when the iPhone never asked the Watch to open is late`() {
+        var flow = Flow()
+        _ = flow.handle(.started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: false))
+
+        let effects = flow.handle(
+            .instanceArrived(1, start: start.addingTimeInterval(1), at: start.addingTimeInterval(2)))
+
+        #expect(effects == [.send(begin(inTime: false), to: 1)])
     }
 
     @Test func `Without workout permission, Start doesn't open the Watch`() {
@@ -67,22 +79,61 @@ nonisolated struct PhoneFlowTests {
         #expect(effects == [.send(begin(), to: 1), .send(.update(phase(.work, startingAt: 0)), to: 1)])
     }
 
-    @Test func `A session that started before the Start gets nothing`() {
+    /// A leftover from an earlier Workout, which the iPhone's own copy covers.
+    @Test func `A session that started before the Start is told to end without saving`() {
         var flow = started()
         _ = flow.handle(.published(phase(.work, startingAt: 0)))
 
         let effects = flow.handle(
-            .instanceArrived(1, start: start.addingTimeInterval(-5), at: start.addingTimeInterval(2)))
+            .instanceArrived(1, start: start.addingTimeInterval(-0.001), at: start.addingTimeInterval(2)))
 
-        #expect(effects == [])
+        #expect(effects == [.send(.discard, to: 1)])
     }
 
-    @Test func `A session with no Workout running gets nothing`() {
+    @Test func `A session arriving with no Workout running is told to end without saving`() {
         var flow = Flow()
 
         let effects = flow.handle(.instanceArrived(1, start: start, at: start))
 
-        #expect(effects == [])
+        #expect(effects == [.send(.discard, to: 1)])
+    }
+
+    /// `startWatchApp` carries no ID, so only its start date tells the first Workout's session from the second's.
+    @Test func `The first Workout's session turning up during the second is told to end, and the second's is taken`() {
+        var flow = started()
+        _ = flow.handle(.published(.ended(nil)))
+        let next = start.addingTimeInterval(120)
+        let nextID = UUID()
+        _ = flow.handle(.started(workoutID: nextID, workoutType: .openRounds, start: next, workoutsAllowed: true))
+        _ = flow.handle(.watchAppRequested(at: next))
+
+        let leftover = flow.handle(
+            .instanceArrived(1, start: start.addingTimeInterval(40), at: next.addingTimeInterval(3)))
+        let taken = flow.handle(
+            .instanceArrived(2, start: next.addingTimeInterval(2), at: next.addingTimeInterval(4)))
+        let update = flow.handle(.published(phase(.work, startingAt: 120)))
+
+        #expect(leftover == [.send(.discard, to: 1)])
+        #expect(
+            taken == [
+                .send(
+                    .begin(
+                        workoutID: nextID, start: next, workoutType: .openRounds, inTime: true,
+                        version: MessageToWatch.version),
+                    to: 2)
+            ])
+        #expect(update == [.send(.update(phase(.work, startingAt: 120)), to: 2)])
+    }
+
+    /// The running Workout's session keeps the link while a leftover is turned away.
+    @Test func `A leftover arriving after the Workout's session doesn't take its updates`() {
+        var flow = started()
+        _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
+        _ = flow.handle(.instanceArrived(2, start: start.addingTimeInterval(-60), at: start.addingTimeInterval(3)))
+
+        let effects = flow.handle(.published(phase(.rest, startingAt: 90)))
+
+        #expect(effects == [.send(.update(phase(.rest, startingAt: 90)), to: 1)])
     }
 
     @Test func `A session arriving before the first update gets begin alone`() {
@@ -171,11 +222,20 @@ nonisolated struct PhoneFlowTests {
             ])
     }
 
-    @Test func `A session arriving more than 10 s after Start is late`() {
-        var flow = started()
+    @Test func `A session arriving 10 s after the request to open the Watch is in time`() {
+        var flow = started(requestingAfter: 1)
 
         let effects = flow.handle(
-            .instanceArrived(1, start: start.addingTimeInterval(9), at: start.addingTimeInterval(10.5)))
+            .instanceArrived(1, start: start.addingTimeInterval(9), at: start.addingTimeInterval(11)))
+
+        #expect(effects == [.send(begin(inTime: true), to: 1)])
+    }
+
+    @Test func `A session arriving just past 10 s after the request to open the Watch is late`() {
+        var flow = started(requestingAfter: 1)
+
+        let effects = flow.handle(
+            .instanceArrived(1, start: start.addingTimeInterval(9), at: start.addingTimeInterval(11.001)))
 
         #expect(effects == [.send(begin(inTime: false), to: 1)])
     }
@@ -220,6 +280,7 @@ nonisolated struct PhoneFlowTests {
         let nextID = UUID()
 
         _ = flow.handle(.started(workoutID: nextID, workoutType: .intervals, start: next, workoutsAllowed: true))
+        _ = flow.handle(.watchAppRequested(at: next))
         let effects =
             flow.handle(.published(phase(.prepare, startingAt: 600)))
             + flow.handle(.instanceArrived(2, start: next.addingTimeInterval(1), at: next.addingTimeInterval(2)))

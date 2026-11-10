@@ -88,6 +88,7 @@ nonisolated struct RunningLinkTests {
                 switch effect {
                 case .startWatchApp:
                     isWatchOpening = true
+                    route(phone.handle(.watchAppRequested(at: date(of: now))))
                     watchHandles(.launched(workoutsAllowed: true))
                 case .send(let message, to: 1):
                     // Through JSON, as over the session.
@@ -120,6 +121,8 @@ nonisolated struct RunningLinkTests {
                 case .cancelAllHaptics: scheduled = []
                 case .playHaptic(let cue): taps.append(WristTap(cue, at: arrival))
                 case .scheduleHaptics(let cues): scheduled += cues
+                // The iPhone's first message always arrives here, long before the wait runs out.
+                case .awaitFirstMessage: break
                 case .startSession, .beginCollection, .pauseSession, .resumeSession, .endAndSave, .endWithoutSaving:
                     watchEffects.append(effect)
                 }
@@ -135,6 +138,7 @@ nonisolated struct RunningLinkTests {
             case .idle: "idle"
             case .waiting: "waiting"
             case .updateNeeded: "update needed"
+            case .runningOnIPhone: "running on iPhone"
             case .running(let phase):
                 [
                     phase.kind.name, phase.round.map(String.init), phase.pausedAt == nil ? nil : "paused", "·",
@@ -310,6 +314,46 @@ nonisolated struct RunningLinkTests {
             link.watchEffects == [
                 .startSession, .beginCollection(at: link.epoch), .endAndSave(record.withSyncVersion(1_000_000)),
             ])
+    }
+
+    /// The Series 8 once took 47.6 s to wake, long past the 10 s window.
+    @Test func `A Watch arriving late shows Running on iPhone until the end, taps no Cue, and still saves`()
+        async throws
+    {
+        // Prepare 0–10, Work 1 10–30, Rest 1 30–40, Work 2 40–60.
+        let workout = WorkoutType.intervals.makeWorkout(
+            from: WorkoutSettings(
+                prepare: .seconds(10), rounds: 2, work: .seconds(20), rest: .seconds(10), cooldown: .zero))
+        var link = Link(.intervals, workout)
+        let engine = makeEngine(workout)
+        var snapshots = engine.snapshots.makeAsyncIterator()
+
+        link.started(at: try #require(await engine.start()))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .seconds(10))
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .seconds(2))
+        link.watchArrives(at: clock.now)
+        clock.advance(by: .seconds(3))
+        await engine.pause(at: clock.now)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        clock.advance(by: .seconds(30))
+        await engine.resume(at: clock.now)
+        link.publish(try #require(await snapshots.next()), at: clock.now)
+        for seconds in [15, 10, 20] {
+            clock.advance(by: .seconds(seconds))
+            link.publish(try #require(await snapshots.next()), at: clock.now)
+        }
+        link.tapDone()
+
+        #expect(link.screens == ["waiting", "running on iPhone", "complete 01:00", "idle"])
+        let record = try #require(link.phoneRecord)
+        #expect(
+            link.watchEffects == [
+                .startSession, .beginCollection(at: link.epoch), .pauseSession, .resumeSession,
+                .endAndSave(record.withSyncVersion(1_000_000)),
+            ])
+        #expect(link.taps == [])
     }
 
     // MARK: Cue haptics

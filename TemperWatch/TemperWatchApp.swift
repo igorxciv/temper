@@ -35,6 +35,8 @@ struct WatchRootView: View {
             WaitingScreen()
         case .running(let phase):
             WatchRunningScreen(phase: phase, heartRate: session.heartRate)
+        case .runningOnIPhone:
+            RunningOnIPhoneScreen()
         case .complete(let completion):
             WatchCompleteScreen(
                 completion: completion, heartRate: session.heartRate.current.summary, done: session.done)
