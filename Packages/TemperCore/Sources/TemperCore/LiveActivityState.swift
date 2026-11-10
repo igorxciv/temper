@@ -86,13 +86,7 @@ extension RunningDisplay {
     public nonisolated func liveActivityState(at now: Instant, date: Date) -> LiveActivityState? {
         switch snapshot.progress {
         case .running(let phase, _), .runningOpen(let phase, _), .paused(let phase, _), .pausedOpen(let phase, _):
-            let start = date.addingTimeInterval(-(snapshot.elapsed(at: now) / .seconds(1)))
-            let end: Date? =
-                switch phase.length {
-                case .set: date.addingTimeInterval(snapshot.timeLeft(at: now) / .seconds(1))
-                case .runsPast(let length): start.addingTimeInterval(length / .seconds(1))
-                case .open: nil
-                }
+            let (start, end) = dates(of: phase, at: now, date: date)
             let (text, spoken) = liveLineText
             return .phase(
                 LivePhase(
@@ -110,6 +104,19 @@ extension RunningDisplay {
         case .finished(let record), .stopped(let record):
             return completion == nil ? nil : complete(record)
         }
+    }
+
+    /// When `phase` would have started had it run without a Pause up to `now`, and when it would end, or reach the set
+    /// length it runs past, if it runs without a Pause from `now` on. An open Phase has no end.
+    nonisolated func dates(of phase: Phase, at now: Instant, date: Date) -> (start: Date, end: Date?) {
+        let start = date.addingTimeInterval(-(snapshot.elapsed(at: now) / .seconds(1)))
+        let end: Date? =
+            switch phase.length {
+            case .set: date.addingTimeInterval(snapshot.timeLeft(at: now) / .seconds(1))
+            case .runsPast(let length): start.addingTimeInterval(length / .seconds(1))
+            case .open: nil
+            }
+        return (start, end)
     }
 
     /// Done while the running screen's Done is enabled. Otherwise nothing in Open Rounds, which keeps Pause in the

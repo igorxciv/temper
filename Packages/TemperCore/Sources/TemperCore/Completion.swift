@@ -1,5 +1,5 @@
 /// The complete screen a Workout ends on.
-public nonisolated enum Completion: Equatable, Sendable {
+public nonisolated enum Completion: Codable, Hashable, Sendable {
     /// The complete screen of a finished Intervals or Stopwatch, with the Workout record's active time: the total
     /// length of an Intervals, and a Stopwatch's time up to Done.
     case total(Duration)
