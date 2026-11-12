@@ -14,6 +14,22 @@ struct TemperApp: App {
         // The Live Activity's Pause, Resume and Done run in this process, and may be what launched it, so the
         // runner is set before any of them can run.
         LiveActivityControls.workout = runner
+        Self.roundNavigationTitles()
+    }
+
+    /// Sets the navigation bar's titles in SF Rounded, as the rest of the app is, which `fontDesign(_:)` doesn't reach.
+    private static func roundNavigationTitles() {
+        let bar = UINavigationBar.appearance()
+        bar.largeTitleTextAttributes = [.font: roundedFont(.largeTitle, weight: .bold)]
+        bar.titleTextAttributes = [.font: roundedFont(.headline, weight: .semibold)]
+    }
+
+    /// The system font for a text style, at the owner's text size, in its rounded design.
+    private static func roundedFont(_ style: UIFont.TextStyle, weight: UIFont.Weight) -> UIFont {
+        let size = UIFont.preferredFont(forTextStyle: style).pointSize
+        let font = UIFont.systemFont(ofSize: size, weight: weight)
+        guard let rounded = font.fontDescriptor.withDesign(.rounded) else { return font }
+        return UIFont(descriptor: rounded, size: size)
     }
 
     var body: some Scene {

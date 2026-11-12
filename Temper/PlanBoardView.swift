@@ -87,7 +87,14 @@ private struct BoardLineRow: View {
     }
 
     private var content: some View {
-        let color = line.length == .off ? ink.ghost : ink.ink(line.kind)
+        let isOff = line.length == .off
+        let color = isOff ? ink.ghost : ink.ink(line.kind)
+        // An Off line's time is set down at the name's size, so the lines that run lead the eye. The ghost still
+        // clears 3:1 at 34 pt.
+        let timeFont: Font =
+            isOff
+            ? .system(size: 34, weight: .semibold)
+            : .system(size: 52, weight: .bold).monospacedDigit()
 
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             if let tick {
@@ -110,7 +117,7 @@ private struct BoardLineRow: View {
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 0) {
                 Text(line.time)
-                    .font(.system(size: 52, weight: .bold).monospacedDigit())
+                    .font(timeFont)
                     .foregroundStyle(color)
                 if let caption = line.caption {
                     Text(caption)
@@ -162,16 +169,20 @@ private struct RoundsBracket<Lines: View>: View {
                 Text("×\u{2009}\(times)")
                     .font(.system(size: 30, weight: .bold).monospacedDigit())
             case .untilStop:
-                VStack(alignment: .leading, spacing: -2) {
+                // One block, led by the "×" a count has, with the words where its number would be, set tight so
+                // they read as one count. Side by side, "× until" is wider than the count column.
+                VStack(alignment: .leading, spacing: -3) {
                     Text("×")
                         .font(.system(size: 30, weight: .bold))
-                    Text("until\nStop")
-                        .font(.system(size: 15, weight: .bold))
+                        .padding(.bottom, -2)
+                    Text("until")
+                    Text("Stop")
                 }
+                .font(.system(size: 20, weight: .bold))
             }
         }
         .foregroundStyle(ink.marker)
-        .lineLimit(2)
+        .lineLimit(1)
         .minimumScaleFactor(0.6)
 
         let spoken =

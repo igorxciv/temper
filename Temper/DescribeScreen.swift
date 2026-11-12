@@ -6,6 +6,9 @@ import TemperCore
 /// The Plan is made on the iPhone by Apple Intelligence, and written up on the board before Start exactly as the
 /// Plan screen writes a Workout Type, so a misheard number is caught before the Workout runs. The description and
 /// the last Plan are remembered, so a Workout can run again after it ends.
+///
+/// The bottom bar holds one black-marker capsule: Make Plan until there's a Plan, then Start. Make New Plan moves up
+/// under the description, away from Start, so a reach for Start can't throw the Plan away.
 struct DescribeScreen: View {
     @Bindable var remembered: RememberedValues
     let start: (Workout, HealthRecord.ActivityType) -> Void
@@ -21,11 +24,13 @@ struct DescribeScreen: View {
         let unavailable = PlanWriter.unavailableReason
         let plan = remembered.describedPlan
         let workout = plan.flatMap { try? $0.makeWorkout() }
+        let canWrite = unavailable == nil && !remembered.workoutDescription.trimmed.isEmpty
 
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 28) {
-                descriptionField(ink: ink, unavailable: unavailable)
-                makePlan(ink: ink, unavailable: unavailable, hasPlan: plan != nil)
+                descriptionField(
+                    ink: ink, unavailable: unavailable, hasPlan: plan != nil, canStart: workout != nil,
+                    canWrite: canWrite)
                 if let plan {
                     planBoard(plan, ink: ink)
                 }
@@ -41,6 +46,9 @@ struct DescribeScreen: View {
                 StartButton(workout: workout) {
                     start(workout, plan.activity)
                 }
+            } else {
+                MakePlanButton(title: makeTitle(hasPlan: plan != nil), isWriting: isWriting, make: write)
+                    .disabled(!canWrite)
             }
         }
         .background(ink.ground.ignoresSafeArea())
@@ -58,8 +66,12 @@ struct DescribeScreen: View {
         }
     }
 
-    /// The description, set into the board as a panel, with what to say, or why Describe can't run, under it.
-    private func descriptionField(ink: BoardInk, unavailable: String?) -> some View {
+    /// The description, set into the board as a panel, with what to say, or why Describe can't run, under it. Once
+    /// there's a Plan to Start, Make New Plan follows, and then the problem from the last try, or, before the first
+    /// Plan, an example to copy.
+    private func descriptionField(
+        ink: BoardInk, unavailable: String?, hasPlan: Bool, canStart: Bool, canWrite: Bool
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Today's Workout")
                 .font(.headline)
@@ -68,8 +80,7 @@ struct DescribeScreen: View {
             TextField(
                 "Today's Workout",
                 text: $remembered.workoutDescription,
-                prompt: Text("10 sets, open Work, exactly 1 minute of Rest between them")
-                    .foregroundStyle(ink.secondary),
+                prompt: Text("Describe today's Workout").foregroundStyle(ink.secondary),
                 axis: .vertical
             )
             .lineLimit(3...8)
@@ -86,34 +97,12 @@ struct DescribeScreen: View {
             )
             .font(.footnote)
             .foregroundStyle(ink.secondary)
-        }
-    }
 
-    /// Make Plan, with the problem from the last try beside it, or an example to copy before the first Plan.
-    private func makePlan(ink: BoardInk, unavailable: String?, hasPlan: Bool) -> some View {
-        let title = hasPlan ? "Make New Plan" : "Make Plan"
-
-        return VStack(alignment: .leading, spacing: 12) {
-            Button {
-                write()
-            } label: {
-                HStack(spacing: 10) {
-                    Text(title)
-                    if isWriting {
-                        ProgressView()
-                            .tint(ink.marker)
-                    }
-                }
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 32)
+            if canStart {
+                makeNewPlan(ink: ink, title: makeTitle(hasPlan: hasPlan))
+                    .disabled(!canWrite)
+                    .padding(.top, 4)
             }
-            .buttonStyle(.glass)
-            .controlSize(.large)
-            .tint(ink.marker)
-            .disabled(isWriting || unavailable != nil || remembered.workoutDescription.trimmed.isEmpty)
-            // The spinner says nothing to VoiceOver, so the label carries the state.
-            .accessibilityLabel(isWriting ? "Making Plan" : title)
-
             if let problem {
                 Label {
                     Text(problem)
@@ -122,12 +111,36 @@ struct DescribeScreen: View {
                 }
                 .font(.subheadline)
                 .foregroundStyle(ink.ink(.work))
-            } else if !hasPlan {
+                .padding(.top, 4)
+            } else if !hasPlan && unavailable == nil {
                 Text("Try: “Prepare 10 seconds, then 6 Rounds of 30 seconds Work and 30 seconds Rest.”")
-                    .font(.subheadline)
+                    .font(.footnote)
                     .foregroundStyle(ink.secondary)
             }
         }
+    }
+
+    /// Make New Plan as a secondary glass button, since Start holds the black marker once there's a Plan.
+    private func makeNewPlan(ink: BoardInk, title: String) -> some View {
+        Button(action: write) {
+            HStack(spacing: 8) {
+                Text(title)
+                if isWriting {
+                    ProgressView()
+                        .tint(ink.marker)
+                }
+            }
+            .font(.headline)
+        }
+        .buttonStyle(.glass)
+        .controlSize(.large)
+        .tint(ink.marker)
+        // The spinner says nothing to VoiceOver, so the label carries the state.
+        .accessibilityLabel(isWriting ? "Making Plan" : title)
+    }
+
+    private func makeTitle(hasPlan: Bool) -> String {
+        hasPlan ? "Make New Plan" : "Make Plan"
     }
 
     /// The Plan on the board, read-only, in the same lines, inks and brackets as the Plan screen.
@@ -149,7 +162,10 @@ struct DescribeScreen: View {
     }
 
     /// Asks for a Plan, and keeps it only if it can run, so Start never offers a Plan that can't.
+    ///
+    /// A tap while a Plan is being made does nothing, so the button can stay lit beside its spinner.
     private func write() {
+        guard !isWriting else { return }
         isEditing = false
         isWriting = true
         problem = nil
@@ -170,6 +186,47 @@ struct DescribeScreen: View {
                 problem = error.explanation
             }
         }
+    }
+}
+
+/// Make Plan in black marker in the bottom bar, where Start takes over once there's a Plan, with a spinner beside it
+/// while the Plan is being made.
+private struct MakePlanButton: View {
+    let title: String
+    let isWriting: Bool
+    let make: () -> Void
+
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        let ink = BoardInk(contrast: contrast)
+
+        Button(action: make) {
+            HStack(spacing: 10) {
+                Text(title)
+                if isWriting {
+                    ProgressView()
+                        .tint(ink.onMarker)
+                }
+            }
+            .font(.title2.bold())
+            // A disabled button's fill fades, so its label takes the board's secondary ink rather than staying light.
+            // Only an empty description or Describe being unavailable disables it, never the Plan being made.
+            .foregroundStyle(isEnabled ? ink.onMarker : ink.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .frame(maxWidth: .infinity, minHeight: 56)
+        }
+        .buttonStyle(.glassProminent)
+        .tint(ink.marker)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .accessibilityShowsLargeContentViewer()
+        // The spinner says nothing to VoiceOver, so the label carries the state.
+        .accessibilityLabel(isWriting ? "Making Plan" : title)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+        .padding(.horizontal)
     }
 }
 

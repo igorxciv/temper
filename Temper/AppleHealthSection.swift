@@ -16,15 +16,16 @@ struct AppleHealthSection: View {
             Group {
                 switch health.row {
                 case .saveWorkouts:
-                    Button("Save Workouts to Health", action: requestPermission)
-                        .bold()
-                        .foregroundStyle(ink.marker)
+                    LabeledContent("Save Workouts to Health") {
+                        permissionButton("Turn On")
+                    }
+                    // One element, read as "Save Workouts to Health, Turn On, button", that the button's action runs.
+                    .accessibilityElement(children: .combine)
                 case .allowHeartRate:
                     LabeledContent("Saving to Health") {
-                        Button("Allow Heart Rate", action: requestPermission)
-                            .bold()
-                            .foregroundStyle(ink.marker)
+                        permissionButton("Allow Heart Rate")
                     }
+                    .accessibilityElement(children: .combine)
                 case .saving:
                     LabeledContent("Saving to Health") {
                         // In Rest's ink, the board's calm color, since nothing is left to do.
@@ -50,6 +51,18 @@ struct AppleHealthSection: View {
                 await health.refreshStatus()
             }
         }
+    }
+
+    /// The row's action, as a small black-marker capsule at its trailing edge, so it reads as a button and not a label.
+    private func permissionButton(_ title: LocalizedStringKey) -> some View {
+        Button(action: requestPermission) {
+            Text(title)
+                .font(.subheadline.bold())
+                .foregroundStyle(ink.onMarker)
+        }
+        .buttonStyle(.glassProminent)
+        .buttonBorderShape(.capsule)
+        .tint(ink.marker)
     }
 
     private func requestPermission() {
