@@ -11,7 +11,8 @@ extension Color {
     }
 }
 
-/// The app's dark design system. There is no light variant.
+/// The dark ink of the Watch app and the Live Activity. The iPhone's screens are written on `BoardInk` instead, and
+/// its running screen uses `PhaseColors`.
 struct InkColors {
     let background: Color
     let raised: Color

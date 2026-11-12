@@ -1,0 +1,652 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T20:14:18+00:00",
+  "title": "Design System: Temper",
+  "extensions": {
+    "colorMeta": {
+      "board-ground": {
+        "role": "neutral",
+        "displayName": "Gloss Board",
+        "canonical": "#F6F7F5",
+        "increaseContrast": "#FFFFFF",
+        "tonalRamp": [
+          "#262924",
+          "#43493E",
+          "#616A57",
+          "#7E8C70",
+          "#9BA591",
+          "#B8BEB2",
+          "#D5D8D2",
+          "#F2F3F2"
+        ]
+      },
+      "board-panel": {
+        "role": "neutral",
+        "displayName": "Board Panel",
+        "canonical": "#E9EBE8",
+        "increaseContrast": "#ECEEF0",
+        "tonalRamp": [
+          "#262825",
+          "#424740",
+          "#5F665B",
+          "#7B8675",
+          "#99A195",
+          "#B7BCB4",
+          "#D5D7D3",
+          "#F2F3F2"
+        ]
+      },
+      "board-row": {
+        "role": "neutral",
+        "displayName": "Lifted Row",
+        "canonical": "#FFFFFF",
+        "increaseContrast": "#F1F2F4",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7E7E7E",
+          "#9B9B9B",
+          "#B8B8B8",
+          "#D5D5D5",
+          "#F2F2F2"
+        ]
+      },
+      "black-marker": {
+        "role": "primary",
+        "displayName": "Black Marker",
+        "canonical": "#1E2126",
+        "increaseContrast": "#000000",
+        "tonalRamp": [
+          "#242629",
+          "#3E4249",
+          "#575E6A",
+          "#6F7A8C",
+          "#9198A5",
+          "#B2B6BE",
+          "#D2D4D8",
+          "#F2F2F3"
+        ]
+      },
+      "secondary-ink": {
+        "role": "neutral",
+        "displayName": "Secondary Ink",
+        "canonical": "#5E646C",
+        "increaseContrast": "#3F444B",
+        "tonalRamp": [
+          "#252628",
+          "#404347",
+          "#5B6066",
+          "#757C86",
+          "#959AA1",
+          "#B4B7BC",
+          "#D3D5D7",
+          "#F2F2F3"
+        ]
+      },
+      "eraser-ghost": {
+        "role": "neutral",
+        "displayName": "Eraser Ghost",
+        "canonical": "#868C93",
+        "increaseContrast": "#6A7077",
+        "tonalRamp": [
+          "#252628",
+          "#414346",
+          "#5C6065",
+          "#777D85",
+          "#969AA0",
+          "#B5B8BB",
+          "#D4D5D7",
+          "#F2F2F3"
+        ]
+      },
+      "board-rule": {
+        "role": "neutral",
+        "displayName": "Board Rule",
+        "canonical": "#D5D8DB",
+        "increaseContrast": "#8A9097",
+        "tonalRamp": [
+          "#252628",
+          "#404347",
+          "#5A6167",
+          "#747E87",
+          "#949BA2",
+          "#B4B8BC",
+          "#D3D5D7",
+          "#F2F2F3"
+        ]
+      },
+      "on-marker": {
+        "role": "neutral",
+        "displayName": "On Marker",
+        "canonical": "#F6F7F5",
+        "increaseContrast": "#FFFFFF",
+        "tonalRamp": [
+          "#262924",
+          "#43493E",
+          "#616A57",
+          "#7E8C70",
+          "#9BA591",
+          "#B8BEB2",
+          "#D5D8D2",
+          "#F2F3F2"
+        ]
+      },
+      "prepare-ink": {
+        "role": "secondary",
+        "displayName": "Prepare Blue Ink",
+        "canonical": "#1F6FB2",
+        "increaseContrast": "#15568C",
+        "tonalRamp": [
+          "#172836",
+          "#214665",
+          "#27669B",
+          "#2685D5",
+          "#5DA0D8",
+          "#93BBDD",
+          "#C4D7E7",
+          "#EEF3F6"
+        ]
+      },
+      "work-ink": {
+        "role": "secondary",
+        "displayName": "Work Coral Ink",
+        "canonical": "#C63E22",
+        "increaseContrast": "#A3301A",
+        "tonalRamp": [
+          "#361C17",
+          "#662D21",
+          "#9B3A26",
+          "#D64426",
+          "#D9725D",
+          "#DDA093",
+          "#E7C9C3",
+          "#F6F0EE"
+        ]
+      },
+      "rest-ink": {
+        "role": "secondary",
+        "displayName": "Rest Teal Ink",
+        "canonical": "#0E7A6C",
+        "increaseContrast": "#0A5E53",
+        "tonalRamp": [
+          "#153833",
+          "#1D6A60",
+          "#1FA291",
+          "#1BE1C7",
+          "#55E0CE",
+          "#8FE1D7",
+          "#C1E9E4",
+          "#EEF7F6"
+        ]
+      },
+      "cooldown-ink": {
+        "role": "secondary",
+        "displayName": "Cooldown Indigo Ink",
+        "canonical": "#4A55B8",
+        "increaseContrast": "#353F96",
+        "tonalRamp": [
+          "#1D1F30",
+          "#2E3358",
+          "#3D4485",
+          "#4752B4",
+          "#757CC1",
+          "#A1A6CF",
+          "#CACCE0",
+          "#F0F0F5"
+        ]
+      },
+      "prepare-field": {
+        "role": "tertiary",
+        "displayName": "Prepare Field",
+        "canonical": "#0F2433",
+        "increaseContrast": "#081A27",
+        "tonalRamp": [
+          "#1A2832",
+          "#29485E",
+          "#34688E",
+          "#3A89C2",
+          "#6BA3CA",
+          "#9CBDD4",
+          "#C7D7E3",
+          "#EFF3F5"
+        ]
+      },
+      "prepare-ring": {
+        "role": "tertiary",
+        "displayName": "Prepare Ring",
+        "canonical": "#8FCBEF",
+        "increaseContrast": "#B5E0FA",
+        "tonalRamp": [
+          "#162A37",
+          "#1F4C68",
+          "#23709E",
+          "#2095DB",
+          "#59ABDC",
+          "#91C2DF",
+          "#C2DAE8",
+          "#EEF3F7"
+        ]
+      },
+      "prepare-track": {
+        "role": "tertiary",
+        "displayName": "Prepare Track",
+        "canonical": "#274A60",
+        "increaseContrast": "#4A748C",
+        "tonalRamp": [
+          "#1D2830",
+          "#2F4858",
+          "#3E6883",
+          "#498AB2",
+          "#76A3C0",
+          "#A2BDCE",
+          "#CBD8E0",
+          "#F0F3F5"
+        ]
+      },
+      "prepare-text": {
+        "role": "tertiary",
+        "displayName": "Prepare Text",
+        "canonical": "#EFF8FD",
+        "increaseContrast": "#FFFFFF",
+        "tonalRamp": [
+          "#152B38",
+          "#1E4E69",
+          "#2073A1",
+          "#1D99DF",
+          "#57AEDF",
+          "#8FC4E1",
+          "#C2DBE9",
+          "#EEF4F7"
+        ]
+      },
+      "work-field": {
+        "role": "tertiary",
+        "displayName": "Work Field",
+        "canonical": "#351C17",
+        "increaseContrast": "#2A120E",
+        "tonalRamp": [
+          "#2F201D",
+          "#563730",
+          "#814B40",
+          "#AF5D4C",
+          "#BD8478",
+          "#CDAAA3",
+          "#DFCFCB",
+          "#F5F1F0"
+        ]
+      },
+      "work-ring": {
+        "role": "tertiary",
+        "displayName": "Work Ring",
+        "canonical": "#FFAE8A",
+        "increaseContrast": "#FFC6AB",
+        "tonalRamp": [
+          "#3C1E10",
+          "#743113",
+          "#B3410E",
+          "#FA4E01",
+          "#F27944",
+          "#ECA484",
+          "#EECBBC",
+          "#F8F0EC"
+        ]
+      },
+      "work-track": {
+        "role": "tertiary",
+        "displayName": "Work Track",
+        "canonical": "#59332A",
+        "increaseContrast": "#986149",
+        "tonalRamp": [
+          "#2E211E",
+          "#553932",
+          "#7E4E43",
+          "#AA6251",
+          "#BA877C",
+          "#CBACA5",
+          "#DED0CC",
+          "#F4F1F0"
+        ]
+      },
+      "work-text": {
+        "role": "tertiary",
+        "displayName": "Work Text",
+        "canonical": "#FFF5F0",
+        "increaseContrast": "#FFFFFF",
+        "tonalRamp": [
+          "#3C1F10",
+          "#743313",
+          "#B3450E",
+          "#FA5401",
+          "#F27E44",
+          "#ECA784",
+          "#EECDBC",
+          "#F8F0EC"
+        ]
+      },
+      "rest-field": {
+        "role": "tertiary",
+        "displayName": "Rest Field",
+        "canonical": "#0F2A2B",
+        "increaseContrast": "#071F20",
+        "tonalRamp": [
+          "#1C3031",
+          "#2C595B",
+          "#398688",
+          "#42B6BA",
+          "#71C2C5",
+          "#9FCFD1",
+          "#C9E0E1",
+          "#EFF5F5"
+        ]
+      },
+      "rest-ring": {
+        "role": "tertiary",
+        "displayName": "Rest Ring",
+        "canonical": "#86DCCB",
+        "increaseContrast": "#A8EFE1",
+        "tonalRamp": [
+          "#1A322E",
+          "#295E54",
+          "#338E7C",
+          "#39C2A7",
+          "#6BCBB8",
+          "#9BD5C9",
+          "#C7E3DD",
+          "#EFF5F4"
+        ]
+      },
+      "rest-track": {
+        "role": "tertiary",
+        "displayName": "Rest Track",
+        "canonical": "#254A48",
+        "increaseContrast": "#447E77",
+        "tonalRamp": [
+          "#1F2E2D",
+          "#335452",
+          "#457C79",
+          "#54A7A3",
+          "#7EB8B5",
+          "#A7C9C7",
+          "#CDDDDD",
+          "#F0F4F4"
+        ]
+      },
+      "rest-text": {
+        "role": "tertiary",
+        "displayName": "Rest Text",
+        "canonical": "#F0FBF8",
+        "increaseContrast": "#FFFFFF",
+        "tonalRamp": [
+          "#19332C",
+          "#275F50",
+          "#319076",
+          "#36C69E",
+          "#68CDB2",
+          "#9AD6C6",
+          "#C7E4DC",
+          "#EFF6F4"
+        ]
+      },
+      "cooldown-field": {
+        "role": "tertiary",
+        "displayName": "Cooldown Field",
+        "canonical": "#18223F",
+        "increaseContrast": "#0F1830",
+        "tonalRamp": [
+          "#1C2130",
+          "#2E3959",
+          "#3C4F86",
+          "#4662B6",
+          "#7488C2",
+          "#A1ADCF",
+          "#CAD0E0",
+          "#F0F1F5"
+        ]
+      },
+      "cooldown-ring": {
+        "role": "tertiary",
+        "displayName": "Cooldown Ring",
+        "canonical": "#AFC4FF",
+        "increaseContrast": "#C9D7FF",
+        "tonalRamp": [
+          "#101C3C",
+          "#132C74",
+          "#0E39B3",
+          "#0142FA",
+          "#4471F2",
+          "#849FEC",
+          "#BCC9EE",
+          "#ECEFF8"
+        ]
+      },
+      "cooldown-track": {
+        "role": "tertiary",
+        "displayName": "Cooldown Track",
+        "canonical": "#2F3D66",
+        "increaseContrast": "#586DAC",
+        "tonalRamp": [
+          "#1E222E",
+          "#323B55",
+          "#42527F",
+          "#5067AC",
+          "#7B8BBB",
+          "#A5AFCB",
+          "#CCD1DE",
+          "#F0F1F4"
+        ]
+      },
+      "cooldown-text": {
+        "role": "tertiary",
+        "displayName": "Cooldown Text",
+        "canonical": "#F3F6FF",
+        "increaseContrast": "#FFFFFF",
+        "tonalRamp": [
+          "#101B3C",
+          "#132B74",
+          "#0E37B3",
+          "#013FFA",
+          "#446FF2",
+          "#849EEC",
+          "#BCC9EE",
+          "#ECEFF8"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "running-time": {
+        "displayName": "Running time",
+        "purpose": "The time on the running field; set at 200 pt and scaled to the width (minimum scale 0.3)."
+      },
+      "total": {
+        "displayName": "Total",
+        "purpose": "The total on both complete screens."
+      },
+      "board-time": {
+        "displayName": "Board time",
+        "purpose": "A board line's time; an Off line's drops to 34 pt semibold."
+      },
+      "board-phase": {
+        "displayName": "Board phase",
+        "purpose": "A board line's Phase name, in its ink."
+      },
+      "board-count": {
+        "displayName": "Board count",
+        "purpose": "A Rounds Block's count, '× 8' or '× ∞'."
+      },
+      "running-phase": {
+        "displayName": "Running phase",
+        "purpose": "The Phase name on the running field, in its ring color."
+      },
+      "display": {
+        "displayName": "Display (Large Title bold)",
+        "purpose": "Screen titles."
+      },
+      "headline": {
+        "displayName": "Headline (Title 2 bold)",
+        "purpose": "Section headings and capsule labels."
+      },
+      "title": {
+        "displayName": "Title (Title 3 bold)",
+        "purpose": "A Plan cell's name."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Text entry and list rows; Body bold for a cell's lines."
+      },
+      "label": {
+        "displayName": "Label (Subheadline / Footnote)",
+        "purpose": "Notes, captions, subtitles."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "tick-draw",
+        "value": "easeOut 0.3s, stagger 0.18s per line, after a 0.3s beat",
+        "purpose": "Ticks drawn down the complete board; shown at once with Reduce Motion."
+      },
+      {
+        "name": "total-underline",
+        "value": "easeOut 0.35s, after the last tick + 0.1s (0.4s on Open Rounds)",
+        "purpose": "The marker line the total is written under."
+      },
+      {
+        "name": "rounds-stagger-cap",
+        "value": "10 Rounds",
+        "purpose": "Rounds past ten tick with the tenth."
+      }
+    ],
+    "markerStroke": {
+      "lineWidth": "3.5pt",
+      "lineCap": "round",
+      "lineJoin": "round",
+      "cellFrame": "2.5pt in board-rule",
+      "miniBracket": "2pt"
+    },
+    "scope": "iPhone app only. The Apple Watch app and the Live Activity keep InkColors (Shared/Ink.swift) until a later round."
+  },
+  "components": [
+    {
+      "name": "Start (black marker capsule)",
+      "kind": "button",
+      "refersTo": "button-marker",
+      "description": "The one primary action per board screen, in the bottom bar, with the Workout's length.",
+      "html": "<button class=\"ds-btn-marker\">Start · 8:50</button>",
+      "css": ".ds-btn-marker { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #1E2126; color: #F6F7F5; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; min-height: 56px; width: 100%; border: none; border-radius: 9999px; transition: transform .15s, filter .15s; } .ds-btn-marker:hover { filter: brightness(1.25); } .ds-btn-marker:active { transform: scale(0.98); } .ds-btn-marker:focus-visible { outline: 3px solid #1F6FB2; outline-offset: 3px; }"
+    },
+    {
+      "name": "Done (Work ring capsule)",
+      "kind": "button",
+      "refersTo": "button-done",
+      "description": "Ends an open Work Phase on the running field; disabled, it dims in place.",
+      "html": "<div class=\"ds-field-work\"><button class=\"ds-btn-done\">Done</button></div>",
+      "css": ".ds-field-work { background: #351C17; padding: 16px; } .ds-btn-done { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #FFAE8A; color: #351C17; font-size: 28px; font-weight: 700; min-height: 88px; width: 100%; border: none; border-radius: 9999px; transition: transform .15s; } .ds-btn-done:active { transform: scale(0.98); } .ds-btn-done:focus-visible { outline: 3px solid #FFF5F0; outline-offset: 3px; } .ds-btn-done:disabled { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); }"
+    },
+    {
+      "name": "Plan Board",
+      "kind": "custom",
+      "refersTo": "board-line",
+      "description": "A Plan written up as it will run: Phase names left in their inks, times right in one tabular column, Rounds in a marker bracket.",
+      "html": "<div class=\"ds-board\"><div class=\"ds-line ds-prepare\" tabindex=\"0\"><span>Prepare</span><b>0:10</b></div><div class=\"ds-rounds\"><span class=\"ds-count\">× 8</span><svg class=\"ds-bracket\" viewBox=\"0 0 16 140\" preserveAspectRatio=\"none\"><path d=\"M14 1 Q6 -0.5 1 3 Q-1.5 70 2 137 Q7 140.5 15 139\" fill=\"none\" stroke=\"#1E2126\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/></svg><div class=\"ds-rlines\"><div class=\"ds-line ds-work\" tabindex=\"0\"><span>Work</span><b>0:40</b></div><div class=\"ds-line ds-rest\" tabindex=\"0\"><span>Rest</span><b>0:20</b></div></div></div><div class=\"ds-line ds-off\" tabindex=\"0\"><span>Cooldown</span><b class=\"ds-offtime\">Off</b></div></div>",
+      "css": ".ds-board { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #F6F7F5; padding: 20px; display: flex; flex-direction: column; gap: 4px; } .ds-line { display: flex; align-items: baseline; justify-content: space-between; min-height: 64px; cursor: pointer; } .ds-line span { font-size: 34px; font-weight: 700; } .ds-line b { font-size: 52px; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-line:hover { opacity: .8; } .ds-line:focus-visible { outline: 2px solid #1E2126; } .ds-prepare { color: #1F6FB2; } .ds-work { color: #C63E22; } .ds-rest { color: #0E7A6C; } .ds-off { color: #868C93; } .ds-off .ds-offtime { font-size: 34px; font-weight: 600; } .ds-rounds { display: flex; align-items: center; padding: 6px 0; } .ds-count { width: 64px; font-size: 30px; font-weight: 700; color: #1E2126; } .ds-bracket { width: 16px; align-self: stretch; padding: 4px 0; } .ds-rlines { flex: 1; padding-left: 10px; display: flex; flex-direction: column; gap: 4px; }"
+    },
+    {
+      "name": "Plan Cell",
+      "kind": "card",
+      "refersTo": "plan-cell",
+      "description": "A whole Plan at cell size on the Plans grid, boxed by a bowed marker frame, no fill or shadow.",
+      "html": "<div class=\"ds-cell\" tabindex=\"0\"><div class=\"ds-cell-title\">Stopwatch</div><div class=\"ds-mini\"><span style=\"color:#1F6FB2\">Prepare</span><span style=\"color:#1F6FB2\">0:10</span><span style=\"color:#C63E22\">Work</span><span style=\"color:#C63E22\">10:00</span></div><div class=\"ds-cell-total\">10:10</div></div>",
+      "css": ".ds-cell { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #F6F7F5; border: 2.5px solid #D5D8DB; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: border-color .15s; } .ds-cell:hover { border-color: #868C93; } .ds-cell:focus-visible { outline: 3px solid #1F6FB2; outline-offset: 2px; } .ds-cell-title { font-size: 20px; font-weight: 700; color: #1E2126; } .ds-mini { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-cell-total { font-size: 15px; font-weight: 700; color: #5E646C; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Describe Text Field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "A field set into the board in panel tone, for describing a Workout in words.",
+      "html": "<textarea class=\"ds-field\" placeholder=\"Describe today's Workout\"></textarea>",
+      "css": ".ds-field { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #E9EBE8; color: #1E2126; caret-color: #1E2126; font-size: 17px; border: none; border-radius: 16px; padding: 12px 14px; min-height: 96px; width: 100%; resize: none; } .ds-field::placeholder { color: #5E646C; } .ds-field:focus-visible { outline: 2px solid #1E2126; outline-offset: 2px; }"
+    },
+    {
+      "name": "Describe Link (marker underline)",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "A board link written in black marker and underlined with a sagging marker stroke, with a secondary-ink chevron.",
+      "html": "<a class=\"ds-link\" href=\"#\"><span class=\"ds-link-text\">Describe a Workout<svg viewBox=\"0 0 100 8\" preserveAspectRatio=\"none\"><path d=\"M0 5 C35 6.5 70 3.5 100 2.5\" fill=\"none\" stroke=\"#1E2126\" stroke-width=\"3.5\" stroke-linecap=\"round\" vector-effect=\"non-scaling-stroke\"/></svg></span><svg class=\"ds-chev\" viewBox=\"0 0 12 20\"><path d=\"M2 2 L10 10 L2 18\" fill=\"none\" stroke=\"#5E646C\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></a>",
+      "css": ".ds-link { font-family: ui-rounded, 'SF Pro Rounded', system-ui; display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 6px 0; text-decoration: none; color: #1E2126; font-size: 22px; font-weight: 700; } .ds-link-text { position: relative; padding-bottom: 12px; } .ds-link-text svg { position: absolute; left: 0; bottom: 0; width: 100%; height: 8px; } .ds-chev { width: 12px; height: 20px; transition: transform .15s; } .ds-link:hover .ds-chev { transform: translateX(2px); } .ds-link:focus-visible { outline: 2px solid #1E2126; outline-offset: 4px; }"
+    },
+    {
+      "name": "Running Field",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "A running Workout: flat Phase field, name in ring color, the time as wide as the screen, a capsule progress bar.",
+      "html": "<div class=\"ds-run\"><div class=\"ds-run-phase\">Prepare</div><div class=\"ds-run-time\">0:08</div><div class=\"ds-run-bar\"><i></i></div><div class=\"ds-run-count\">8 <small>Rounds</small></div></div>",
+      "css": ".ds-run { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #0F2433; color: #EFF8FD; padding: 24px 16px; text-align: center; } .ds-run-phase { color: #8FCBEF; font-size: 56px; font-weight: 600; } .ds-run-time { font-size: 140px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; } .ds-run-bar { height: 10px; border-radius: 9999px; background: #274A60; overflow: hidden; } .ds-run-bar i { display: block; height: 100%; width: 70%; background: #8FCBEF; border-radius: 9999px; } .ds-run-count { font-size: 64px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-run-count small { font-size: 32px; font-weight: 500; opacity: .72; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Coach's Whiteboard",
+    "overview": "Every iPhone screen but the running one is a gloss whiteboard. A Plan is written on it exactly as it will run: each Phase's name in its own marker ink at the left, its time large in one tabular column at the right, and the lines that repeat held in a hand-drawn bracket under their count. When the Workout ends, the same board comes back with every line ticked off and the total written under a marker line.\n\nStarting a Workout flips the board to a flat dark field in the Phase's color, where the time gets nearly all of the screen so it reads from across a room. The two halves share the Phase hues and SF Rounded, and nothing else: the board is light, quiet and written by hand; the field is dark, flat and given wholly to one number.\n\nMarker strokes (round-nib, slightly wobbly, round caps) draw structure: brackets, ticks, underlines and cell frames. They never draw letters. Everything that reads is SF Rounded. The rest is native iOS 27: Liquid Glass bar buttons, navigation, menus, sheets and grouped lists, recolored onto the board.\n\nScope: this records the iPhone app. The Apple Watch app and the Live Activity keep their earlier dark ink (`InkColors` in `Shared/Ink.swift`) until a later round. They are not part of the board system, and nothing here should be applied to them yet.",
+    "keyCharacteristics": [
+      "Light whiteboard ground; black marker for structure, names and Start.",
+      "Four Phase marker inks, used as text and strokes, never as fills on the board.",
+      "Times big, bold, tabular, right-aligned in one column.",
+      "Hand-drawn marker strokes for brackets, ticks, underlines and frames; never for words.",
+      "The running Workout is a flat dark Phase field: no gradients, no tinted glass, no ring.",
+      "Every color has an Increase Contrast variant."
+    ],
+    "rules": [
+      {
+        "name": "The Ink Is the Phase Rule",
+        "body": "On the board a Phase's name and time are always in that Phase's ink, and a value sheet's title and wheels take the ink of the line that opened it. Black marker is for structure (counts, brackets, headings), not for Phase content.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ghost Means Off Rule",
+        "body": "A line that won't run is wiped toward eraser ghost, its time drops to 34 pt semibold, and it's left off the complete board. Ghost is never used for live content.",
+        "section": "colors"
+      },
+      {
+        "name": "The Contrast Pair Rule",
+        "body": "Every color has an Increase Contrast value (in `BoardInk` and `PhaseColors`; listed in the sidecar). A new color without one doesn't ship.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Column Rule",
+        "body": "Every time on a board is right-aligned in one column, in tabular figures, at the same size as its siblings. Names sit left, times sit right, nothing between them but space.",
+        "section": "typography"
+      },
+      {
+        "name": "The Bold Board Rule",
+        "body": "Board content is bold (700). Regular weight is for notes and system text only.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Board Rule",
+        "body": "Nothing on the board casts a shadow or sits on a card fill. A group is boxed with a marker stroke, not raised.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Strokes Not Letters Rule",
+        "body": "Marker strokes draw brackets, ticks, underlines and frames. Words stay in SF Rounded.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** write a Phase's name and time in its marker ink on the board, and a Rounds count and bracket in black marker.",
+      "**Do** put every time in the right-hand tabular column at the fixed board size (52 pt for a line, 60 pt for a total).",
+      "**Do** keep one black marker capsule per screen, in the bottom bar.",
+      "**Do** draw structure with the 3.5 pt round-cap marker stroke as gently bowed curves.",
+      "**Do** give every new color an Increase Contrast variant and check it against the board (4.5:1, or 3:1 for text 34 pt and up).",
+      "**Do** let Reduce Motion show drawn strokes in their finished state."
+    ],
+    "donts": [
+      "**Don't** fill board containers or give them shadows; box them with a marker stroke.",
+      "**Don't** draw letters or words as marker strokes.",
+      "**Don't** use a Phase ink as a fill on the board; fills in Phase color belong to the running field.",
+      "**Don't** add gradients, tinted glass panes or an activity ring to the running field.",
+      "**Don't** use eraser ghost for anything that will run.",
+      "**Don't** apply the board system to the Watch app or the Live Activity yet."
+    ]
+  }
+}

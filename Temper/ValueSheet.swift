@@ -1,7 +1,8 @@
 import SwiftUI
 import TemperCore
 
-/// Edits a draft of one value. Confirm hands it back, and swiping the sheet away discards it.
+/// Edits a draft of one value on a small board of its own. Confirm hands it back, and swiping the sheet away discards
+/// it.
 struct ValueSheet: View {
     let value: WorkoutValue
     let confirm: (Int) -> Void
@@ -18,27 +19,44 @@ struct ValueSheet: View {
     }
 
     var body: some View {
-        let ink = InkColors(contrast: contrast)
-        let phase = value.phaseKind.map { PhaseColors(kind: $0, contrast: contrast) }
+        let ink = BoardInk(contrast: contrast)
+        // A time is written in its Phase's ink, as its line is on the board, and Rounds in black marker.
+        let lineInk = value.phaseKind.map { ink.ink($0) } ?? ink.marker
 
         VStack(spacing: 8) {
             Text(value.title)
                 .font(.headline)
-                .foregroundStyle(phase?.ring ?? ink.accent)
+                .foregroundStyle(lineInk)
                 .padding(.top, 20)
             wheels
-                .foregroundStyle(phase?.text ?? ink.text)
+                .foregroundStyle(lineInk)
+                // A quiet band behind the center row, so the chosen value stands out at arm's length.
+                .background {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(ink.panel)
+                        .frame(height: DigitWheel.rowHeight)
+                }
+            if allowsOff {
+                // 00:00 alone could read as a wheel left unset, so it's named the way the board names it.
+                Text("Off")
+                    .font(.subheadline)
+                    .foregroundStyle(ink.ghost)
+                    .lineLimit(1)
+                    // Always laid out, so the wheels don't shift as the draft crosses zero.
+                    .opacity(draft == 0 ? 1 : 0)
+                    .accessibilityHidden(draft != 0)
+            }
             Button {
                 confirm(draft)
                 dismiss()
             } label: {
                 Text("Confirm")
                     .font(.title2.bold())
-                    .foregroundStyle(ink.onAccent)
-                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .foregroundStyle(ink.onMarker)
+                    .frame(maxWidth: .infinity, minHeight: 56)
             }
             .buttonStyle(.glassProminent)
-            .tint(ink.accent)
+            .tint(ink.marker)
             .padding(.bottom, 6)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .accessibilityShowsLargeContentViewer()
@@ -46,7 +64,12 @@ struct ValueSheet: View {
         .padding(.horizontal)
         .fontDesign(.rounded)
         .presentationDetents([.medium])
-        .presentationBackground(phase?.background ?? ink.raised)
+        .presentationBackground(ink.ground)
+    }
+
+    /// Whether the value can be turned off, as Prepare, Rest and Cooldown are by setting them to zero.
+    private var allowsOff: Bool {
+        value.isTime && value.clamped(0) == 0
     }
 
     @ViewBuilder private var wheels: some View {

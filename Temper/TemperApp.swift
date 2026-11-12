@@ -14,6 +14,21 @@ struct TemperApp: App {
         // The Live Activity's Pause, Resume and Done run in this process, and may be what launched it, so the
         // runner is set before any of them can run.
         LiveActivityControls.workout = runner
+        Self.roundNavigationTitles()
+    }
+
+    /// Sets the inline navigation titles in SF Rounded, as the rest of the app is, which `fontDesign(_:)` doesn't reach.
+    /// Large titles ignore this, so Plans and Settings set theirs in a `largeTitle` toolbar item.
+    private static func roundNavigationTitles() {
+        UINavigationBar.appearance().titleTextAttributes = [.font: roundedFont(.headline, weight: .semibold)]
+    }
+
+    /// The system font for a text style, at the owner's text size, in its rounded design.
+    private static func roundedFont(_ style: UIFont.TextStyle, weight: UIFont.Weight) -> UIFont {
+        let size = UIFont.preferredFont(forTextStyle: style).pointSize
+        let font = UIFont.systemFont(ofSize: size, weight: weight)
+        guard let rounded = font.fontDescriptor.withDesign(.rounded) else { return font }
+        return UIFont(descriptor: rounded, size: size)
     }
 
     var body: some Scene {
@@ -25,10 +40,15 @@ struct TemperApp: App {
 
 /// Shows the screen for where the Workout is, and catches up whenever Temper returns to the front.
 ///
-/// The running and complete screens replace the whole tab bar, so nothing on screen distracts from the time.
+/// The running and complete screens replace the whole navigation stack, so nothing on screen distracts from the time.
+/// The stack's path lives in `RememberedValues`, so leaving a Workout comes back to the Plan it started from.
 struct RootView: View {
     let runner: WorkoutRunner
     @Bindable var remembered: RememberedValues
+
+    /// The board of the Plan the Workout was started from, for the complete screen to tick off, or `nil` for a Workout
+    /// started elsewhere, as by a debug launch.
+    @State private var ranBoard: PlanBoard?
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorSchemeContrast) private var contrast
@@ -50,53 +70,57 @@ struct RootView: View {
                     // The runner keeps only an ended snapshot with a complete screen.
                     switch display.completion {
                     case .rounds(let summary):
-                        RoundsCompleteScreen(summary: summary, done: runner.finish)
+                        RoundsCompleteScreen(
+                            summary: summary, activeTime: snapshot.record?.activeTime ?? .zero,
+                            health: runner.health, close: close)
                     case .total(let total):
-                        CompleteScreen(total: total, done: runner.finish)
+                        CompleteScreen(board: ranBoard, total: total, health: runner.health, close: close)
                     case nil:
                         EmptyView()
                     }
                 }
             } else {
-                // The system Liquid Glass tab bar, with no background of its own.
-                TabView(selection: $remembered.selectedTab) {
-                    ForEach(RootTab.workoutTypes) { workoutType in
-                        Tab(
-                            workoutType.title, systemImage: workoutType.systemImage,
-                            value: RootTab.workoutType(workoutType)
-                        ) {
-                            NavigationStack {
-                                SetupScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
+                NavigationStack(path: $remembered.path) {
+                    PlansScreen(remembered: remembered)
+                        .navigationDestination(for: Route.self) { route in
+                            switch route {
+                            case .plan(let workoutType):
+                                PlanScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
+                                    ranBoard = PlanBoard(workoutType: workoutType, settings: remembered[workoutType])
                                     runner.start(
                                         workout, filedAs: HealthRecord.ActivityType(workoutType),
                                         isDipOn: remembered.isDipOn)
                                 }
+                            case .describe:
+                                DescribeScreen(remembered: remembered) { workout, activityType in
+                                    ranBoard = remembered.describedPlan.map(PlanBoard.init(plan:))
+                                    runner.start(workout, filedAs: activityType, isDipOn: remembered.isDipOn)
+                                }
+                            case .settings:
+                                SettingsScreen(remembered: remembered, health: runner.health)
                             }
                         }
-                    }
-                    Tab("Describe", systemImage: "text.bubble", value: RootTab.describe) {
-                        NavigationStack {
-                            DescribeScreen(remembered: remembered) { workout, activityType in
-                                runner.start(workout, filedAs: activityType, isDipOn: remembered.isDipOn)
-                            }
-                        }
-                    }
-                    Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
-                        NavigationStack {
-                            SettingsScreen(remembered: remembered, health: runner.health)
-                        }
-                    }
                 }
-                // Dragging the setup rows scrolls, and the tabs stay in view through it.
-                .tabBarMinimizeBehavior(.never)
-                .tint(InkColors(contrast: contrast).accent)
+                .tint(BoardInk(contrast: contrast).marker)
             }
         }
         .fontDesign(.rounded)
+        #if DEBUG
+            .task {
+                if let board = DebugLaunch.apply(runner: runner, remembered: remembered) {
+                    ranBoard = board
+                }
+            }
+        #endif
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 runner.refresh()
             }
         }
+    }
+
+    private func close() {
+        ranBoard = nil
+        runner.finish()
     }
 }

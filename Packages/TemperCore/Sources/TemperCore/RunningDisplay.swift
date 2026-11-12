@@ -35,6 +35,12 @@ where Instant.Duration == Duration {
         public let spokenTime: String
         /// How much of the ring is drawn, from 0 to 1, clockwise from the top.
         public let fill: Double
+
+        /// The time with no leading zero on the minutes, as `0:08`, `12:30` or `72:15`, the way the Plan board writes
+        /// times.
+        public var shortTime: String {
+            time.hasPrefix("0") ? String(time.dropFirst()) : time
+        }
     }
 
     /// The running screen's Done button, which a Workout with a Phase that ends at Done has, as Open Rounds and
