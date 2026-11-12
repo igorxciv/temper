@@ -103,14 +103,14 @@ public nonisolated struct HealthRecord: Codable, Hashable, Sendable {
     /// The engine's instants become dates through `anchor`, read at the end.
     public init?<Instant>(
         _ record: WorkoutRecord<Instant>,
-        of workoutType: WorkoutType,
+        filedAs activityType: ActivityType,
         workoutID: UUID,
         attempt: Int,
         anchor: ClockAnchor<Instant>
     ) {
         precondition(attempt >= 1, "Attempts are numbered from 1")
         guard record.activeTime >= Self.minimumActiveTime else { return nil }
-        activityType = ActivityType(workoutType)
+        self.activityType = activityType
         start = anchor.date(of: record.start)
         end = anchor.date(of: record.end)
         pauses = record.pauses.map { Pause(start: anchor.date(of: $0.lowerBound), end: anchor.date(of: $0.upperBound)) }

@@ -339,6 +339,44 @@ struct RememberedValuesTests {
         }
     }
 
+    @Test func `Describe is never saved as the last-used tab`() throws {
+        try withThrowawayDefaults { defaults in
+            let remembered = RememberedValues(defaults: defaults)
+            remembered.selectedTab = .workoutType(.openRounds)
+            remembered.selectedTab = .describe
+
+            #expect(remembered.selectedTab == .describe)
+            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.openRounds))
+        }
+    }
+
+    @Test func `The description and the Plan made from it are there at the next launch`() throws {
+        try withThrowawayDefaults { defaults in
+            let plan = Plan(
+                activity: .traditionalStrengthTraining,
+                blocks: [
+                    .rounds(
+                        .times(10),
+                        [PlannedPhase(kind: .work, length: .open), PlannedPhase(kind: .rest, duration: .seconds(60))])
+                ])
+            let remembered = RememberedValues(defaults: defaults)
+            remembered.workoutDescription = "10 sets, 1 minute rest"
+            remembered.describedPlan = plan
+
+            let next = RememberedValues(defaults: defaults)
+            #expect(next.workoutDescription == "10 sets, 1 minute rest")
+            #expect(next.describedPlan == plan)
+        }
+    }
+
+    @Test func `A Plan stored in a later format is forgotten`() throws {
+        try withThrowawayDefaults { defaults in
+            defaults.set(Data(#"{"version":99,"activity":"other","blocks":[]}"#.utf8), forKey: "describe.plan")
+
+            #expect(RememberedValues(defaults: defaults).describedPlan == nil)
+        }
+    }
+
     @Test func `An unknown last-used Workout Type falls back to Intervals`() throws {
         try withThrowawayDefaults { defaults in
             defaults.set("emom", forKey: "workoutType")

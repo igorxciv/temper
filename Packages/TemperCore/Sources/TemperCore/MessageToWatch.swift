@@ -18,6 +18,10 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
 
     /// The first message to each mirrored instance: which Workout it belongs to, when that Workout started, and
     /// whether the Watch arrived within the 10 s window after the iPhone asked it to open.
+    ///
+    /// The Watch reads the Workout Type only for the activity type its Health workout is filed under. So a Plan that
+    /// isn't a Workout Type's sends the type filed under the same activity type, and the message keeps the shape a
+    /// Watch on this version reads.
     case begin(workoutID: UUID, start: Date, workoutType: WorkoutType, inTime: Bool, version: Int)
     /// What to draw now, sent on every event.
     case update(WatchState)

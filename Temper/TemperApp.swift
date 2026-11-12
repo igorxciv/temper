@@ -67,8 +67,17 @@ struct RootView: View {
                         ) {
                             NavigationStack {
                                 SetupScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
-                                    runner.start(workout, of: workoutType, isDipOn: remembered.isDipOn)
+                                    runner.start(
+                                        workout, filedAs: HealthRecord.ActivityType(workoutType),
+                                        isDipOn: remembered.isDipOn)
                                 }
+                            }
+                        }
+                    }
+                    Tab("Describe", systemImage: "text.bubble", value: RootTab.describe) {
+                        NavigationStack {
+                            DescribeScreen(remembered: remembered) { workout, activityType in
+                                runner.start(workout, filedAs: activityType, isDipOn: remembered.isDipOn)
                             }
                         }
                     }

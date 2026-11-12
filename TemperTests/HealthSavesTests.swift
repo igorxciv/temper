@@ -71,7 +71,7 @@ private func stopwatch(seconds: Int, workoutID: UUID = UUID()) -> HealthRecord? 
         phases: [.init(kind: .work, round: nil, start: start, end: end)]
     )
     return HealthRecord(
-        record, of: .stopwatch, workoutID: workoutID, attempt: 1, anchor: ClockAnchor(instant: start, date: startDate))
+        record, filedAs: .other, workoutID: workoutID, attempt: 1, anchor: ClockAnchor(instant: start, date: startDate))
 }
 
 @MainActor

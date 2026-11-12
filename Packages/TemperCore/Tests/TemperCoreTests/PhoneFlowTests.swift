@@ -29,14 +29,16 @@ nonisolated struct PhoneFlowTests {
             WorkoutRecord(
                 start: ManualClock.Instant(offset: .zero), end: ManualClock.Instant(offset: .seconds(90)), pauses: [],
                 phases: [.init(kind: .work, round: 1, start: .init(offset: .zero), end: .init(offset: .seconds(90)))]),
-            of: .openRounds, workoutID: workoutID, attempt: 1,
+            filedAs: .traditionalStrengthTraining, workoutID: workoutID, attempt: 1,
             anchor: ClockAnchor(instant: ManualClock.Instant(offset: .zero), date: start))!
     }
 
     /// A Workout started, and the Watch asked to open `seconds` after the engine set the start point.
     private func started(requestingAfter seconds: Double = 0) -> Flow {
         var flow = Flow()
-        _ = flow.handle(.started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: true))
+        _ = flow.handle(
+            .started(
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: true))
         _ = flow.handle(.watchAppRequested(at: start.addingTimeInterval(seconds)))
         return flow
     }
@@ -45,15 +47,18 @@ nonisolated struct PhoneFlowTests {
         var flow = Flow()
 
         let effects = flow.handle(
-            .started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: true))
+            .started(
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: true))
 
-        #expect(effects == [.startWatchApp(.openRounds)])
+        #expect(effects == [.startWatchApp(.traditionalStrengthTraining)])
     }
 
     /// A session that turns up without the iPhone having asked for one still records, but had no window to be in.
     @Test func `A session arriving when the iPhone never asked the Watch to open is late`() {
         var flow = Flow()
-        _ = flow.handle(.started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: false))
+        _ = flow.handle(
+            .started(
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: false))
 
         let effects = flow.handle(
             .instanceArrived(1, start: start.addingTimeInterval(1), at: start.addingTimeInterval(2)))
@@ -65,7 +70,8 @@ nonisolated struct PhoneFlowTests {
         var flow = Flow()
 
         let effects = flow.handle(
-            .started(workoutID: workoutID, workoutType: .openRounds, start: start, workoutsAllowed: false))
+            .started(
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: false))
 
         #expect(effects == [])
     }
@@ -105,7 +111,8 @@ nonisolated struct PhoneFlowTests {
         _ = flow.handle(.published(.ended(nil)))
         let next = start.addingTimeInterval(120)
         let nextID = UUID()
-        _ = flow.handle(.started(workoutID: nextID, workoutType: .openRounds, start: next, workoutsAllowed: true))
+        _ = flow.handle(
+            .started(workoutID: nextID, activityType: .traditionalStrengthTraining, start: next, workoutsAllowed: true))
         _ = flow.handle(.watchAppRequested(at: next))
 
         let leftover = flow.handle(
@@ -340,7 +347,9 @@ nonisolated struct PhoneFlowTests {
         let next = start.addingTimeInterval(600)
         let nextID = UUID()
 
-        _ = flow.handle(.started(workoutID: nextID, workoutType: .intervals, start: next, workoutsAllowed: true))
+        _ = flow.handle(
+            .started(
+                workoutID: nextID, activityType: .highIntensityIntervalTraining, start: next, workoutsAllowed: true))
         _ = flow.handle(.watchAppRequested(at: next))
         let effects =
             flow.handle(.published(phase(.prepare, startingAt: 600)))

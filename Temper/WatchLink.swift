@@ -50,9 +50,10 @@ final class WatchLink: NSObject {
     }
 
     /// Opens the Watch if workouts are allowed, once the engine has set the Workout's start point at `start`.
-    func start(workoutID: UUID, workoutType: WorkoutType, start: Date) {
+    func start(workoutID: UUID, activityType: HealthRecord.ActivityType, start: Date) {
         handle(
-            .started(workoutID: workoutID, workoutType: workoutType, start: start, workoutsAllowed: workoutsAllowed()))
+            .started(
+                workoutID: workoutID, activityType: activityType, start: start, workoutsAllowed: workoutsAllowed()))
     }
 
     /// Holds the Health record the iPhone saves for the Workout that just ended, or `nil` for none, until the Watch's
@@ -133,9 +134,9 @@ final class WatchLink: NSObject {
 
     private func perform(_ effect: Flow.Effect) async {
         switch effect {
-        case .startWatchApp(let workoutType):
+        case .startWatchApp(let activityType):
             let configuration = HKWorkoutConfiguration()
-            configuration.activityType = HealthRecord.ActivityType(workoutType).healthKit
+            configuration.activityType = activityType.healthKit
             configuration.locationType = .indoor
             // The completion only means the request was delivered, and Start never waits for the Watch. So the
             // window is timed from the call.

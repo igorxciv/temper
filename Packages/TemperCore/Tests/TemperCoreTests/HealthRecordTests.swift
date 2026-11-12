@@ -35,7 +35,8 @@ nonisolated struct HealthRecordTests {
         attempt: Int = 1
     ) -> HealthRecord? {
         HealthRecord(
-            record, of: workoutType, workoutID: workoutID, attempt: attempt, anchor: anchor)
+            record, filedAs: HealthRecord.ActivityType(workoutType), workoutID: workoutID, attempt: attempt,
+            anchor: anchor)
     }
 
     /// A Stopwatch's Work from `start` to `end` with no Prepare and no Pause.
@@ -85,7 +86,7 @@ nonisolated struct HealthRecordTests {
         let record = stopwatch(from: 100, to: 250)
         let later = try #require(
             HealthRecord(
-                record, of: .intervals, workoutID: workoutID, attempt: 1,
+                record, filedAs: .highIntensityIntervalTraining, workoutID: workoutID, attempt: 1,
                 anchor: ClockAnchor(instant: at(1_600), date: date(1_600)))
         )
 
