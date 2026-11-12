@@ -36,11 +36,7 @@ struct RootView: View {
     var body: some View {
         Group {
             if let snapshot = runner.snapshot {
-                let display = RunningDisplay(
-                    workoutType: runner.workoutType,
-                    workout: runner.workout,
-                    snapshot: snapshot
-                )
+                let display = RunningDisplay(workout: runner.workout, snapshot: snapshot)
                 if let phase = snapshot.phase {
                     RunningScreen(
                         display: display,

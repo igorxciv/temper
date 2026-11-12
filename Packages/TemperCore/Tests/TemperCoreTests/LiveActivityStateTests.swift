@@ -22,11 +22,11 @@ nonisolated struct LiveActivityStateTests {
     }
 
     private func intervals(_ progress: Snapshot.Progress) -> Display {
-        Display(workoutType: .intervals, workout: intervals, snapshot: Snapshot(progress: progress, rounds: 8))
+        Display(workout: intervals, snapshot: Snapshot(progress: progress, rounds: 8))
     }
 
     private func stopwatch(_ progress: Snapshot.Progress) -> Display {
-        Display(workoutType: .stopwatch, workout: stopwatch, snapshot: Snapshot(progress: progress, rounds: 0))
+        Display(workout: stopwatch, snapshot: Snapshot(progress: progress, rounds: 0))
     }
 
     private func livePhase(_ state: LiveActivityState?) -> LivePhase? {
@@ -197,7 +197,7 @@ nonisolated struct LiveActivityStateOpenRoundsTests {
 
     private func state(_ progress: Snapshot.Progress, at now: Double, workTime: Duration? = nil) -> LiveActivityState? {
         let snapshot = Snapshot(progress: progress, rounds: nil, previousOpenPhaseTime: workTime)
-        return Display(workoutType: .openRounds, workout: openRounds, snapshot: snapshot)
+        return Display(workout: openRounds, snapshot: snapshot)
             .liveActivityState(at: at(now), date: date)
     }
 

@@ -80,7 +80,6 @@ nonisolated struct WatchPhaseTests {
     func `The Watch shows the same time and bar as the iPhone's ring`(seconds: Double) throws {
         typealias Instant = ManualClock.Instant
         let display = RunningDisplay<Instant>(
-            workoutType: .intervals,
             workout: WorkoutType.intervals.makeWorkout(from: WorkoutType.intervals.firstLaunch),
             snapshot: WorkoutSnapshot(
                 progress: .running(

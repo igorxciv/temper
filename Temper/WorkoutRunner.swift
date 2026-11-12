@@ -136,7 +136,7 @@ final class WorkoutRunner {
             logTiming(of: snapshot)
         #endif
         saveToHealth(snapshot)
-        let display = Display(workoutType: workoutType, workout: workout, snapshot: snapshot)
+        let display = Display(workout: workout, snapshot: snapshot)
         // Before an ended Workout returns to setup, so the Watch hears that it ended.
         watch.show(display.watchState(at: .now, date: .now))
         // An ended Workout with no complete screen, as after a Stop in Intervals and Stopwatch, returns to setup.

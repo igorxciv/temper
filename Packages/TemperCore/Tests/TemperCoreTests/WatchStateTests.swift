@@ -26,16 +26,16 @@ nonisolated struct WatchStateTests {
     }
 
     private func intervals(_ progress: Snapshot.Progress) -> Display {
-        Display(workoutType: .intervals, workout: intervals, snapshot: Snapshot(progress: progress, rounds: 8))
+        Display(workout: intervals, snapshot: Snapshot(progress: progress, rounds: 8))
     }
 
     private func stopwatch(_ progress: Snapshot.Progress) -> Display {
-        Display(workoutType: .stopwatch, workout: stopwatch, snapshot: Snapshot(progress: progress, rounds: 0))
+        Display(workout: stopwatch, snapshot: Snapshot(progress: progress, rounds: 0))
     }
 
     private func openRounds(_ progress: Snapshot.Progress, workTime: Duration? = nil) -> Display {
         let snapshot = Snapshot(progress: progress, rounds: nil, previousOpenPhaseTime: workTime)
-        return Display(workoutType: .openRounds, workout: openRounds, snapshot: snapshot)
+        return Display(workout: openRounds, snapshot: snapshot)
     }
 
     private func watchPhase(_ state: WatchState) -> WatchPhase? {
@@ -62,7 +62,7 @@ nonisolated struct WatchStateTests {
         let snapshot = Snapshot(
             progress: .running(phase: rest, endsAt: at(160)), rounds: nil, previousOpenPhaseTime: .seconds(90),
             cues: cues)
-        let display = Display(workoutType: .openRounds, workout: openRounds, snapshot: snapshot)
+        let display = Display(workout: openRounds, snapshot: snapshot)
 
         let phase = try #require(watchPhase(display.watchState(at: at(102.5), date: date)))
 

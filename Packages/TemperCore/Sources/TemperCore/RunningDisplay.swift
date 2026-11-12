@@ -1,4 +1,5 @@
-/// The line under the ring: the Round line in Intervals and Open Rounds, and the length in a Stopwatch.
+/// The line under the ring: the Round line in a Workout with Rounds, as in Intervals and Open Rounds, and the length
+/// in one without, as in a Stopwatch.
 public nonisolated enum RingLine: Codable, Hashable, Sendable {
     /// A smaller caption, and which side of the value it sits on.
     public enum Caption: Codable, Hashable, Sendable {
@@ -12,10 +13,11 @@ public nonisolated enum RingLine: Codable, Hashable, Sendable {
     case paused
 }
 
-/// What the running screen shows for a Workout Type at one snapshot: the time in the ring, how full the ring is,
-/// and the line under it, with what VoiceOver says for each.
+/// What the running screen shows for a Workout at one snapshot: the time in the ring, how full the ring is, and the
+/// line under it, with what VoiceOver says for each. It reads only the Workout, never its Workout Type, so a Plan of
+/// any shape shows the same way.
 ///
-/// Every Phase counts down except a Stopwatch's Work and an open Phase, which count up. Counting up is only a display
+/// Every Phase counts down except one that ends at Done, an open Phase or a Stopwatch's Work, which counts up. Counting up is only a display
 /// choice, so the engine, the Timeline and the Cue rules are the same for both.
 ///
 /// In Open Rounds, an open Work counts up over the empty track with "Round 3" under it, and the Rest after it counts
@@ -35,7 +37,8 @@ where Instant.Duration == Duration {
         public let fill: Double
     }
 
-    /// The running screen's Done button, which Open Rounds and Stopwatch have.
+    /// The running screen's Done button, which a Workout with a Phase that ends at Done has, as Open Rounds and
+    /// Stopwatch do.
     public enum DoneButton: Equatable, Sendable {
         case enabled
         /// Kept in place but dimmed, so nothing moves under the owner's thumb as Work turns to Rest or is Paused, or
@@ -43,26 +46,24 @@ where Instant.Duration == Duration {
         case disabled
     }
 
-    public let workoutType: WorkoutType
     public let workout: Workout
     public let snapshot: WorkoutSnapshot<Instant>
 
-    public init(workoutType: WorkoutType, workout: Workout, snapshot: WorkoutSnapshot<Instant>) {
-        self.workoutType = workoutType
+    public init(workout: Workout, snapshot: WorkoutSnapshot<Instant>) {
         self.workout = workout
         self.snapshot = snapshot
     }
 
-    /// True during a Stopwatch's Work and an open Phase, including while it's Paused.
+    /// True during a Phase that ends at Done, an open Phase or a Stopwatch's Work, including while it's Paused.
     public var countsUp: Bool {
-        guard let phase = snapshot.phase else { return false }
-        return phase.isOpen || (workoutType == .stopwatch && phase.kind == .work)
+        snapshot.phase?.endsAtDone ?? false
     }
 
-    /// Done, enabled only in a running open Work or a running Stopwatch Work past its set length, the only times the
-    /// engine takes it, or `nil` in Intervals, which never waits for Done.
+    /// Done, enabled only in a running open Phase or a running Phase past the set length it runs past, the only times
+    /// the engine takes it, or `nil` in a Workout that never waits for Done, as in Intervals.
     public var doneButton: DoneButton? {
-        guard workoutType != .intervals else { return nil }
+        let phases = workout.phases + workout.repeatingRound
+        guard phases.contains(where: \.endsAtDone) else { return nil }
         if case .runningOpen = snapshot.progress { return .enabled }
         return .disabled
     }
@@ -94,22 +95,21 @@ where Instant.Duration == Duration {
     public var line: RingLine? {
         guard let phase = snapshot.phase else { return nil }
         if snapshot.isPaused { return .paused }
-        switch workoutType {
-        case .intervals, .openRounds: return roundLine(in: phase)
-        case .stopwatch: return lengthLine(in: phase)
-        }
+        // A Workout has no Rounds only when it reports a set number of none.
+        return workout.rounds == 0 ? lengthLine(in: phase) : roundLine(in: phase)
     }
 
+    /// A Rest after an open Work shows the Work time just ended, whether or not the Rounds have a set number.
     private func roundLine(in phase: Phase) -> RingLine? {
+        if phase.kind == .rest, let round = phase.round, let workTime = snapshot.previousOpenPhaseTime {
+            return .value(
+                workTime.shortClockText(rounding: .down),
+                caption: .before("Round \(round) · Work"),
+                spoken: "Round \(round), Work \(workTime.spokenText(rounding: .down))"
+            )
+        }
         guard let rounds = snapshot.rounds else {
             guard let round = phase.round else { return nil }
-            if phase.kind == .rest, let workTime = snapshot.previousOpenPhaseTime {
-                return .value(
-                    workTime.shortClockText(rounding: .down),
-                    caption: .before("Round \(round) · Work"),
-                    spoken: "Round \(round), Work \(workTime.spokenText(rounding: .down))"
-                )
-            }
             return .value("\(round)", caption: .before("Round"), spoken: "Round \(round)")
         }
         let total = rounds == 1 ? "1 Round" : "\(rounds) Rounds"

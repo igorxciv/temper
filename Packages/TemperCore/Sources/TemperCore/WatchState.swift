@@ -147,11 +147,12 @@ extension RunningDisplay {
         )
     }
 
-    /// Done while the running screen's Done is enabled, and dimmed in Open Rounds otherwise. Pause, or Resume while
-    /// Paused, in Intervals and in a Stopwatch up to its set length.
+    /// Done while the running screen's Done is enabled, and dimmed otherwise in a Workout with an open Phase, as Open
+    /// Rounds, which keeps Pause in the app. Pause, or Resume while Paused, in Intervals and in a Stopwatch up to its
+    /// set length.
     nonisolated var capsule: WatchPhase.Capsule {
         if doneButton == .enabled { return .done }
-        if workoutType == .openRounds { return .doneDimmed }
+        if workout.hasOpenPhase { return .doneDimmed }
         return snapshot.isPaused ? .resume : .pause
     }
 }

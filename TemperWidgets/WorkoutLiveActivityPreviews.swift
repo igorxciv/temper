@@ -28,7 +28,7 @@ private enum PreviewStates {
         let workout = workoutType.makeWorkout(from: workoutType.firstLaunch)
         let snapshot = WorkoutSnapshot(
             progress: progress, rounds: workout.rounds, previousOpenPhaseTime: previousOpenPhaseTime)
-        let display = RunningDisplay(workoutType: workoutType, workout: workout, snapshot: snapshot)
+        let display = RunningDisplay(workout: workout, snapshot: snapshot)
         return display.liveActivityState(at: .now, date: .now) ?? .complete(total: "", spokenTotal: "")
     }
 }
