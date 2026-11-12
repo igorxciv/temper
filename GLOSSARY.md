@@ -8,6 +8,10 @@ Temper is a personal training app. It runs a Workout of a chosen Workout Type, m
 A run of Phases, of one Workout Type, from Start until it finishes or is Stopped.
 _Avoid_: Session, timer, routine
 
+**Training**:
+An optional span, from its start on the iPhone until it's ended, that any number of Workouts run inside, such as one visit to the gym.
+_Avoid_: Session, visit, gym session
+
 **Workout Type**:
 The kind of Workout picked before Start, which decides its shape and its values: Intervals, Stopwatch or Open Rounds.
 _Avoid_: Timer, mode, program
@@ -81,7 +85,7 @@ A brief lowering of other audio while a Cue speaks.
 _Avoid_: Interrupt, mute
 
 **Health workout**:
-The record of one Workout that Temper saves to Apple Health. One Workout makes at most one.
+The record that Temper saves to Apple Health of one Training, or of one Workout run outside a Training. Each makes at most one.
 _Avoid_: Activity, Session, Fitness workout
 
 **Zone**:
