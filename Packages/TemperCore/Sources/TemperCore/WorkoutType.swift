@@ -60,41 +60,50 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
         }
     }
 
-    /// Builds the Phases in order, dropping any zero Prepare, Rest or Cooldown.
+    /// The built-in Plan its values describe, leaving out any zero Prepare, Rest or Cooldown.
     ///
-    /// Intervals is a Prepare, then each Round's Work and Rest with no Rest after the last Work, then a Cooldown.
-    /// A Stopwatch is a Prepare, then one Work with no Round. Open Rounds is a Prepare, then a repeating Round of an
-    /// open Work and a Rest, and its Rest says "10 seconds" before it ends.
-    public func makeWorkout(from settings: WorkoutSettings) -> Workout {
-        let prepare = Phase(kind: .prepare, duration: settings.prepare)
+    /// Intervals is a Prepare, then Rounds of Work and Rest with no Rest after the last Work, then a Cooldown. A
+    /// Stopwatch is a Prepare, then one Work with no Round that runs past its set length. Open Rounds is a Prepare,
+    /// then Rounds of an open Work and a Rest until Stop, and its Rest says "10 seconds" before it ends.
+    public func plan(from settings: WorkoutSettings) -> Plan {
+        let prepare = Self.leavingOutOff([PlannedPhase(kind: .prepare, duration: settings.prepare)])
+            .map(Plan.Block.phase)
+        let activity = HealthRecord.ActivityType(self)
         switch self {
         case .intervals:
-            precondition(settings.work > .zero, "Intervals and Stopwatch always have a Work")
-            precondition(settings.rounds > 0, "Intervals has at least one Round")
-            var phases = [prepare]
-            for round in 1...settings.rounds {
-                phases.append(Phase(kind: .work, duration: settings.work, round: round))
-                if round < settings.rounds {
-                    phases.append(Phase(kind: .rest, duration: settings.rest, round: round))
-                }
-            }
-            phases.append(Phase(kind: .cooldown, duration: settings.cooldown))
-            return Workout(phases: Self.droppingZero(phases))
+            let round = [
+                PlannedPhase(kind: .work, duration: settings.work),
+                PlannedPhase(kind: .rest, duration: settings.rest),
+            ]
+            let cooldown = Self.leavingOutOff([PlannedPhase(kind: .cooldown, duration: settings.cooldown)])
+                .map(Plan.Block.phase)
+            return Plan(
+                activity: activity,
+                blocks: prepare + [.rounds(.times(settings.rounds), Self.leavingOutOff(round))] + cooldown
+            )
         case .stopwatch:
-            precondition(settings.work > .zero, "Intervals and Stopwatch always have a Work")
-            let work = Phase(kind: .work, length: .runsPast(settings.work))
-            return Workout(phases: Self.droppingZero([prepare, work]))
+            let work = PlannedPhase(kind: .work, length: .runsPast(settings.work))
+            return Plan(activity: activity, blocks: prepare + [.phase(work)])
         case .openRounds:
-            let round = [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: settings.rest)]
-            return Workout(
-                phases: Self.droppingZero([prepare]),
-                repeatingRound: Self.droppingZero(round),
+            let round = [PlannedPhase(kind: .work, length: .open), PlannedPhase(kind: .rest, duration: settings.rest)]
+            return Plan(
+                activity: activity,
+                blocks: prepare + [.rounds(.untilStop, Self.leavingOutOff(round))],
                 warnsBeforeRestEnds: true
             )
         }
     }
 
-    private static func droppingZero(_ phases: [Phase]) -> [Phase] {
+    /// The Workout its built-in Plan makes. Setup's wheels keep every value in range, so the Plan always makes one.
+    public func makeWorkout(from settings: WorkoutSettings) -> Workout {
+        do {
+            return try plan(from: settings).makeWorkout()
+        } catch {
+            preconditionFailure("Setup's values make a Workout, not \(error)")
+        }
+    }
+
+    private static func leavingOutOff(_ phases: [PlannedPhase]) -> [PlannedPhase] {
         phases.filter { $0.length != .set(.zero) }
     }
 }
