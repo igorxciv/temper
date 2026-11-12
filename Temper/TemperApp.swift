@@ -31,6 +31,10 @@ struct RootView: View {
     let runner: WorkoutRunner
     @Bindable var remembered: RememberedValues
 
+    /// The board of the Plan the Workout was started from, for the complete screen to tick off, or `nil` for a Workout
+    /// started elsewhere, as by a debug launch.
+    @State private var ranBoard: PlanBoard?
+
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -51,9 +55,11 @@ struct RootView: View {
                     // The runner keeps only an ended snapshot with a complete screen.
                     switch display.completion {
                     case .rounds(let summary):
-                        RoundsCompleteScreen(summary: summary, done: runner.finish)
+                        RoundsCompleteScreen(
+                            summary: summary, activeTime: snapshot.record?.activeTime ?? .zero,
+                            health: runner.health, close: close)
                     case .total(let total):
-                        CompleteScreen(total: total, done: runner.finish)
+                        CompleteScreen(board: ranBoard, total: total, health: runner.health, close: close)
                     case nil:
                         EmptyView()
                     }
@@ -65,12 +71,14 @@ struct RootView: View {
                             switch route {
                             case .plan(let workoutType):
                                 PlanScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
+                                    ranBoard = PlanBoard(workoutType: workoutType, settings: remembered[workoutType])
                                     runner.start(
                                         workout, filedAs: HealthRecord.ActivityType(workoutType),
                                         isDipOn: remembered.isDipOn)
                                 }
                             case .describe:
                                 DescribeScreen(remembered: remembered) { workout, activityType in
+                                    ranBoard = remembered.describedPlan.map(PlanBoard.init(plan:))
                                     runner.start(workout, filedAs: activityType, isDipOn: remembered.isDipOn)
                                 }
                             case .settings:
@@ -84,7 +92,9 @@ struct RootView: View {
         .fontDesign(.rounded)
         #if DEBUG
             .task {
-                DebugLaunch.apply(runner: runner, remembered: remembered)
+                if let board = DebugLaunch.apply(runner: runner, remembered: remembered) {
+                    ranBoard = board
+                }
             }
         #endif
         .onChange(of: scenePhase) { _, newPhase in
@@ -92,5 +102,10 @@ struct RootView: View {
                 runner.refresh()
             }
         }
+    }
+
+    private func close() {
+        ranBoard = nil
+        runner.finish()
     }
 }

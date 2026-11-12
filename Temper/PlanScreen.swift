@@ -24,10 +24,17 @@ struct PlanScreen: View {
         let board = PlanBoard(workoutType: workoutType, settings: settings)
 
         ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 20) {
-                PlanBoardView(board: board) { value in
-                    editing = value
-                }
+            PlanBoardView(board: board) { value in
+                editing = value
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        // In the bar with Start, so the notes sit just above it and stay put while the board scrolls.
+        .safeAreaBar(edge: .bottom) {
+            VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 4) {
                     if let note = board.note {
                         Text(note)
@@ -36,15 +43,11 @@ struct PlanScreen: View {
                 }
                 .font(.subheadline)
                 .foregroundStyle(ink.secondary)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .safeAreaBar(edge: .bottom) {
-            StartButton(workout: workout) {
-                start(workoutType, workout)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                StartButton(workout: workout) {
+                    start(workoutType, workout)
+                }
             }
         }
         // The name sheet's keyboard would otherwise squeeze the board behind the sheet.

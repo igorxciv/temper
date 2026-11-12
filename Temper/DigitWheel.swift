@@ -1,13 +1,15 @@
 import SwiftUI
 
-/// A vertical wheel of big digits that fade and shrink away from the center, with no selection pill.
+/// A vertical wheel of big digits that fade and shrink away from the center. It draws no selection band of its own,
+/// so the sheet can lay one band behind both of a time's wheels.
 struct DigitWheel: View {
+    /// The height of one row, and so of the band that marks the center one.
+    static let rowHeight: CGFloat = 68
+
     let values: [Int]
     @Binding var selection: Int
     let label: String
     let digits: (Int) -> String
-
-    private let rowHeight: CGFloat = 68
 
     @State private var position: Int?
     @State private var isScrolling = false
@@ -20,7 +22,7 @@ struct DigitWheel: View {
                         Text(digits(value))
                             .font(.system(size: 54, weight: .semibold).monospacedDigit())
                             .frame(maxWidth: .infinity)
-                            .frame(height: rowHeight)
+                            .frame(height: Self.rowHeight)
                             .visualEffect { content, geometry in
                                 let height = geometry.bounds(of: .scrollView)?.height ?? 1
                                 let distance = abs(geometry.frame(in: .scrollView).midY - height / 2)
@@ -32,7 +34,7 @@ struct DigitWheel: View {
                 .scrollTargetLayout()
             }
             .scrollIndicators(.hidden)
-            .contentMargins(.vertical, (proxy.size.height - rowHeight) / 2, for: .scrollContent)
+            .contentMargins(.vertical, (proxy.size.height - Self.rowHeight) / 2, for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $position, anchor: .center)
             .onAppear { position = selection }

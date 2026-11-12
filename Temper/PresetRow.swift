@@ -10,22 +10,22 @@ struct PresetRow: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        let colors = InkColors(contrast: contrast)
+        let ink = BoardInk(contrast: contrast)
 
         Button(action: rename) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(name)
-                        .foregroundStyle(colors.text)
+                        .foregroundStyle(ink.marker)
                     Text(summary)
                         .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(colors.secondary)
+                        .foregroundStyle(ink.secondary)
                 }
                 Spacer()
                 if isPicked {
                     Image(systemName: "checkmark")
                         .fontWeight(.semibold)
-                        .foregroundStyle(colors.accent)
+                        .foregroundStyle(ink.marker)
                         .accessibilityHidden(true)
                 }
             }

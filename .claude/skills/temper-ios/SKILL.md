@@ -30,8 +30,8 @@ When sources disagree, trust them in this order:
 ## Overrides
 
 - **GCD:** the timer and Cue engine design may use it for real-time audio, despite SwiftUI Pro's "never".
-- **SwiftUI Pro:** skip iPhone Duo work unless the owner asks. `AsyncImage`, SwiftData, and networking guidance have no use here. The time, Phase name, Round number, setup words and values use fixed sizes on purpose, despite its "don't force font sizes": they're sized to fill the screen and be read at a distance.
-- **Liquid Glass:** Temper is dark only. Skip the light color variants and the light-appearance check.
+- **SwiftUI Pro:** skip iPhone Duo work unless the owner asks. `AsyncImage`, SwiftData, and networking guidance have no use here. The time, Phase name, Round number, and the Plan board's Phase names and times use fixed sizes on purpose, despite its "don't force font sizes": they're sized to fill the screen and be read at a distance.
+- **Liquid Glass:** the iPhone app is light, on `BoardInk`, except the running screen, which is dark on `PhaseColors`. The Watch app and Live Activity are dark only. Check each screen in its own appearance and skip the other.
 - **Swift Concurrency Pro:** it targets Swift 6.2 and the toolchain is newer, so check language claims against the compiler. Its `URLSession` examples are illustrations only.
 - **Swift Testing Pro:** it also targets Swift 6.2. Its `.networking` tag and `URLSession` mock guidance has no use here.
 

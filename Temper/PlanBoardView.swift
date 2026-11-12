@@ -11,21 +11,27 @@ struct PlanBoardView: View {
     var edit: ((WorkoutValue) -> Void)?
     /// Lines already run, ticked off in marker, as the complete screen shows them.
     var ticked = false
+    /// Whether the ticks are drawn. Turning it on draws them as a marker stroke would, one line after the next from
+    /// the top, so the complete screen can start with it off and tick the board as it appears.
+    var ticksDrawn = true
 
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         let ink = BoardInk(contrast: contrast)
+        let firstLines = firstLineNumbers
 
         VStack(alignment: .leading, spacing: 4) {
             ForEach(board.items.indices, id: \.self) { index in
                 switch board.items[index] {
                 case .line(let line):
-                    BoardLineRow(line: line, ink: ink, ticked: ticked, edit: edit)
+                    BoardLineRow(line: line, ink: ink, tick: tick(firstLines[index]), edit: edit)
                 case .rounds(let count, let lines, let value):
                     RoundsBracket(count: count, value: value, ink: ink, edit: edit) {
                         ForEach(lines.indices, id: \.self) { lineIndex in
-                            BoardLineRow(line: lines[lineIndex], ink: ink, ticked: ticked, edit: edit)
+                            BoardLineRow(
+                                line: lines[lineIndex], ink: ink, tick: tick(firstLines[index] + lineIndex),
+                                edit: edit)
                         }
                     }
                     .padding(.vertical, 6)
@@ -33,13 +39,37 @@ struct PlanBoardView: View {
             }
         }
     }
+
+    /// Each item's first line, counted from 0 at the top, so each tick knows when to be drawn.
+    private var firstLineNumbers: [Int] {
+        var next = 0
+        return board.items.map { item in
+            defer {
+                switch item {
+                case .line: next += 1
+                case .rounds(_, let lines, _): next += lines.count
+                }
+            }
+            return next
+        }
+    }
+
+    private func tick(_ lineNumber: Int) -> BoardLineRow.Tick? {
+        ticked ? BoardLineRow.Tick(lineNumber: lineNumber, isDrawn: ticksDrawn) : nil
+    }
 }
 
 /// One Phase's line. A line naming a value is a button when the board edits.
 private struct BoardLineRow: View {
+    /// A line's tick, and where it falls in the order they're drawn.
+    struct Tick {
+        let lineNumber: Int
+        let isDrawn: Bool
+    }
+
     let line: PlanBoard.Line
     let ink: BoardInk
-    let ticked: Bool
+    let tick: Tick?
     let edit: ((WorkoutValue) -> Void)?
 
     var body: some View {
@@ -60,9 +90,14 @@ private struct BoardLineRow: View {
         let color = line.length == .off ? ink.ghost : ink.ink(line.kind)
 
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
-            if ticked {
+            if let tick {
                 MarkerTick()
+                    .trim(from: 0, to: tick.isDrawn ? 1 : 0)
                     .stroke(color, style: .marker)
+                    .animation(
+                        .easeOut(duration: 0.3).delay(Double(tick.lineNumber) * 0.18),
+                        value: tick.isDrawn
+                    )
                     .frame(width: 22, height: 18)
                     .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 2 }
             }
