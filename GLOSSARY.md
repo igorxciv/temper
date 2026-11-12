@@ -24,6 +24,14 @@ _Avoid_: Timer, count-up
 The Workout Type made of a Prepare if one is configured, followed by Rounds of open Work, each followed by a Rest of a set length if one is configured, repeated until the Workout is Stopped.
 _Avoid_: Sets, Strength, Lifting, rest timer
 
+**Plan**:
+A Workout set out as Blocks in any order, which builds the Workout that runs. Each Workout Type is a built-in Plan, and a Plan can also take shapes no Workout Type has.
+_Avoid_: Program, routine, template, widget
+
+**Block**:
+One part of a Plan: a single Phase that runs once, or Rounds of a group of Phases that repeat a set number of times or until Stop.
+_Avoid_: Widget, step, segment
+
 **Preset**:
 A named, saved set of one Workout Type's values, kept for starting that kind of Workout again.
 _Avoid_: Saved Workout, template, favorite, routine
@@ -45,7 +53,7 @@ The optional Phase at the start of a Workout, used to get into position.
 _Avoid_: Countdown, warm-up
 
 **Round**:
-One Work and the Rest that follows it, if there is one.
+One Work and the Rest that follows it, if there is one. In a Plan, one run through a Block's group of Phases, which holds at least one Work.
 _Avoid_: Set, rep, cycle
 
 **Work**:
