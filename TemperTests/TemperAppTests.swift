@@ -162,11 +162,11 @@ private func withThrowawayDefaults(_ body: (UserDefaults) throws -> Void) throws
 }
 
 struct RememberedValuesTests {
-    @Test func `A first launch opens on Intervals, with every type's first-launch values and Dip on`() throws {
+    @Test func `A first launch opens on Plans alone, with every type's first-launch values and Dip on`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
 
-            #expect(remembered.selectedTab == .workoutType(.intervals))
+            #expect(remembered.path.isEmpty)
             #expect(remembered[.intervals] == WorkoutType.intervals.firstLaunch)
             #expect(remembered[.stopwatch] == WorkoutType.stopwatch.firstLaunch)
             #expect(remembered.isDipOn)
@@ -196,7 +196,7 @@ struct RememberedValuesTests {
                     )
             )
             #expect(remembered[.stopwatch] == WorkoutType.stopwatch.firstLaunch)
-            #expect(remembered.selectedTab == .workoutType(.intervals))
+            #expect(remembered.path.isEmpty)
             #expect(!remembered.isDipOn)
         }
     }
@@ -241,10 +241,6 @@ struct RememberedValuesTests {
         }
     }
 
-    @Test func `The tab bar offers Intervals, Stopwatch and Open Rounds, in that order`() {
-        #expect(RootTab.workoutTypes == [.intervals, .stopwatch, .openRounds])
-    }
-
     @Test func `Open Rounds opens on Prepare Off and a Rest of 01:00 at first launch`() throws {
         try withThrowawayDefaults { defaults in
             #expect(RememberedValues(defaults: defaults)[.openRounds].prepare == .zero)
@@ -261,11 +257,11 @@ struct RememberedValuesTests {
         }
     }
 
-    @Test func `Open Rounds can be the type the next launch opens on`() throws {
+    @Test func `Open Rounds can be the Plan the next launch opens on`() throws {
         try withThrowawayDefaults { defaults in
-            RememberedValues(defaults: defaults).selectedTab = .workoutType(.openRounds)
+            RememberedValues(defaults: defaults).path = [.plan(.openRounds)]
 
-            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.openRounds))
+            #expect(RememberedValues(defaults: defaults).path == [.plan(.openRounds)])
         }
     }
 
@@ -284,7 +280,7 @@ struct RememberedValuesTests {
 
             let remembered = RememberedValues(defaults: defaults)
 
-            #expect(remembered.selectedTab == .workoutType(.stopwatch))
+            #expect(remembered.path == [.plan(.stopwatch)])
             #expect(remembered[.intervals].rounds == 12)
             #expect(remembered[.stopwatch].work == .seconds(300))
             #expect(remembered.presets(of: .intervals).presets.map(\.name) == ["Long"])
@@ -320,33 +316,33 @@ struct RememberedValuesTests {
         }
     }
 
-    @Test func `Selecting a Workout Type's tab makes it the type the next launch opens on`() throws {
+    @Test func `Opening a Workout Type's Plan makes it the Plan the next launch opens on`() throws {
         try withThrowawayDefaults { defaults in
-            RememberedValues(defaults: defaults).selectedTab = .workoutType(.stopwatch)
+            RememberedValues(defaults: defaults).path = [.plan(.stopwatch)]
 
-            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.stopwatch))
+            #expect(RememberedValues(defaults: defaults).path == [.plan(.stopwatch)])
         }
     }
 
-    @Test func `Settings is never saved as the last-used tab`() throws {
+    @Test func `Opening Settings leaves the next launch on the last Plan`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
-            remembered.selectedTab = .workoutType(.stopwatch)
-            remembered.selectedTab = .settings
+            remembered.path = [.plan(.stopwatch)]
+            remembered.path = [.settings]
 
-            #expect(remembered.selectedTab == .settings)
-            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.stopwatch))
+            #expect(remembered.path == [.settings])
+            #expect(RememberedValues(defaults: defaults).path == [.plan(.stopwatch)])
         }
     }
 
-    @Test func `Describe is never saved as the last-used tab`() throws {
+    @Test func `Opening Describe leaves the next launch on the last Plan`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
-            remembered.selectedTab = .workoutType(.openRounds)
-            remembered.selectedTab = .describe
+            remembered.path = [.plan(.openRounds)]
+            remembered.path = [.describe]
 
-            #expect(remembered.selectedTab == .describe)
-            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.openRounds))
+            #expect(remembered.path == [.describe])
+            #expect(RememberedValues(defaults: defaults).path == [.plan(.openRounds)])
         }
     }
 
@@ -377,11 +373,11 @@ struct RememberedValuesTests {
         }
     }
 
-    @Test func `An unknown last-used Workout Type falls back to Intervals`() throws {
+    @Test func `An unknown last-used Workout Type opens on Plans alone`() throws {
         try withThrowawayDefaults { defaults in
             defaults.set("emom", forKey: "workoutType")
 
-            #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.intervals))
+            #expect(RememberedValues(defaults: defaults).path.isEmpty)
         }
     }
 

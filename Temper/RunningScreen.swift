@@ -41,6 +41,8 @@ struct RunningScreen: View {
         }
         .padding(.horizontal, 16)
         .background(colors.background.ignoresSafeArea())
+        // The board is light, and a running Workout is its dark Phase field, status bar and controls included.
+        .preferredColorScheme(.dark)
     }
 }
 
