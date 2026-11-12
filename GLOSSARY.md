@@ -25,7 +25,7 @@ The Workout Type made of a Prepare if one is configured, followed by Rounds of o
 _Avoid_: Sets, Strength, Lifting, rest timer
 
 **Plan**:
-A Workout set out as Blocks in any order, which builds the Workout that runs. Each Workout Type is a built-in Plan, and a Plan can also take shapes no Workout Type has.
+A Workout set out as Blocks in any order, which builds the Workout that runs. Each Workout Type is a built-in Plan, and a Plan can also take shapes no Workout Type has, as when Describe turns the owner's words into one.
 _Avoid_: Program, routine, template, widget
 
 **Block**:

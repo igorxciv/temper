@@ -14,8 +14,8 @@ final class WorkoutRunner {
 
     /// The Workout last started.
     private(set) var workout = Workout(phases: [])
-    /// The Workout Type of the Workout last started, which decides how the running screen shows it.
-    private(set) var workoutType = WorkoutType.intervals
+    /// The activity type Health files the Workout last started under.
+    @ObservationIgnored private var activityType = HealthRecord.ActivityType.highIntensityIntervalTraining
 
     /// The latest snapshot, or `nil` when no Workout is running or complete.
     private(set) var snapshot: Snapshot? {
@@ -52,10 +52,11 @@ final class WorkoutRunner {
         Task { await LiveActivityAdapter.endLeftovers() }
     }
 
-    func start(_ workout: Workout, of workoutType: WorkoutType, isDipOn: Bool) {
+    /// Starts a Workout, of a Workout Type or from a Plan, whose Health workout is filed under `activityType`.
+    func start(_ workout: Workout, filedAs activityType: HealthRecord.ActivityType, isDipOn: Bool) {
         guard engine == nil else { return }
         self.workout = workout
-        self.workoutType = workoutType
+        self.activityType = activityType
         let workoutID = UUID()
         healthWorkoutID = workoutID
         startDate = nil
@@ -80,7 +81,7 @@ final class WorkoutRunner {
                 self.startDate = startDate
                 // Opened only once the start point is set, so the Watch's session always starts after it and is
                 // matched to this Workout.
-                watch.start(workoutID: workoutID, workoutType: workoutType, start: startDate)
+                watch.start(workoutID: workoutID, activityType: activityType, start: startDate)
             }
             for await snapshot in engine.snapshots {
                 show(snapshot)
@@ -183,7 +184,7 @@ extension WorkoutRunner {
     /// copies carry identical times, and Health keeps the Watch's in place of this one.
     fileprivate func saveToHealth(_ snapshot: Snapshot) {
         guard let record = snapshot.record, let workoutID = healthWorkoutID.take() else { return }
-        let healthRecord = HealthRecord(record, of: workoutType, workoutID: workoutID, attempt: 1, anchor: .now)
+        let healthRecord = HealthRecord(record, filedAs: activityType, workoutID: workoutID, attempt: 1, anchor: .now)
         watch.hold(healthRecord)
         health.save(healthRecord)
     }

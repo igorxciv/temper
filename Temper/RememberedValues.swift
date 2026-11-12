@@ -2,9 +2,11 @@ import Foundation
 import Observation
 import TemperCore
 
-/// A tab in the tab bar: one per Workout Type that has its screens, then Settings.
+/// A tab in the tab bar: one per Workout Type that has its screens, then Describe, then Settings.
 enum RootTab: Hashable {
     case workoutType(WorkoutType)
+    /// Where the owner describes a Workout in words and gets a Plan.
+    case describe
     case settings
 
     /// The Workout Types with a tab, in tab order.
@@ -38,8 +40,22 @@ final class RememberedValues {
         didSet { defaults.set(lastUsed.rawValue, forKey: Self.workoutTypeKey) }
     }
 
-    /// Whether the Settings tab is showing. Never saved, so a launch always opens on a Workout Type.
-    private var isOnSettings = false
+    /// The tab showing when it isn't a Workout Type's: Describe or Settings. Never saved, so a launch always opens
+    /// on a Workout Type.
+    private var otherTab: RootTab?
+
+    /// What the owner last wrote on Describe, kept so it can be changed and sent again.
+    var workoutDescription: String {
+        didSet { defaults.set(workoutDescription, forKey: Self.descriptionKey) }
+    }
+
+    /// The Plan last made on Describe, kept so a Workout from it can run again after it ends. It's stored in the
+    /// Plan's own format, and one a later build wrote, which this build can't read, is forgotten.
+    var describedPlan: Plan? {
+        didSet {
+            defaults.set(describedPlan.flatMap { try? JSONEncoder().encode($0) }, forKey: Self.describedPlanKey)
+        }
+    }
 
     var isDipOn: Bool {
         didSet {
@@ -51,6 +67,8 @@ final class RememberedValues {
 
     private static let workoutTypeKey = "workoutType"
     private static let dipKey = "dip"
+    private static let descriptionKey = "describe.description"
+    private static let describedPlanKey = "describe.plan"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -63,6 +81,10 @@ final class RememberedValues {
         let stored = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init)
         lastUsed = stored.flatMap { RootTab.workoutTypes.contains($0) ? $0 : nil } ?? .intervals
         isDipOn = defaults.object(forKey: Self.dipKey) as? Bool ?? true
+        workoutDescription = defaults.string(forKey: Self.descriptionKey) ?? ""
+        describedPlan = defaults.data(forKey: Self.describedPlanKey).flatMap {
+            try? JSONDecoder().decode(Plan.self, from: $0)
+        }
     }
 
     /// A Workout Type's values. Only the values on its setup save.
@@ -127,18 +149,18 @@ final class RememberedValues {
     }
 
     /// The tab showing. Selecting a Workout Type's tab makes it the last-used Workout Type, and selecting
-    /// Settings doesn't, so leaving a Workout always comes back to the tab it started from.
+    /// Describe or Settings doesn't, so leaving a Workout always comes back to the tab it started from.
     var selectedTab: RootTab {
-        get { isOnSettings ? .settings : .workoutType(lastUsed) }
+        get { otherTab ?? .workoutType(lastUsed) }
         set {
             switch newValue {
             case .workoutType(let workoutType):
-                isOnSettings = false
+                otherTab = nil
                 if lastUsed != workoutType {
                     lastUsed = workoutType
                 }
-            case .settings:
-                isOnSettings = true
+            case .describe, .settings:
+                otherTab = newValue
             }
         }
     }

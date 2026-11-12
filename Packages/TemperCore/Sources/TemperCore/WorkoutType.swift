@@ -12,6 +12,16 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
 
     public var id: Self { self }
 
+    /// The Workout Type whose Health workouts are filed under this activity type. Each activity type belongs to
+    /// exactly one Workout Type, so this undoes `HealthRecord.ActivityType(_:)`.
+    public init(filedAs activityType: HealthRecord.ActivityType) {
+        switch activityType {
+        case .highIntensityIntervalTraining: self = .intervals
+        case .other: self = .stopwatch
+        case .traditionalStrengthTraining: self = .openRounds
+        }
+    }
+
     /// The name on its tab and its setup screen.
     public var title: String {
         switch self {

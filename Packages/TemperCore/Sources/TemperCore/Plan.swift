@@ -120,4 +120,16 @@ public nonisolated enum PlanProblem: Error, Equatable, Sendable {
     case untilStopWithoutOpenPhase(block: Int)
     /// A Block comes after Rounds that run until Stop, so it would never be reached.
     case blockAfterUntilStop(block: Int)
+
+    /// What Describe says when a Plan made from the owner's words can't run.
+    public var explanation: String {
+        switch self {
+        case .noPhases: "It has nothing to run."
+        case .lengthOutOfRange: "A time is zero or longer than 30 minutes."
+        case .roundsWithoutWork: "Some Rounds have no Work."
+        case .roundCountOutOfRange: "It asks for fewer than 1 or more than 99 Rounds."
+        case .untilStopWithoutOpenPhase: "Rounds that repeat until Stop need a Work that ends at Done."
+        case .blockAfterUntilStop: "Something comes after Rounds that repeat until Stop."
+        }
+    }
 }

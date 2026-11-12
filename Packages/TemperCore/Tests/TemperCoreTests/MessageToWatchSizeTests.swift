@@ -29,7 +29,7 @@ nonisolated struct MessageToWatchSizeTests {
     /// The Health record of ``longOpenRounds``, on a real wall clock, so each date encodes at full length.
     private var longOpenRoundsHealthRecord: HealthRecord {
         HealthRecord(
-            longOpenRounds, of: .openRounds, workoutID: UUID(), attempt: 1,
+            longOpenRounds, filedAs: .traditionalStrengthTraining, workoutID: UUID(), attempt: 1,
             anchor: ClockAnchor(
                 instant: Instant(offset: .zero), date: Date(timeIntervalSince1970: 1_794_321_987.654_321))
         )!

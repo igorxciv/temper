@@ -48,7 +48,9 @@ nonisolated struct RunningLinkTests {
             route(
                 phone.handle(
                     .started(
-                        workoutID: workoutID, workoutType: workoutType, start: date(of: start), workoutsAllowed: true)
+                        workoutID: workoutID, activityType: HealthRecord.ActivityType(workoutType),
+                        start: date(of: start),
+                        workoutsAllowed: true)
                 ))
         }
 
@@ -65,7 +67,7 @@ nonisolated struct RunningLinkTests {
             self.now = now
             if let record = snapshot.record {
                 phoneRecord = HealthRecord(
-                    record, of: workoutType, workoutID: workoutID, attempt: 1,
+                    record, filedAs: HealthRecord.ActivityType(workoutType), workoutID: workoutID, attempt: 1,
                     anchor: ClockAnchor(instant: Instant(offset: .zero), date: epoch))
                 route(phone.handle(.recordReady(phoneRecord)))
             }

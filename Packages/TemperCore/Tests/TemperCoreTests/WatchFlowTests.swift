@@ -28,7 +28,7 @@ nonisolated struct WatchFlowTests {
                 start: ManualClock.Instant(offset: .zero), end: ManualClock.Instant(offset: .seconds(90)),
                 pauses: [ManualClock.Instant(offset: .seconds(20))..<ManualClock.Instant(offset: .seconds(30))],
                 phases: [.init(kind: .work, round: 1, start: .init(offset: .zero), end: .init(offset: .seconds(90)))]),
-            of: .intervals, workoutID: workoutID, attempt: 1,
+            filedAs: .highIntensityIntervalTraining, workoutID: workoutID, attempt: 1,
             anchor: ClockAnchor(instant: ManualClock.Instant(offset: .zero), date: start))!
     }
 

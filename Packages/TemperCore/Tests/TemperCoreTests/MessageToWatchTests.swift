@@ -12,7 +12,7 @@ nonisolated struct MessageToWatchTests {
         WorkoutRecord(
             start: ManualClock.Instant(offset: .zero), end: ManualClock.Instant(offset: .seconds(90)), pauses: [],
             phases: [.init(kind: .work, round: nil, start: .init(offset: .zero), end: .init(offset: .seconds(90)))]),
-        of: .stopwatch, workoutID: workoutID, attempt: 1,
+        filedAs: .other, workoutID: workoutID, attempt: 1,
         anchor: ClockAnchor(instant: ManualClock.Instant(offset: .zero), date: start))
 
     @Test(arguments: [
