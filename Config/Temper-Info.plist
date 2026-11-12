@@ -12,6 +12,12 @@
 	<string>Temper saves each Workout to Health when it ends.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Temper reads your heart rate during a Workout on Apple Watch, and your date of birth and resting heart rate to work out heart-rate zones.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Temper listens while you describe a Workout, and writes down what you say. Your words stay on your iPhone.</string>
+	<!-- Dictation asks only for the microphone. This is here in case on-device speech recognition asks too, so iOS
+	     shows a prompt rather than ending the app. -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Temper turns what you say into words on your iPhone, so it can make a Plan from them.</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>healthkit</string>
