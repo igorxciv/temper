@@ -48,5 +48,16 @@ struct SettingsScreen: View {
         .foregroundStyle(ink.marker)
         .background(ink.ground.ignoresSafeArea())
         .navigationTitle("Settings")
+        .toolbar {
+            // Set here so it's rounded like the rest of the app, which the system's own large title isn't.
+            ToolbarItem(placement: .largeTitle) {
+                Text("Settings")
+                    .font(.largeTitle.bold())
+                    .fontDesign(.rounded)
+                    .foregroundStyle(ink.marker)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityAddTraits(.isHeader)
+            }
+        }
     }
 }

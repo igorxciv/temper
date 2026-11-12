@@ -17,11 +17,10 @@ struct TemperApp: App {
         Self.roundNavigationTitles()
     }
 
-    /// Sets the navigation bar's titles in SF Rounded, as the rest of the app is, which `fontDesign(_:)` doesn't reach.
+    /// Sets the inline navigation titles in SF Rounded, as the rest of the app is, which `fontDesign(_:)` doesn't reach.
+    /// Large titles ignore this, so Plans and Settings set theirs in a `largeTitle` toolbar item.
     private static func roundNavigationTitles() {
-        let bar = UINavigationBar.appearance()
-        bar.largeTitleTextAttributes = [.font: roundedFont(.largeTitle, weight: .bold)]
-        bar.titleTextAttributes = [.font: roundedFont(.headline, weight: .semibold)]
+        UINavigationBar.appearance().titleTextAttributes = [.font: roundedFont(.headline, weight: .semibold)]
     }
 
     /// The system font for a text style, at the owner's text size, in its rounded design.

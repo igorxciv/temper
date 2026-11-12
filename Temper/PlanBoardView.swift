@@ -169,16 +169,10 @@ private struct RoundsBracket<Lines: View>: View {
                 Text("×\u{2009}\(times)")
                     .font(.system(size: 30, weight: .bold).monospacedDigit())
             case .untilStop:
-                // One block, led by the "×" a count has, with the words where its number would be, set tight so
-                // they read as one count. Side by side, "× until" is wider than the count column.
-                VStack(alignment: .leading, spacing: -3) {
-                    Text("×")
-                        .font(.system(size: 30, weight: .bold))
-                        .padding(.bottom, -2)
-                    Text("until")
-                    Text("Stop")
-                }
-                .font(.system(size: 20, weight: .bold))
+                // The same count as "× 8", with ∞ for its number. The note under the board says the Rounds repeat
+                // until Stop, and VoiceOver reads the count in words.
+                Text("×\u{2009}∞")
+                    .font(.system(size: 30, weight: .bold))
             }
         }
         .foregroundStyle(ink.marker)

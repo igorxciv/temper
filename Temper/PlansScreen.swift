@@ -76,6 +76,15 @@ struct PlansScreen: View {
         .background(ink.ground.ignoresSafeArea())
         .navigationTitle("Plans")
         .toolbar {
+            // Set here so it's rounded like the rest of the app, which the system's own large title isn't.
+            ToolbarItem(placement: .largeTitle) {
+                Text("Plans")
+                    .font(.largeTitle.bold())
+                    .fontDesign(.rounded)
+                    .foregroundStyle(ink.marker)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityAddTraits(.isHeader)
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: Route.settings) {
                     Label("Settings", systemImage: "gearshape")
@@ -222,9 +231,9 @@ private nonisolated struct MarkerFrame: Shape {
         path.addQuadCurve(to: CGPoint(x: minX + radius, y: maxY - 0.5), control: CGPoint(x: midX, y: maxY + 0.8))
         path.addQuadCurve(to: CGPoint(x: minX, y: maxY - radius), control: CGPoint(x: minX, y: maxY))
         path.addQuadCurve(to: CGPoint(x: minX + 0.5, y: minY + radius), control: CGPoint(x: minX - 0.8, y: midY))
-        path.addQuadCurve(to: CGPoint(x: minX + radius, y: minY), control: CGPoint(x: minX, y: minY))
-        // The overrun past the start.
-        path.addLine(to: CGPoint(x: minX + radius + 10, y: minY - 0.3))
+        path.addQuadCurve(to: CGPoint(x: minX + radius, y: minY + 0.5), control: CGPoint(x: minX, y: minY))
+        // Closed where it started, since an overrun read as a glitch at cell size.
+        path.closeSubpath()
         return path
     }
 }
