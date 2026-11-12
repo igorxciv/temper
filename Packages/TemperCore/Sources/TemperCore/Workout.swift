@@ -115,11 +115,16 @@ public nonisolated struct Workout: Equatable, Sendable {
         }
     }
 
-    /// How many Rounds it has, or `nil` if it has no set number, as when a Phase is open or Rounds repeat. A
-    /// Stopwatch has none.
+    /// How many Rounds it has, or `nil` if Rounds repeat until Stop, and so have no set number. Rounds of open Work
+    /// still have a set number. A Stopwatch has none.
     public var rounds: Int? {
-        guard repeatingRound.isEmpty, !phases.contains(where: \.isOpen) else { return nil }
+        guard repeatingRound.isEmpty else { return nil }
         return lastRound
+    }
+
+    /// Whether any Phase is open, so the owner moves the Workout on with Done, as in Open Rounds.
+    public var hasOpenPhase: Bool {
+        phases.contains(where: \.isOpen) || repeatingRound.contains(where: \.isOpen)
     }
 
     /// The highest Round in `phases`, or 0 if none has one.

@@ -21,11 +21,11 @@ nonisolated struct RunningDisplayTests {
     }
 
     private func intervals(_ progress: Snapshot.Progress, rounds: Int = 8) -> Display {
-        Display(workoutType: .intervals, workout: intervals, snapshot: Snapshot(progress: progress, rounds: rounds))
+        Display(workout: intervals, snapshot: Snapshot(progress: progress, rounds: rounds))
     }
 
     private func stopwatch(_ progress: Snapshot.Progress) -> Display {
-        Display(workoutType: .stopwatch, workout: stopwatch, snapshot: Snapshot(progress: progress, rounds: 0))
+        Display(workout: stopwatch, snapshot: Snapshot(progress: progress, rounds: 0))
     }
 
     private func running(_ phase: Phase, endsAt end: Double) -> Snapshot.Progress {
@@ -106,7 +106,8 @@ nonisolated struct RunningDisplayTests {
 
     @Test func `At the same instant, counting up rounds down and counting down rounds up`() {
         let up = stopwatch(running(stopwatchWork, endsAt: 610)).ring(at: at(14.5))
-        let down = intervals(running(stopwatchWork, endsAt: 610)).ring(at: at(14.5))
+        let down = intervals(running(Phase(kind: .work, duration: .seconds(600), round: 1), endsAt: 610)).ring(
+            at: at(14.5))
 
         #expect(up.time == "00:04")
         #expect(up.spokenTime == "4 seconds elapsed")
@@ -213,7 +214,6 @@ nonisolated struct RunningDisplayTests {
     @Test func `A Stopwatch with no Prepare shows its length from the start`() {
         let work = Phase(kind: .work, length: .runsPast(.seconds(65)))
         let display = Display(
-            workoutType: .stopwatch,
             workout: Workout(phases: [work]),
             snapshot: Snapshot(progress: running(work, endsAt: 65), rounds: 0)
         )
@@ -239,7 +239,7 @@ nonisolated struct RunningDisplayTests {
     func `An ended Workout has no line`(type: WorkoutType) {
         let workout = type == .intervals ? intervals : stopwatch
         let display = Display(
-            workoutType: type, workout: workout, snapshot: Snapshot(progress: .finished(.lasting(0)), rounds: 8))
+            workout: workout, snapshot: Snapshot(progress: .finished(.lasting(0)), rounds: 8))
 
         #expect(display.line == nil)
     }
@@ -250,7 +250,7 @@ nonisolated struct RunningDisplayTests {
     func `A finished Workout opens the complete screen with its active time`(type: WorkoutType) {
         let workout = type == .intervals ? intervals : stopwatch
         let display = Display(
-            workoutType: type, workout: workout, snapshot: Snapshot(progress: .finished(.lasting(882.5)), rounds: 8))
+            workout: workout, snapshot: Snapshot(progress: .finished(.lasting(882.5)), rounds: 8))
 
         #expect(display.completion == .total(.milliseconds(882_500)))
     }
@@ -282,7 +282,6 @@ nonisolated struct RunningDisplayOpenRoundsTests {
 
     private func display(_ progress: Snapshot.Progress, workTime: Duration? = nil) -> Display {
         Display(
-            workoutType: .openRounds,
             workout: openRounds,
             snapshot: Snapshot(progress: progress, rounds: nil, previousOpenPhaseTime: workTime)
         )
@@ -425,5 +424,61 @@ nonisolated struct RunningDisplayOpenRoundsTests {
     @Test func `Done stays in place, disabled, through Prepare`() {
         #expect(display(.running(phase: prepare, endsAt: at(10))).doneButton == .disabled)
         #expect(display(.paused(phase: prepare, timeLeft: .seconds(5))).doneButton == .disabled)
+    }
+}
+
+/// A Workout no Workout Type makes, read only from its Phases: 10 Rounds of open Work with a Rest of 1:00.
+nonisolated struct PlannedWorkoutDisplayTests {
+    private typealias Snapshot = WorkoutSnapshot<ManualClock.Instant>
+    private typealias Display = RunningDisplay<ManualClock.Instant>
+
+    private let workout: Workout
+    private let openWork = Phase(kind: .work, length: .open, round: 3)
+    private let rest = Phase(kind: .rest, duration: .seconds(60), round: 3)
+
+    init() throws {
+        let round = [PlannedPhase(kind: .work, length: .open), PlannedPhase(kind: .rest, duration: .seconds(60))]
+        let plan = Plan(activity: .traditionalStrengthTraining, blocks: [.rounds(.times(10), round)])
+        workout = try plan.makeWorkout()
+    }
+
+    private func at(_ seconds: Double) -> ManualClock.Instant {
+        ManualClock.Instant(offset: .seconds(seconds))
+    }
+
+    private func display(_ progress: Snapshot.Progress, workTime: Duration? = nil) -> Display {
+        Display(
+            workout: workout,
+            snapshot: Snapshot(progress: progress, rounds: workout.rounds, previousOpenPhaseTime: workTime)
+        )
+    }
+
+    @Test func `Its open Work counts up with Done enabled, as the Round of 10`() {
+        let display = display(.runningOpen(phase: openWork, startedAt: at(0)))
+
+        #expect(display.countsUp)
+        #expect(display.doneButton == .enabled)
+        #expect(display.line == .value("3", caption: .after("of 10"), spoken: "Round 3 of 10"))
+    }
+
+    @Test func `Its Rest counts down with the Work time just ended, and Done dimmed on the Watch`() {
+        let display = display(.running(phase: rest, endsAt: at(60)), workTime: .seconds(102))
+
+        #expect(!display.countsUp)
+        #expect(display.doneButton == .disabled)
+        #expect(display.capsule == .doneDimmed)
+        #expect(
+            display.line
+                == .value("1:42", caption: .before("Round 3 · Work"), spoken: "Round 3, Work 1 minute 42 seconds")
+        )
+    }
+
+    @Test(arguments: [false, true])
+    func `It ends on the Rounds complete screen, Stopped or finished`(finished: Bool) {
+        let record = WorkoutRecord<ManualClock.Instant>.lasting(600)
+
+        let display = display(finished ? .finished(record) : .stopped(record))
+
+        #expect(display.completion == .rounds(RoundsSummary(record: record)))
     }
 }

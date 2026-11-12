@@ -62,7 +62,6 @@ nonisolated struct MessageToWatchSizeTests {
             progress: .running(phase: rest, endsAt: Instant(offset: .seconds(36_060))), rounds: nil,
             previousOpenPhaseTime: .seconds(5_999.987_654), cues: cues)
         let display = RunningDisplay(
-            workoutType: .openRounds,
             workout: WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch), snapshot: snapshot)
         let state = display.watchState(
             at: Instant(offset: .seconds(36_000.123_457)), date: Date(timeIntervalSince1970: 1_794_321_987.654_321))

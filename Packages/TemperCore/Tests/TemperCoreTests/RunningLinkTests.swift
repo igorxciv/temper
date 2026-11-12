@@ -69,7 +69,7 @@ nonisolated struct RunningLinkTests {
                     anchor: ClockAnchor(instant: Instant(offset: .zero), date: epoch))
                 route(phone.handle(.recordReady(phoneRecord)))
             }
-            let display = RunningDisplay(workoutType: workoutType, workout: workout, snapshot: snapshot)
+            let display = RunningDisplay(workout: workout, snapshot: snapshot)
             route(phone.handle(.published(display.watchState(at: now, date: date(of: now)))))
             if case .running(let phase, _) = watch.screen {
                 // The Watch keeps up: it draws the same time as the iPhone's ring.

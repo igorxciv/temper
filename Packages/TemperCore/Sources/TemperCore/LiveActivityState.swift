@@ -137,10 +137,10 @@ extension RunningDisplay {
         )
     }
 
-    /// The running screen's line, except that Open Rounds shows only the Round in both Phases, since its Rest line
-    /// is too long for the Live Activity.
+    /// The running screen's line, except that a Workout with an open Phase, as Open Rounds, shows only the Round in
+    /// Work and Rest, since its Rest line is too long for the Live Activity.
     private nonisolated var liveLineText: (text: String, spoken: String) {
-        if workoutType == .openRounds, !snapshot.isPaused, let round = snapshot.phase?.round {
+        if workout.hasOpenPhase, !snapshot.isPaused, let round = snapshot.phase?.round {
             return ("Round \(round)", "Round \(round)")
         }
         return lineText

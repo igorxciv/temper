@@ -478,12 +478,13 @@ nonisolated struct WorkoutEngineTests {
 
     private let openWork = Phase(kind: .work, length: .open, round: 1)
 
-    private func runningOpen(since start: Double) -> Snapshot {
-        Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(start)), rounds: nil)
+    /// The open Work running. A Workout of open Work that doesn't repeat still has a set number of Rounds.
+    private func runningOpen(since start: Double, rounds: Int = 1) -> Snapshot {
+        Snapshot(progress: .runningOpen(phase: openWork, startedAt: at(start)), rounds: rounds)
     }
 
-    private func pausedOpen(elapsed: Double) -> Snapshot {
-        Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .seconds(elapsed)), rounds: nil)
+    private func pausedOpen(elapsed: Double, rounds: Int = 1) -> Snapshot {
+        Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .seconds(elapsed)), rounds: rounds)
     }
 
     /// Moves the clock to a time since the test began, as a single wake.
@@ -516,7 +517,7 @@ nonisolated struct WorkoutEngineTests {
         // Had the engine published anything for the wait, it would arrive ahead of the Pause.
         #expect(
             await snapshots.next()
-                == Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .seconds(10_000)), rounds: nil)
+                == Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .seconds(10_000)), rounds: 1)
         )
     }
 
@@ -547,10 +548,12 @@ nonisolated struct WorkoutEngineTests {
 
     /// A Phase after Done, carrying the time of the open Work just before it, if there was one.
     /// The Rest has the last Work to come at its end, and the last Work has Workout complete.
-    private func runningAfterDone(_ phase: Phase, endsAt end: Double, workTime: Double? = nil) -> Snapshot {
+    private func runningAfterDone(_ phase: Phase, endsAt end: Double, workTime: Double? = nil, rounds: Int = 2)
+        -> Snapshot
+    {
         Snapshot(
             progress: .running(phase: phase, endsAt: at(end)),
-            rounds: nil,
+            rounds: rounds,
             previousOpenPhaseTime: workTime.map { .seconds($0) },
             cues: [Snapshot.TimedCue(cue: phase == lastWork ? .workoutComplete : .work, due: at(end))]
         )
@@ -560,7 +563,7 @@ nonisolated struct WorkoutEngineTests {
         let engine = makeDoneEngine()
         var snapshots = engine.snapshots.makeAsyncIterator()
         await engine.start()
-        #expect(await snapshots.next() == runningOpen(since: 0))
+        #expect(await snapshots.next() == runningOpen(since: 0, rounds: 2))
 
         clock.advance(by: .seconds(10_000))
         await engine.done(at: clock.now)
@@ -617,7 +620,7 @@ nonisolated struct WorkoutEngineTests {
             await snapshots.next()
                 == Snapshot(
                     progress: .paused(phase: doneRest, timeLeft: .milliseconds(24_800)),
-                    rounds: nil,
+                    rounds: 2,
                     previousOpenPhaseTime: .seconds(40)
                 )
         )
@@ -655,7 +658,7 @@ nonisolated struct WorkoutEngineTests {
 
         #expect(
             await snapshots.next()
-                == Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .milliseconds(200)), rounds: nil)
+                == Snapshot(progress: .pausedOpen(phase: openWork, elapsed: .milliseconds(200)), rounds: 1)
         )
     }
 
@@ -674,7 +677,7 @@ nonisolated struct WorkoutEngineTests {
         await engine.resume(at: clock.now)
 
         // Had the Done while Paused ended the Work, Resume would publish the Rest.
-        #expect(await snapshots.next() == runningOpen(since: 40))
+        #expect(await snapshots.next() == runningOpen(since: 40, rounds: 2))
 
         clock.advance(by: .seconds(5))
         await engine.done(at: clock.now)
@@ -697,19 +700,19 @@ nonisolated struct WorkoutEngineTests {
         }
 
         await tapLate(at: 10) { await engine.pause(at: $0) }
-        #expect(await snapshots.next() == pausedOpen(elapsed: 10))
+        #expect(await snapshots.next() == pausedOpen(elapsed: 10, rounds: 2))
         await tapLate(at: 100) { await engine.resume(at: $0) }
-        #expect(await snapshots.next() == runningOpen(since: 90))
+        #expect(await snapshots.next() == runningOpen(since: 90, rounds: 2))
 
         await tapLate(at: 115) { await engine.pause(at: $0) }
-        #expect(await snapshots.next() == pausedOpen(elapsed: 25))
+        #expect(await snapshots.next() == pausedOpen(elapsed: 25, rounds: 2))
         await tapLate(at: 122) { await engine.resume(at: $0) }
-        #expect(await snapshots.next() == runningOpen(since: 97))
+        #expect(await snapshots.next() == runningOpen(since: 97, rounds: 2))
 
         await tapLate(at: 130) { await engine.pause(at: $0) }
-        #expect(await snapshots.next() == pausedOpen(elapsed: 33))
+        #expect(await snapshots.next() == pausedOpen(elapsed: 33, rounds: 2))
         await tapLate(at: 200) { await engine.resume(at: $0) }
-        #expect(await snapshots.next() == runningOpen(since: 167))
+        #expect(await snapshots.next() == runningOpen(since: 167, rounds: 2))
 
         await tapLate(at: 210) { await engine.done(at: $0) }
         #expect(await snapshots.next() == runningAfterDone(doneRest, endsAt: 240, workTime: 43))
@@ -730,7 +733,7 @@ nonisolated struct WorkoutEngineTests {
             await snapshots.next()
                 == Snapshot(
                     progress: .paused(phase: doneRest, timeLeft: .seconds(20)),
-                    rounds: nil,
+                    rounds: 2,
                     previousOpenPhaseTime: .seconds(40)
                 )
         )
@@ -1154,7 +1157,7 @@ extension WorkoutEngineTests {
             await snapshots.next()
                 == Snapshot(
                     progress: .paused(phase: doneRest, timeLeft: .seconds(30)),
-                    rounds: nil,
+                    rounds: 2,
                     previousOpenPhaseTime: .seconds(40)
                 )
         )

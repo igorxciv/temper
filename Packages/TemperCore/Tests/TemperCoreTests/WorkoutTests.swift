@@ -90,14 +90,14 @@ struct WorkoutTests {
         #expect(!Phase(kind: .work, duration: .seconds(30), round: 1).isOpen)
     }
 
-    @Test func `A Workout with an open Phase has no total length and no set number of Rounds`() {
+    @Test func `A Workout with an open Phase has no total length, but its Rounds still have a set number`() {
         let workout = Workout(phases: [
             Phase(kind: .work, length: .open, round: 1),
             Phase(kind: .rest, duration: .seconds(60), round: 1),
         ])
 
         #expect(workout.totalDuration == nil)
-        #expect(workout.rounds == nil)
+        #expect(workout.rounds == 1)
     }
 
     @Test func `A Workout that repeats Rounds until Stop has no total length and no set number of Rounds`() {
