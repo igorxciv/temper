@@ -1,5 +1,4 @@
 import SwiftUI
-import TemperCore
 
 /// The one place Temper asks for Health permission, for the iPhone and the Watch together. It never asks at Start or at
 /// the end, so Start stays one tap and training never waits on Health. Its row follows the write status and whether
@@ -7,7 +6,7 @@ import TemperCore
 /// here.
 struct AppleHealthSection: View {
     let health: HealthSaves
-    let ink: BoardInk
+    let colors: InkColors
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -16,53 +15,36 @@ struct AppleHealthSection: View {
             Group {
                 switch health.row {
                 case .saveWorkouts:
-                    LabeledContent("Save Workouts to Health") {
-                        permissionButton("Turn On")
-                    }
-                    // One element, read as "Save Workouts to Health, Turn On, button", that the button's action runs.
-                    .accessibilityElement(children: .combine)
+                    Button("Save Workouts to Health", action: requestPermission)
+                        .foregroundStyle(colors.accent)
                 case .allowHeartRate:
                     LabeledContent("Saving to Health") {
-                        permissionButton("Allow Heart Rate")
+                        Button("Allow Heart Rate", action: requestPermission)
+                            .foregroundStyle(colors.accent)
                     }
-                    .accessibilityElement(children: .combine)
                 case .saving:
                     LabeledContent("Saving to Health") {
-                        // In Rest's ink, the board's calm color, since nothing is left to do.
                         Image(systemName: "checkmark")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(ink.ink(.rest))
+                            .foregroundStyle(colors.text)
                             .accessibilityHidden(true)
                     }
                 case .notAllowed:
-                    Text("Not allowed").foregroundStyle(ink.secondary)
+                    Text("Not allowed")
                 case nil:
                     EmptyView()
                 }
             }
-            .listRowBackground(ink.row)
+            .listRowBackground(colors.raised)
         } header: {
-            Text("Apple Health").foregroundStyle(ink.marker)
+            Text("Apple Health").foregroundStyle(colors.secondary)
         } footer: {
-            Text((health.row ?? .saveWorkouts).footer).foregroundStyle(ink.secondary)
+            Text((health.row ?? .saveWorkouts).footer).foregroundStyle(colors.secondary)
         }
         .task(id: scenePhase) {
             if scenePhase == .active {
                 await health.refreshStatus()
             }
         }
-    }
-
-    /// The row's action, as a small black-marker capsule at its trailing edge, so it reads as a button and not a label.
-    private func permissionButton(_ title: LocalizedStringKey) -> some View {
-        Button(action: requestPermission) {
-            Text(title)
-                .font(.subheadline.bold())
-                .foregroundStyle(ink.onMarker)
-        }
-        .buttonStyle(.glassProminent)
-        .buttonBorderShape(.capsule)
-        .tint(ink.marker)
     }
 
     private func requestPermission() {

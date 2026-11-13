@@ -1,8 +1,7 @@
 import SwiftUI
 import TemperCore
 
-/// Edits a draft of one value on a small board of its own. Confirm hands it back, and swiping the sheet away discards
-/// it.
+/// Edits a draft of one value. Confirm hands it back, and swiping the sheet away discards it.
 struct ValueSheet: View {
     let value: WorkoutValue
     let confirm: (Int) -> Void
@@ -19,28 +18,27 @@ struct ValueSheet: View {
     }
 
     var body: some View {
-        let ink = BoardInk(contrast: contrast)
-        // A time is written in its Phase's ink, as its line is on the board, and Rounds in black marker.
-        let lineInk = value.phaseKind.map { ink.ink($0) } ?? ink.marker
+        let ink = InkColors(contrast: contrast)
+        let phase = value.phaseKind.map { PhaseColors(kind: $0, contrast: contrast) }
 
         VStack(spacing: 8) {
             Text(value.title)
                 .font(.headline)
-                .foregroundStyle(lineInk)
+                .foregroundStyle(phase?.ring ?? ink.secondary)
                 .padding(.top, 20)
             wheels
-                .foregroundStyle(lineInk)
-                // A quiet band behind the center row, so the chosen value stands out at arm's length.
+                .foregroundStyle(phase?.text ?? ink.text)
+                // A band behind the center row, so the chosen value stands out at arm's length.
                 .background {
                     RoundedRectangle(cornerRadius: 18)
-                        .fill(ink.panel)
+                        .fill(phase?.track ?? ink.separator)
                         .frame(height: DigitWheel.rowHeight)
                 }
             if allowsOff {
-                // 00:00 alone could read as a wheel left unset, so it's named the way the board names it.
+                // 00:00 alone could read as a wheel left unset, so it's named as setup names it.
                 Text("Off")
-                    .font(.subheadline)
-                    .foregroundStyle(ink.ghost)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(phase?.ring ?? ink.secondary)
                     .lineLimit(1)
                     // Always laid out, so the wheels don't shift as the draft crosses zero.
                     .opacity(draft == 0 ? 1 : 0)
@@ -52,11 +50,11 @@ struct ValueSheet: View {
             } label: {
                 Text("Confirm")
                     .font(.title2.bold())
-                    .foregroundStyle(ink.onMarker)
-                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .foregroundStyle(ink.onAccent)
+                    .frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(.glassProminent)
-            .tint(ink.marker)
+            .tint(ink.accent)
             .padding(.bottom, 6)
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .accessibilityShowsLargeContentViewer()
@@ -64,7 +62,7 @@ struct ValueSheet: View {
         .padding(.horizontal)
         .fontDesign(.rounded)
         .presentationDetents([.medium])
-        .presentationBackground(ink.ground)
+        .presentationBackground(phase?.background ?? ink.raised)
     }
 
     /// Whether the value can be turned off, as Prepare, Rest and Cooldown are by setting them to zero.

@@ -3,7 +3,7 @@
 
     /// Shares a saved timing log, since the app has no file sharing keys in its Info.plist.
     struct TimingLogsSection: View {
-        let ink: BoardInk
+        let colors: InkColors
 
         @State private var logs: [URL] = []
 
@@ -13,15 +13,13 @@
                     ShareLink(item: log) {
                         Text(log.lastPathComponent).font(.caption)
                     }
-                    .listRowBackground(ink.row)
+                    .listRowBackground(colors.raised)
                 }
                 if logs.isEmpty {
-                    Text("No logs yet.")
-                        .foregroundStyle(ink.secondary)
-                        .listRowBackground(ink.row)
+                    Text("No logs yet.").listRowBackground(colors.raised)
                 }
             } header: {
-                Text("Logs").foregroundStyle(ink.marker)
+                Text("Logs").foregroundStyle(colors.secondary)
             }
             .onAppear { logs = TimingLog.savedLogs() }
         }

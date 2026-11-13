@@ -3,12 +3,9 @@ import TemperCore
 
 /// Where the owner describes a Workout in words, typed or dictated, and gets a Plan to check and start.
 ///
-/// The Plan is made on the iPhone by Apple Intelligence, and written up on the board before Start exactly as the
-/// Plan screen writes a Workout Type, so a misheard number is caught before the Workout runs. The description and
-/// the last Plan are remembered, so a Workout can run again after it ends.
-///
-/// The bottom bar holds one black-marker capsule: Make Plan until there's a Plan, then Start. Make New Plan moves up
-/// under the description, away from Start, so a reach for Start can't throw the Plan away.
+/// The Plan is made on the iPhone by Apple Intelligence, and shown before Start with each Phase in its color, as setup
+/// shows it, so a misheard number is caught before the Workout runs. The description and the last Plan are remembered,
+/// so a Workout can run again after it ends.
 struct DescribeScreen: View {
     @Bindable var remembered: RememberedValues
     let start: (Workout, HealthRecord.ActivityType) -> Void
@@ -20,152 +17,135 @@ struct DescribeScreen: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        let ink = BoardInk(contrast: contrast)
+        let colors = InkColors(contrast: contrast)
         let unavailable = PlanWriter.unavailableReason
         let plan = remembered.describedPlan
         let workout = plan.flatMap { try? $0.makeWorkout() }
-        let canWrite = unavailable == nil && !remembered.workoutDescription.trimmed.isEmpty
+        let board = plan.map(PlanBoard.init(plan:))
+        let canWrite = !isWriting && unavailable == nil && !remembered.workoutDescription.trimmed.isEmpty
 
-        ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 28) {
-                descriptionField(
-                    ink: ink, unavailable: unavailable, hasPlan: plan != nil, canStart: workout != nil,
-                    canWrite: canWrite)
-                if let plan {
-                    planBoard(plan, ink: ink)
+        Form {
+            Section {
+                TextField(
+                    "Today's Workout",
+                    text: $remembered.workoutDescription,
+                    // Dimmer than typed text but still about 4.5:1, since the system's placeholder gray is too faint on
+                    // the raised row.
+                    prompt: Text("10 sets, open Work, exactly 1 minute of Rest between them")
+                        .foregroundStyle(colors.secondary.opacity(0.78)),
+                    axis: .vertical
+                )
+                .lineLimit(3...8)
+                .focused($isEditing)
+                .foregroundStyle(colors.text)
+                .listRowBackground(colors.raised)
+            } header: {
+                Text("Today's Workout").foregroundStyle(colors.secondary)
+            } footer: {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(
+                        unavailable
+                            ?? "Say how many Rounds, and how long each Work and Rest lasts. A Work with no time ends when you tap Done."
+                    )
+                    .foregroundStyle(colors.secondary)
+                    if let problem {
+                        Text(problem)
+                            .foregroundStyle(colors.text)
+                    }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .scrollDismissesKeyboard(.interactively)
-        .safeAreaBar(edge: .bottom) {
-            if let plan, let workout {
-                StartButton(workout: workout) {
-                    start(workout, plan.activity)
+
+            if let board {
+                Section {
+                    ForEach(board.items.indices, id: \.self) { index in
+                        switch board.items[index] {
+                        case .line(let line):
+                            PlanLineRow(line: line)
+                                .listRowBackground(colors.raised)
+                        case .rounds(let count, let lines, _):
+                            RoundsHeaderRow(count: count)
+                                .listRowBackground(colors.raised)
+                            ForEach(lines.indices, id: \.self) { lineIndex in
+                                PlanLineRow(line: lines[lineIndex])
+                                    .padding(.leading, 20)
+                                    .listRowBackground(colors.raised)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Plan").foregroundStyle(colors.secondary)
+                } footer: {
+                    if let note = board.note {
+                        Text(note).foregroundStyle(colors.secondary)
+                    }
                 }
-            } else {
-                MakePlanButton(title: makeTitle(hasPlan: plan != nil), isWriting: isWriting, make: write)
+
+                // Start is the action once there's a Plan, so making another is a quieter row.
+                Section {
+                    Button {
+                        write()
+                    } label: {
+                        HStack {
+                            Text("Make New Plan")
+                            Spacer()
+                            if isWriting {
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .foregroundStyle(canWrite ? colors.accent : colors.secondary)
                     .disabled(!canWrite)
+                    .listRowBackground(colors.raised)
+                }
             }
         }
-        .background(ink.ground.ignoresSafeArea())
+        .scrollContentBackground(.hidden)
+        .background(colors.background.ignoresSafeArea())
         .navigationTitle("Describe")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            // A multi-line field's Return adds a line, so the keyboard needs its own way down. Not "Done", which
-            // names the mark that ends an open Phase.
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Hide Keyboard", systemImage: "keyboard.chevron.compact.down") {
-                    isEditing = false
+        .safeAreaBar(edge: .bottom) {
+            Group {
+                if let plan, let workout, let board {
+                    StartButton(workout: workout, board: board) {
+                        start(workout, plan.activity)
+                    }
+                } else {
+                    makePlanButton(isEnabled: canWrite, colors: colors)
                 }
             }
+            .padding(.top, 8)
+            .padding(.bottom, 6)
+            .padding(.horizontal)
         }
     }
 
-    /// The description, set into the board as a panel, with what to say, or why Describe can't run, under it. Once
-    /// there's a Plan to Start, Make New Plan follows, and then the problem from the last try, or, before the first
-    /// Plan, an example to copy.
-    private func descriptionField(
-        ink: BoardInk, unavailable: String?, hasPlan: Bool, canStart: Bool, canWrite: Bool
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Today's Workout")
-                .font(.headline)
-                .foregroundStyle(ink.marker)
-                .accessibilityAddTraits(.isHeader)
-            TextField(
-                "Today's Workout",
-                text: $remembered.workoutDescription,
-                prompt: Text("Describe today's Workout").foregroundStyle(ink.secondary),
-                axis: .vertical
-            )
-            .lineLimit(3...8)
-            .font(.body)
-            .foregroundStyle(ink.marker)
-            .tint(ink.marker)
-            .focused($isEditing)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(ink.panel, in: .rect(cornerRadius: 16, style: .continuous))
-            Text(
-                unavailable
-                    ?? "Say how many Rounds, and how long each Work and Rest lasts. A Work with no time ends when you tap Done."
-            )
-            .font(.footnote)
-            .foregroundStyle(ink.secondary)
-
-            if canStart {
-                makeNewPlan(ink: ink, title: makeTitle(hasPlan: hasPlan))
-                    .disabled(!canWrite)
-                    .padding(.top, 4)
-            }
-            if let problem {
-                Label {
-                    Text(problem)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle")
-                }
-                .font(.subheadline)
-                .foregroundStyle(ink.ink(.work))
-                .padding(.top, 4)
-            } else if !hasPlan && unavailable == nil {
-                Text("Try: “Prepare 10 seconds, then 6 Rounds of 30 seconds Work and 30 seconds Rest.”")
-                    .font(.footnote)
-                    .foregroundStyle(ink.secondary)
-            }
-        }
-    }
-
-    /// Make New Plan as a secondary glass button, since Start holds the black marker once there's a Plan.
-    private func makeNewPlan(ink: BoardInk, title: String) -> some View {
-        Button(action: write) {
-            HStack(spacing: 8) {
-                Text(title)
+    /// Before there's a Plan, making one is the screen's action, in Start's place.
+    private func makePlanButton(isEnabled: Bool, colors: InkColors) -> some View {
+        Button {
+            write()
+        } label: {
+            HStack(spacing: 10) {
                 if isWriting {
                     ProgressView()
-                        .tint(ink.marker)
+                        .tint(colors.onAccent)
                 }
+                Text(isWriting ? "Making Plan…" : "Make Plan")
             }
-            .font(.headline)
+            .font(.title2.bold())
+            .foregroundStyle(isEnabled || isWriting ? AnyShapeStyle(colors.onAccent) : AnyShapeStyle(.secondary))
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .frame(maxWidth: .infinity, minHeight: 52)
         }
-        .buttonStyle(.glass)
-        .controlSize(.large)
-        .tint(ink.marker)
-        // The spinner says nothing to VoiceOver, so the label carries the state.
-        .accessibilityLabel(isWriting ? "Making Plan" : title)
-    }
-
-    private func makeTitle(hasPlan: Bool) -> String {
-        hasPlan ? "Make New Plan" : "Make Plan"
-    }
-
-    /// The Plan on the board, read-only, in the same lines, inks and brackets as the Plan screen.
-    private func planBoard(_ plan: Plan, ink: BoardInk) -> some View {
-        let board = PlanBoard(plan: plan)
-
-        return VStack(alignment: .leading, spacing: 12) {
-            Text("Plan")
-                .font(.headline)
-                .foregroundStyle(ink.marker)
-                .accessibilityAddTraits(.isHeader)
-            PlanBoardView(board: board)
-            if let note = board.note {
-                Text(note)
-                    .font(.subheadline)
-                    .foregroundStyle(ink.secondary)
-            }
-        }
+        .buttonStyle(.glassProminent)
+        .tint(colors.accent)
+        .disabled(!isEnabled)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .accessibilityShowsLargeContentViewer()
     }
 
     /// Asks for a Plan, and keeps it only if it can run, so Start never offers a Plan that can't.
-    ///
-    /// A tap while a Plan is being made does nothing, so the button can stay lit beside its spinner.
     private func write() {
-        guard !isWriting else { return }
         isEditing = false
         isWriting = true
         problem = nil
@@ -189,44 +169,58 @@ struct DescribeScreen: View {
     }
 }
 
-/// Make Plan in black marker in the bottom bar, where Start takes over once there's a Plan, with a spinner beside it
-/// while the Plan is being made.
-private struct MakePlanButton: View {
-    let title: String
-    let isWriting: Bool
-    let make: () -> Void
+/// One Phase of the Plan: its name in its color, as setup's words are, and its time at the right.
+private struct PlanLineRow: View {
+    let line: PlanBoard.Line
 
-    @Environment(\.isEnabled) private var isEnabled
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        let ink = BoardInk(contrast: contrast)
+        let colors = InkColors(contrast: contrast)
 
-        Button(action: make) {
-            HStack(spacing: 10) {
-                Text(title)
-                if isWriting {
-                    ProgressView()
-                        .tint(ink.onMarker)
+        HStack(alignment: .firstTextBaseline) {
+            Text(line.kind.name)
+                .font(.title3.bold())
+                .foregroundStyle(PhaseColors(kind: line.kind, contrast: contrast).ring)
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(line.time)
+                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(colors.text)
+                if let caption = line.caption {
+                    Text(caption)
+                        .font(.footnote)
+                        .foregroundStyle(colors.secondary)
                 }
             }
-            .font(.title2.bold())
-            // A disabled button's fill fades, so its label takes the board's secondary ink rather than staying light.
-            // Only an empty description or Describe being unavailable disables it, never the Plan being made.
-            .foregroundStyle(isEnabled ? ink.onMarker : ink.secondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .frame(maxWidth: .infinity, minHeight: 56)
         }
-        .buttonStyle(.glassProminent)
-        .tint(ink.marker)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .accessibilityShowsLargeContentViewer()
-        // The spinner says nothing to VoiceOver, so the label carries the state.
-        .accessibilityLabel(isWriting ? "Making Plan" : title)
-        .padding(.top, 8)
-        .padding(.bottom, 6)
-        .padding(.horizontal)
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(line.spokenText)
+    }
+}
+
+/// The count over a Rounds Block's Phases, which sit indented under it.
+private struct RoundsHeaderRow: View {
+    let count: Plan.Block.Count
+
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Text(text)
+            .font(.title3.bold())
+            .foregroundStyle(InkColors(contrast: contrast).text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+    }
+
+    private var text: String {
+        switch count {
+        case .times(1): "1 Round"
+        case .times(let times): "\(times) Rounds"
+        case .untilStop: "Rounds until Stop"
+        }
     }
 }
 

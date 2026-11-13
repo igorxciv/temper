@@ -1,15 +1,15 @@
 import SwiftUI
 
-/// A vertical wheel of big digits that fade and shrink away from the center. It draws no selection band of its own,
-/// so the sheet can lay one band behind both of a time's wheels.
+/// A vertical wheel of big digits that fade and shrink away from the center. It draws no band of its own, so the
+/// sheet can lay one band behind both of a time's wheels.
 struct DigitWheel: View {
-    /// The height of one row, and so of the band that marks the center one.
-    static let rowHeight: CGFloat = 68
-
     let values: [Int]
     @Binding var selection: Int
     let label: String
     let digits: (Int) -> String
+
+    /// The height of one row, and so of the band that marks the center one.
+    static let rowHeight: CGFloat = 68
 
     @State private var position: Int?
     @State private var isScrolling = false

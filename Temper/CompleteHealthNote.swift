@@ -9,6 +9,8 @@ enum CompleteHealthNote: Equatable {
     /// The Workout ran for under ``HealthRecord/minimumActiveTime``, so it makes no Health workout.
     case tooShort
     case saving
+    /// Workouts are allowed, but what Apple Watch needs for heart rate hasn't been asked for yet.
+    case savingWithoutHeartRate
     /// The owner hasn't been asked yet.
     case notTurnedOn
     /// The owner said no, or the device has no Health.
@@ -23,7 +25,8 @@ enum CompleteHealthNote: Equatable {
             return
         }
         switch row {
-        case .saving, .allowHeartRate: self = .saving
+        case .saving: self = .saving
+        case .allowHeartRate: self = .savingWithoutHeartRate
         case .saveWorkouts: self = .notTurnedOn
         case .notAllowed: self = .accessOff
         }
@@ -33,6 +36,7 @@ enum CompleteHealthNote: Equatable {
         switch self {
         case .tooShort: "Under 1 minute, so not saved to Health."
         case .saving: "Saving to Apple Health."
+        case .savingWithoutHeartRate: "Saving to Apple Health, without heart rate."
         case .notTurnedOn: "Not saved to Health. Turn it on in Settings."
         case .accessOff: "Not saved: Health access is off."
         }
@@ -40,7 +44,10 @@ enum CompleteHealthNote: Equatable {
 
     /// The symbol before the text, only when the Workout is going to Health.
     var systemImage: String? {
-        self == .saving ? "heart.fill" : nil
+        switch self {
+        case .saving, .savingWithoutHeartRate: "heart.fill"
+        case .tooShort, .notTurnedOn, .accessOff: nil
+        }
     }
 }
 
@@ -49,26 +56,28 @@ enum CompleteHealthNote: Equatable {
 struct CompleteHealthLine: View {
     let health: HealthSaves
     let activeTime: Duration
+    var alignment: HorizontalAlignment = .leading
 
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        let ink = BoardInk(contrast: contrast)
+        let colors = InkColors(contrast: contrast)
 
         // A stack rather than a group, so the task runs even while there's no line to show.
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: alignment, spacing: 0) {
             if let note = CompleteHealthNote(row: health.row, activeTime: activeTime) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     if let systemImage = note.systemImage {
                         Image(systemName: systemImage)
-                            .foregroundStyle(ink.marker)
+                            .foregroundStyle(colors.text)
                             .accessibilityHidden(true)
                     }
                     Text(note.text)
-                        .foregroundStyle(ink.secondary)
+                        .foregroundStyle(colors.secondary)
+                        .multilineTextAlignment(alignment == .center ? .center : .leading)
                 }
                 .font(.subheadline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
                 .accessibilityElement(children: .combine)
             }
         }

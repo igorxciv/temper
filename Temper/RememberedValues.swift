@@ -2,12 +2,15 @@ import Foundation
 import Observation
 import TemperCore
 
-/// A screen pushed over Plans: a Workout Type's Plan, Describe, or Settings.
-enum Route: Hashable {
-    case plan(WorkoutType)
+/// A tab in the tab bar: one per Workout Type that has its screens, then Describe, then Settings.
+enum RootTab: Hashable {
+    case workoutType(WorkoutType)
     /// Where the owner describes a Workout in words and gets a Plan.
     case describe
     case settings
+
+    /// The Workout Types with a tab, in tab order.
+    static let workoutTypes: [WorkoutType] = [.intervals, .stopwatch, .openRounds]
 }
 
 /// Each Workout Type's last-used values and Presets, the last-used Workout Type, and the Dip setting. Each change
@@ -32,20 +35,14 @@ final class RememberedValues {
     /// reads them.
     private var presetLists: [WorkoutType: PresetList]
 
-    /// The Workout Type whose Plan Temper opens on, which is the last one opened, or `nil` before any has been.
-    private var lastUsed: WorkoutType? {
-        didSet { defaults.set(lastUsed?.rawValue, forKey: Self.workoutTypeKey) }
+    /// The Workout Type Temper opens on, which is the last one whose tab was selected.
+    private(set) var lastUsed: WorkoutType {
+        didSet { defaults.set(lastUsed.rawValue, forKey: Self.workoutTypeKey) }
     }
 
-    /// The screens over Plans. A launch opens on the last Workout Type's Plan, so Start is one tap away, or on Plans
-    /// alone before any Plan has been opened. Opening Describe or Settings changes nothing the next launch opens on.
-    var path: [Route] {
-        didSet {
-            if case .plan(let workoutType)? = path.last, lastUsed != workoutType {
-                lastUsed = workoutType
-            }
-        }
-    }
+    /// The tab showing when it isn't a Workout Type's: Describe or Settings. Never saved, so a launch always opens
+    /// on a Workout Type.
+    private var otherTab: RootTab?
 
     /// What the owner last wrote on Describe, kept so it can be changed and sent again.
     var workoutDescription: String {
@@ -80,9 +77,9 @@ final class RememberedValues {
         openRounds = Self.restore(.openRounds, from: defaults)
         presetLists = Dictionary(
             uniqueKeysWithValues: WorkoutType.allCases.map { ($0, Self.restorePresets(of: $0, from: defaults)) })
+        // A type with no tab can't be selected, so it opens on Intervals instead.
         let stored = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init)
-        lastUsed = stored
-        path = stored.map { [.plan($0)] } ?? []
+        lastUsed = stored.flatMap { RootTab.workoutTypes.contains($0) ? $0 : nil } ?? .intervals
         isDipOn = defaults.object(forKey: Self.dipKey) as? Bool ?? true
         workoutDescription = defaults.string(forKey: Self.descriptionKey) ?? ""
         describedPlan = defaults.data(forKey: Self.describedPlanKey).flatMap {
@@ -149,6 +146,23 @@ final class RememberedValues {
     /// Reorders the type's Presets by the offsets `onMove` reports. The picked Preset stays picked.
     func movePresets(fromOffsets offsets: IndexSet, toOffset destination: Int, of workoutType: WorkoutType) {
         changePresets(of: workoutType) { $0.move(fromOffsets: offsets, toOffset: destination) }
+    }
+
+    /// The tab showing. Selecting a Workout Type's tab makes it the last-used Workout Type, and selecting
+    /// Describe or Settings doesn't, so leaving a Workout always comes back to the tab it started from.
+    var selectedTab: RootTab {
+        get { otherTab ?? .workoutType(lastUsed) }
+        set {
+            switch newValue {
+            case .workoutType(let workoutType):
+                otherTab = nil
+                if lastUsed != workoutType {
+                    lastUsed = workoutType
+                }
+            case .describe, .settings:
+                otherTab = newValue
+            }
+        }
     }
 
     /// Changes one type's list, which then saves whole.

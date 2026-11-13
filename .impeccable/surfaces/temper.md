@@ -1,5 +1,5 @@
 ---
-version: 1
+version: 2
 slug: "temper"
 primary_target: "Temper"
 related_targets: []
@@ -7,30 +7,31 @@ related_targets: []
 
 ## Scope
 
-The iPhone app's screens: Plans home, the Plan board (Intervals, Stopwatch, Open Rounds, a Preset, a described Plan), Describe, the value sheet, the running screen, the complete screens, Settings and the Preset sheets. Visitor mode: Operate. The Watch app and Live Activity keep their current look until a later round.
+The iPhone app's screens: the three setup tabs (Intervals, Stopwatch, Open Rounds), Describe, Settings, the value sheet, the Preset sheets, the running screen and the complete screens. Visitor mode: Operate. The Watch app and Live Activity keep their look; they already share this ink.
 
 ## Audience and task
 
-One owner now, the App Store later; gym and home. Before a Workout: one hand, seconds, pick or adjust a Plan and Start. During: phone metres away, read at a glance. After: confirm it went in.
+One owner now, the App Store later; gym and home. Before a Workout: one hand, seconds, pick or adjust a Workout Type or Preset and Start. During: phone metres away, read at a glance. After: confirm it ran and whether it went to Health.
 
 ## Constraints
 
-Phase colors are a brand commitment. Native navigation and controls (NavigationStack, sheets, menus, glass buttons). Fixed sizes for times and Phase names, read at distance; iPhone SE at every text size; Increase Contrast variants for every ink.
+Phase colors are a brand commitment (`Shared/Ink.swift`). Dark only; the owner chose the dark ink over a light board redesign, which was built, merged and reverted. Native tab bar, navigation, sheets, menus and Liquid Glass buttons. Fixed sizes for times and Phase names, read at distance; iPhone SE at every text size; Increase Contrast variants for every color.
 
 ## Direction contract
 
-THESIS: A Plan is written up on the board exactly as it will run, and ticked off as it runs. It refuses the category default: dark inset rows of timers with an activity ring.
+THESIS: Each Phase is a whole color world, and setup is the Workout written in those colors, one row per Phase in the order it runs, before Start.
 
-OWN-WORLD: Gloss whiteboard ground #F6F7F5, black marker #1E2126, eraser ghost for Off and spent lines. Phase marker inks: Prepare #1F6FB2, Work #C63E22, Rest #0E7A6C, Cooldown #4A55B8, each clearing 4.5:1 on the ground. SF Rounded bold; times large, tabular, in one right-hand column. Round-nib marker strokes, slightly wobbly with round caps, draw brackets, ticks and underlines, and never words. Start is a black-marker capsule. A running Workout flips to the flat dark Phase fields. Raised by the declined hand: every Plan visible on home as a whole cell (Event Catalog Grid); the running field given wholly to the time (Catalog Sleeve); every time in one tabular column (Exposure Record); flat Phase color, no gradients or tinted glass (Guide Map Lobes).
+OWN-WORLD: Dark ink ground #11151D, raised rows #1B212C, separators #2E3643, warm white text #F3F1EA, secondary #A9ADB5. Amber #E6B566 means act here and nothing else: Start, Confirm, Close, toggles, the tab tint. Each Phase has a background, ring, track and text color (Prepare blue, Work coral, Rest teal, Cooldown indigo), each with an Increase Contrast set. SF Rounded throughout. Setup labels are big hollow words in their Phase's ring color, about 4.5:1, scaled to fit beside the digits; Rounds' word is neutral, not amber. Digits are large, semibold, tabular. The running screen is the Phase's whole field with a ring and the time. Complete closes that ring.
 
-STORY: Temper opens on the last Plan. The owner sees the Workout as it will run, taps a line to change it, and Starts in one tap. Mid-set the Phase field reads from across the room. The Workout ends on the board with every line ticked, the total written under it, and whether it goes to Health.
+STORY: Temper opens on the last Workout Type's tab. The owner sees every Phase in order, Stopwatch's Work marked "then until Done" and Open Rounds' Work "Open, until Done", taps a row to change it, and Starts with one tap from the thumb zone. Mid-set the Phase field reads from across the room. At the end the ring closes in the last Phase's color around the total, with what the Rounds ran and whether the Workout goes to Health.
 
-FIRST VIEWPORT: The Plan board. Back to Plans, inline title naming the Plan, Presets menu at the trailing edge. Lines top to bottom: Phase name left, 34 pt bold rounded in its ink; time right, 52 pt tabular. A Rounds Block sits inside a marker bracket with its count at the left, "× 8", or "× ∞" for Rounds until Stop with the note saying it in words. An Off line is ghosted, an open line reads "until Done". One footnote line in secondary ink. "Start · 8:50" as a black capsule in the bottom bar, in the thumb zone. Signature interaction: on the complete screen each line is ticked by a marker stroke drawn in sequence; Reduce Motion shows the ticks at once.
+FIRST VIEWPORT: The Intervals tab. Inline title with the Presets title menu and a bookmark Presets menu at the trailing edge. Five rows, Prepare, Rounds, Work, Rest, Cooldown, each a hollow word at the left and 52 pt digits at the right, split by hairlines. A single note line in secondary above "Start · 08:50", an amber glass capsule over the tab bar. Signature interaction: on the complete screen the ring draws closed once in the last Phase's color, with a success haptic; Reduce Motion shows it closed.
 
-FORM: The Board, number 4 on the ordered list of seven. seed:ff861f957220fb60
+FORM: The incumbent dark ink, refined against the 27/40 critique: complete screen, Stopwatch and Open Rounds rows, Presets reach, Describe palette, label truncation and contrast, wheel selection band, About footer, Close for Done. seed: none (roll waived; the owner asked to "return vibe of the previous one but adjust it based on your suggestions and best practices")
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md recorded from the shipped code.
 
 ## Unresolved
 
-- Whether a Workout from the Watch or Lock Screen needs the board look: later round.
+- Skipping Prepare or Rest mid-Workout: not decided.
+- Whether Describe stays a tab or becomes a way into setup.

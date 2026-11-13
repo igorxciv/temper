@@ -15,7 +15,7 @@ struct ManagePresetsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        let ink = BoardInk(contrast: contrast)
+        let colors = InkColors(contrast: contrast)
         let list = remembered.presets(of: workoutType)
 
         NavigationStack {
@@ -28,7 +28,7 @@ struct ManagePresetsSheet: View {
                     ) {
                         renaming = preset
                     }
-                    .listRowBackground(ink.row)
+                    .listRowBackground(colors.background)
                     .accessibilityAction(named: "Rename") {
                         renaming = preset
                     }
@@ -63,7 +63,7 @@ struct ManagePresetsSheet: View {
             .overlay {
                 if list.presets.isEmpty {
                     ContentUnavailableView {
-                        Text("No Presets").foregroundStyle(ink.secondary)
+                        Text("No Presets").foregroundStyle(colors.secondary)
                     }
                 }
             }
@@ -107,7 +107,7 @@ struct ManagePresetsSheet: View {
             }
         }
         .presentationDetents([.large])
-        .presentationBackground(ink.ground)
+        .presentationBackground(colors.raised)
     }
 
     private func move(_ offsets: IndexSet, to destination: Int) {

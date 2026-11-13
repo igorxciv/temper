@@ -67,14 +67,6 @@ nonisolated struct RunningDisplayTests {
         #expect(ring.spokenTime == "8 seconds left")
     }
 
-    @Test(arguments: [(0.0, "0:00"), (7.2, "0:08"), (60.0, "1:00"), (599.5, "10:00"), (4_335.0, "72:15")])
-    func `The short time drops the leading zero on the minutes`(timeLeft: Double, shortTime: String) {
-        let phase = Phase(kind: .work, duration: .seconds(5_000), round: 1)
-        let ring = intervals(.paused(phase: phase, timeLeft: .seconds(timeLeft))).ring(at: at(0))
-
-        #expect(ring.shortTime == shortTime)
-    }
-
     @Test func `Counting down, the ring is full as a Phase starts and empties`() {
         let display = intervals(running(work, endsAt: 100))
 

@@ -19,12 +19,19 @@ struct CompleteHealthNoteTests {
         #expect(note?.text == "Under 1 minute, so not saved to Health.")
     }
 
-    @Test(arguments: [AppleHealthRow.saving, .allowHeartRate])
-    func `A Workout of the minimum or more is saving once Health allows workouts`(row: AppleHealthRow) {
-        let note = CompleteHealthNote(row: row, activeTime: longEnough)
+    @Test func `A Workout of the minimum or more is saving once Health allows workouts`() {
+        let note = CompleteHealthNote(row: .saving, activeTime: longEnough)
 
         #expect(note == .saving)
         #expect(note?.text == "Saving to Apple Health.")
+        #expect(note?.systemImage == "heart.fill")
+    }
+
+    @Test func `Before heart rate has been allowed, the note says it's left out`() {
+        let note = CompleteHealthNote(row: .allowHeartRate, activeTime: longEnough)
+
+        #expect(note == .savingWithoutHeartRate)
+        #expect(note?.text == "Saving to Apple Health, without heart rate.")
         #expect(note?.systemImage == "heart.fill")
     }
 
