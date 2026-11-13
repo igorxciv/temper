@@ -41,7 +41,7 @@ typography:
     fontFeature: "tnum"
   running-count:
     fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
-    fontSize: "64pt"
+    fontSize: "48pt"
     fontWeight: 600
     fontFeature: "tnum"
   hollow-word:
@@ -64,7 +64,7 @@ typography:
     fontFeature: "tnum"
   running-caption:
     fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
-    fontSize: "32pt"
+    fontSize: "28pt"
     fontWeight: 500
     fontFeature: "tnum"
   display:
@@ -208,7 +208,7 @@ Prepare and Cooldown nearly match under color blindness. That is accepted: they 
 ### Hierarchy
 - **Running time** (600, 180 pt, tabular): the time inside the running ring. Set larger than any phone allows so the ring decides the size; scales down to 0.4, or 0.3 when Done is shown.
 - **Complete total** (600, 120 pt, tabular): the total inside the complete ring on both complete screens, scaled to the ring (down to 0.3, or 0.2 in Open Rounds' smaller ring).
-- **Running count** (600, 64 pt, tabular): the Rounds count under the ring, with a running caption (500, 32 pt) at 0.72 opacity. "Paused" takes its place at 42 pt semibold in a slot of fixed height, so the ring doesn't move.
+- **Running count** (600, 48 pt, tabular): the line under the ring, such as the Round count or the Work time just ended, with a running caption (500, 28 pt) at 0.72 opacity. Kept well under the time so it reads as a note on the ring, never a second clock. "Paused" takes its place at 40 pt semibold in a slot of fixed height, so the ring doesn't move.
 - **Hollow word** (700, 60 pt): a setup row's Phase name, outlined; scales down to 0.5 to fit beside the digits.
 - **Running phase** (600, 56 pt): the Phase name at the top of the running screen, in its ring color; scales down to 0.6.
 - **Wheel digits** (600, 54 pt, tabular): the value sheet's wheels and their colon.
@@ -261,7 +261,7 @@ Round, everywhere. Buttons are capsules, as Liquid Glass draws them; Stop is a 7
 - **Start's label:** "Start · 08:50" with the Workout's total only when the Workout ends by itself. If any Phase is open or runs past its length until Done, it says only "Start".
 - **Close:** the complete screens' action is Close, never Done. Done ends an open Phase.
 - **Running controls:** `.glass`, Title bold. Pause/Resume is 72 pt tall and fills the width with an SF Symbol and label; Stop is a 72 pt circle with a stop symbol, and asks before it ends the Workout.
-- **Done:** `.glassProminent` tinted Work's ring with Work's field as its label, 88 pt tall, above Pause and Stop in Open Rounds and Stopwatch. Disabled, it stays in place and dims to the system's secondary style. A light impact haptic on tap.
+- **Done:** `.glassProminent` tinted Work's ring with Work's field as its label, 88 pt tall, above Pause and Stop in Open Rounds and Stopwatch. Until the engine would take it (Prepare, Rest, Paused, a Stopwatch's Work before its set length) its 88 pt place is held empty, so Pause, Stop and the ring never move; it fades in over 0.25 s when it can be tapped. A light impact haptic on tap.
 - **Disabled amber:** Make Plan keeps its place and drops its label to the system's secondary style.
 
 ### Lists

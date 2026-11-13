@@ -4,8 +4,9 @@
 
     /// Launch arguments that open a screen at launch, so the Simulator can show every screen with no taps:
     /// `-debugTab intervals|stopwatch|openRounds|describe|settings` selects a tab, and
-    /// `-debugStart intervals|stopwatch|openRounds|planComplete|roundsComplete` starts a Workout, the last two short ones
-    /// that end on their complete screens. It returns the Plan of the Workout it started, for the complete screen.
+    /// `-debugStart intervals|stopwatch|openRounds|openRoundsRest|planComplete|roundsComplete` starts a Workout:
+    /// `openRoundsRest` ends its first Work after 4 seconds, so it shows the Rest after an open Work, and the last two
+    /// are short ones that end on their complete screens. It returns the Plan of the Workout it started, for the complete screen.
     @MainActor
     enum DebugLaunch {
         static func apply(runner: WorkoutRunner, remembered: RememberedValues) -> PlanBoard? {
@@ -40,6 +41,15 @@
                     runner.start(workout, filedAs: .highIntensityIntervalTraining, isDipOn: false)
                 }
                 return PlanBoard(plan: plan)
+            } else if start == "openRoundsRest" {
+                runner.start(
+                    WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch),
+                    filedAs: .traditionalStrengthTraining, isDipOn: false)
+                Task {
+                    try? await Task.sleep(for: .seconds(4))
+                    runner.done()
+                }
+                return PlanBoard(workoutType: .openRounds, settings: WorkoutType.openRounds.firstLaunch)
             } else if start == "roundsComplete" {
                 runner.start(
                     WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch),
