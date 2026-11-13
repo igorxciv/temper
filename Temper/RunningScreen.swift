@@ -87,7 +87,8 @@ private struct RingLineView: View {
     let line: RingLine?
     let colors: PhaseColors
 
-    private let numberSize: CGFloat = 64
+    /// Smaller than the time by a wide margin, so the line reads as a note on the ring and never as a second clock.
+    private let numberSize: CGFloat = 48
 
     var body: some View {
         Group {
@@ -107,7 +108,7 @@ private struct RingLineView: View {
                 .accessibilityLabel(spoken)
             case .paused:
                 Text("Paused")
-                    .font(.system(size: 42, weight: .semibold))
+                    .font(.system(size: 40, weight: .semibold))
             case nil:
                 EmptyView()
             }
@@ -125,7 +126,7 @@ private struct CaptionText: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 32, weight: .medium).monospacedDigit())
+            .font(.system(size: 28, weight: .medium).monospacedDigit())
             .opacity(0.72)
     }
 }
@@ -183,8 +184,8 @@ private struct RunningControls: View {
 }
 
 /// Done, in Work's ring color, for Open Rounds' open Work and a Stopwatch's Work past its set length. No tap-anywhere,
-/// because a phone on a bench can be brushed. Disabled, it
-/// stays in place and dims, and VoiceOver reads it as dimmed.
+/// because a phone on a bench can be brushed. Until the engine would take it, its place is held empty, so Pause, Stop
+/// and the ring never move, and a control that can't be used doesn't sit in the thumb's way.
 private struct DoneControl: View {
     let isEnabled: Bool
     let done: () -> Void
@@ -192,23 +193,31 @@ private struct DoneControl: View {
     @Environment(\.colorSchemeContrast) private var contrast
     @State private var taps = 0
 
+    private let height: CGFloat = 88
+
     var body: some View {
         let work = PhaseColors(kind: .work, contrast: contrast)
 
-        Button {
-            taps += 1
-            done()
-        } label: {
-            Text("Done")
-                .font(.title.bold())
-                // Dark on Work's ring color, and the system's dimmed style once disabled takes the tint away.
-                .foregroundStyle(isEnabled ? AnyShapeStyle(work.background) : AnyShapeStyle(.secondary))
-                .frame(maxWidth: .infinity, minHeight: 88)
+        ZStack {
+            if isEnabled {
+                Button {
+                    taps += 1
+                    done()
+                } label: {
+                    Text("Done")
+                        .font(.title.bold())
+                        // Dark on Work's ring color.
+                        .foregroundStyle(work.background)
+                        .frame(maxWidth: .infinity, minHeight: height)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(work.ring)
+                .accessibilityShowsLargeContentViewer()
+                .transition(.opacity)
+            }
         }
-        .buttonStyle(.glassProminent)
-        .tint(work.ring)
-        .disabled(!isEnabled)
-        .accessibilityShowsLargeContentViewer()
+        .frame(maxWidth: .infinity, minHeight: height)
+        .animation(.easeOut(duration: 0.25), value: isEnabled)
         .sensoryFeedback(.impact(weight: .light), trigger: taps)
     }
 }
