@@ -26,7 +26,7 @@ struct WorkoutTypeTests {
     @Test func `Each Workout Type has its setup rows, top to bottom`() {
         #expect(WorkoutType.intervals.values == [.prepare, .rounds, .work, .rest, .cooldown])
         #expect(WorkoutType.stopwatch.values == [.prepare, .work])
-        #expect(WorkoutType.openRounds.values == [.prepare, .rest])
+        #expect(WorkoutType.openRounds.values == [.prepare, .rounds, .rest, .cooldown])
     }
 
     @Test func `The raw values are the ones remembered as the last-used Workout Type`() {
@@ -54,16 +54,54 @@ struct WorkoutTypeTests {
         #expect(settings.work == .seconds(600))
     }
 
-    @Test func `Open Rounds first launches at Prepare Off and Rest 01:00`() {
+    @Test func `Open Rounds first launches at Prepare Off, Rounds until Stop, Rest 01:00 and Cooldown Off`() {
         #expect(WorkoutType.openRounds.firstLaunch.prepare == .zero)
+        #expect(WorkoutType.openRounds.firstLaunch.rounds == WorkoutType.roundsUntilStop)
         #expect(WorkoutType.openRounds.firstLaunch.rest == .seconds(60))
+        #expect(WorkoutType.openRounds.firstLaunch.cooldown == .zero)
     }
 
-    private func openRounds(prepare: Duration = .zero, rest: Duration) -> Workout {
-        // Rounds, Work and Cooldown are set to show Open Rounds ignores them.
+    private func openRounds(
+        prepare: Duration = .zero, rounds: Int = WorkoutType.roundsUntilStop, rest: Duration,
+        cooldown: Duration = .seconds(60)
+    ) -> Workout {
+        // Work is set to show Open Rounds ignores it, and Cooldown to show Rounds until Stop leave it out.
         WorkoutType.openRounds.makeWorkout(
-            from: WorkoutSettings(prepare: prepare, rounds: 8, work: .seconds(40), rest: rest, cooldown: .seconds(60))
+            from: WorkoutSettings(prepare: prepare, rounds: rounds, work: .seconds(40), rest: rest, cooldown: cooldown)
         )
+    }
+
+    @Test func `With a number of Rounds, Open Rounds ends on the last open Work, then its Cooldown`() {
+        let expected = Workout(
+            phases: [
+                Phase(kind: .prepare, duration: .seconds(10)),
+                Phase(kind: .work, length: .open, round: 1),
+                Phase(kind: .rest, duration: .seconds(60), round: 1),
+                Phase(kind: .work, length: .open, round: 2),
+                Phase(kind: .rest, duration: .seconds(60), round: 2),
+                Phase(kind: .work, length: .open, round: 3),
+                Phase(kind: .cooldown, duration: .seconds(60)),
+            ],
+            warnsBeforeRestEnds: true
+        )
+
+        #expect(openRounds(prepare: .seconds(10), rounds: 3, rest: .seconds(60)) == expected)
+    }
+
+    @Test func `A Cooldown Off is left out after Open Rounds' last Round`() {
+        let workout = openRounds(rounds: 2, rest: .seconds(60), cooldown: .zero)
+
+        #expect(workout.phases.map(\.kind) == [.work, .rest, .work])
+        #expect(workout.rounds == 2)
+    }
+
+    @Test func `Only Open Rounds offers Rounds until Stop, first on its wheel`() {
+        #expect(WorkoutType.openRounds.roundChoices == [WorkoutType.roundsUntilStop] + Array(1...99))
+        #expect(WorkoutType.intervals.roundChoices == Array(1...99))
+        #expect(WorkoutType.openRounds.clamped(-3, as: .rounds) == WorkoutType.roundsUntilStop)
+        #expect(WorkoutType.openRounds.clamped(100, as: .rounds) == 99)
+        #expect(WorkoutType.intervals.clamped(0, as: .rounds) == 1)
+        #expect(WorkoutType.openRounds.clamped(17, as: .rest) == 15)
     }
 
     @Test func `With Prepare Off, Open Rounds repeats an open Work and its Rest until Stop`() {

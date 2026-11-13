@@ -3,6 +3,7 @@ import TemperCore
 
 /// Edits a draft of one value. Confirm hands it back, and swiping the sheet away discards it.
 struct ValueSheet: View {
+    let workoutType: WorkoutType
     let value: WorkoutValue
     let confirm: (Int) -> Void
 
@@ -11,7 +12,8 @@ struct ValueSheet: View {
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.dismiss) private var dismiss
 
-    init(value: WorkoutValue, amount: Int, confirm: @escaping (Int) -> Void) {
+    init(workoutType: WorkoutType, value: WorkoutValue, amount: Int, confirm: @escaping (Int) -> Void) {
+        self.workoutType = workoutType
         self.value = value
         self.confirm = confirm
         _draft = State(initialValue: amount)
@@ -34,9 +36,9 @@ struct ValueSheet: View {
                         .fill(phase?.track ?? ink.separator)
                         .frame(height: DigitWheel.rowHeight)
                 }
-            if allowsOff {
-                // 00:00 alone could read as a wheel left unset, so it's named as setup names it.
-                Text("Off")
+            if let zeroText {
+                // 00:00 alone could read as a wheel left unset, and ∞ could puzzle, so zero is named as setup names it.
+                Text(zeroText)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(phase?.ring ?? ink.secondary)
                     .lineLimit(1)
@@ -65,9 +67,11 @@ struct ValueSheet: View {
         .presentationBackground(phase?.background ?? ink.raised)
     }
 
-    /// Whether the value can be turned off, as Prepare, Rest and Cooldown are by setting them to zero.
-    private var allowsOff: Bool {
-        value.isTime && value.clamped(0) == 0
+    /// What zero means, if the value allows it: Off for Prepare, Rest and Cooldown, and until Stop for Open Rounds'
+    /// Rounds.
+    private var zeroText: String? {
+        guard workoutType.clamped(0, as: value) == 0 else { return nil }
+        return value.isTime ? "Off" : "until Stop"
     }
 
     @ViewBuilder private var wheels: some View {
@@ -91,14 +95,15 @@ struct ValueSheet: View {
             }
         } else {
             DigitWheel(
-                values: WorkoutValue.roundChoices,
+                values: workoutType.roundChoices,
                 selection: Binding {
                     draft
                 } set: {
-                    draft = value.clamped($0)
+                    draft = workoutType.clamped($0, as: value)
                 },
                 label: value.title,
-                digits: { "\($0)" }
+                digits: value.text(for:),
+                spokenValue: { $0 == WorkoutType.roundsUntilStop ? "until Stop" : "\($0)" }
             )
         }
     }

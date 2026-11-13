@@ -7,6 +7,8 @@ struct DigitWheel: View {
     @Binding var selection: Int
     let label: String
     let digits: (Int) -> String
+    /// What VoiceOver says for a value, which is the number unless a value has a name of its own.
+    var spokenValue: (Int) -> String = { "\($0)" }
 
     /// The height of one row, and so of the band that marks the center one.
     static let rowHeight: CGFloat = 68
@@ -61,7 +63,7 @@ struct DigitWheel: View {
             Color.clear
                 .accessibilityElement()
                 .accessibilityLabel(label)
-                .accessibilityValue("\(selection)")
+                .accessibilityValue(spokenValue(selection))
                 .accessibilityAdjustableAction { direction in
                     guard let index = values.firstIndex(of: selection) else { return }
                     let next = direction == .increment ? index + 1 : index - 1

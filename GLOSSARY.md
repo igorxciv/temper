@@ -21,7 +21,7 @@ The Workout Type made of a Prepare if one is configured, followed by a single Wo
 _Avoid_: Timer, count-up
 
 **Open Rounds**:
-The Workout Type made of a Prepare if one is configured, followed by Rounds of open Work, each followed by a Rest of a set length if one is configured, repeated until the Workout is Stopped.
+The Workout Type made of a Prepare if one is configured, followed by Rounds of open Work, each followed by a Rest of a set length if one is configured. The Rounds repeat until the Workout is Stopped or, if a number of Rounds is configured, that many times, the last with no Rest, followed by a Cooldown if one is configured.
 _Avoid_: Sets, Strength, Lifting, rest timer
 
 **Plan**:
@@ -65,7 +65,7 @@ The Phase between one Work and the next.
 _Avoid_: Break, pause
 
 **Cooldown**:
-The optional final Phase of Intervals, following the last Work.
+The optional final Phase of Intervals, and of Open Rounds with a set number of Rounds, following the last Work.
 _Avoid_: Final rest, warm-down
 
 **Pause**:

@@ -39,10 +39,10 @@ public nonisolated enum WorkoutValue: CaseIterable, Hashable, Identifiable, Send
         clamped(minutes * 60 + seconds)
     }
 
-    /// How an amount reads on setup.
+    /// How an amount reads on setup. Rounds until Stop read "∞", as the board counts them.
     public func text(for amount: Int) -> String {
         switch self {
-        case .rounds: "\(amount)"
+        case .rounds: amount == WorkoutType.roundsUntilStop ? "∞" : "\(amount)"
         case .prepare, .work, .rest, .cooldown: amount == 0 ? "Off" : Duration.seconds(amount).clockText
         }
     }

@@ -49,4 +49,16 @@ struct PresetSummaryTests {
         #expect(list.summary(of: Preset(name: "Heavy", settings: WorkoutType.openRounds.firstLaunch)) == "Rest 1:00")
         #expect(list.summary(of: Preset(name: "Circuit", settings: noRest)) == "Rest Off")
     }
+
+    @Test func `An Open Rounds summary with a number of Rounds puts them before its Rest`() {
+        let list = PresetList(workoutType: .openRounds)
+        var five = WorkoutType.openRounds.firstLaunch
+        five[.rounds] = 5
+        var one = five
+        one[.rounds] = 1
+        one[.rest] = 0
+
+        #expect(list.summary(of: Preset(name: "Five", settings: five)) == "5 Rounds · Rest 1:00")
+        #expect(list.summary(of: Preset(name: "One", settings: one)) == "1 Round · Rest Off")
+    }
 }
