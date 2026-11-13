@@ -57,6 +57,12 @@ final class RememberedValues {
         }
     }
 
+    /// The words `describedPlan` was made from. The same words always make the same Plan, so Describe offers a new
+    /// Plan only once the description differs from these.
+    var describedPlanWords: String? {
+        didSet { defaults.set(describedPlanWords, forKey: Self.describedPlanWordsKey) }
+    }
+
     var isDipOn: Bool {
         didSet {
             defaults.set(isDipOn, forKey: Self.dipKey)
@@ -69,6 +75,7 @@ final class RememberedValues {
     private static let dipKey = "dip"
     private static let descriptionKey = "describe.description"
     private static let describedPlanKey = "describe.plan"
+    private static let describedPlanWordsKey = "describe.planWords"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -85,6 +92,7 @@ final class RememberedValues {
         describedPlan = defaults.data(forKey: Self.describedPlanKey).flatMap {
             try? JSONDecoder().decode(Plan.self, from: $0)
         }
+        describedPlanWords = defaults.string(forKey: Self.describedPlanWordsKey)
     }
 
     /// A Workout Type's values. Only the values on its setup save.
