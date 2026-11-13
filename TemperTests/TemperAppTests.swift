@@ -362,10 +362,12 @@ struct RememberedValuesTests {
             let remembered = RememberedValues(defaults: defaults)
             remembered.workoutDescription = "10 sets, 1 minute rest"
             remembered.describedPlan = plan
+            remembered.describedPlanWords = "10 sets, 1 minute rest"
 
             let next = RememberedValues(defaults: defaults)
             #expect(next.workoutDescription == "10 sets, 1 minute rest")
             #expect(next.describedPlan == plan)
+            #expect(next.describedPlanWords == "10 sets, 1 minute rest")
         }
     }
 

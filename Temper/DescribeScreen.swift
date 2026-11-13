@@ -23,6 +23,8 @@ struct DescribeScreen: View {
         let workout = plan.flatMap { try? $0.makeWorkout() }
         let board = plan.map(PlanBoard.init(plan:))
         let canWrite = !isWriting && unavailable == nil && !remembered.workoutDescription.trimmed.isEmpty
+        // The same words make the same Plan, so a new one waits for the description to change.
+        let wordsChanged = remembered.workoutDescription.trimmed != remembered.describedPlanWords
 
         Form {
             Section {
@@ -93,9 +95,14 @@ struct DescribeScreen: View {
                             }
                         }
                     }
-                    .foregroundStyle(canWrite ? colors.accent : colors.secondary)
-                    .disabled(!canWrite)
+                    .foregroundStyle(canWrite && wordsChanged ? colors.accent : colors.secondary)
+                    .disabled(!canWrite || !wordsChanged)
                     .listRowBackground(colors.raised)
+                } footer: {
+                    if !wordsChanged && !isWriting {
+                        Text("This is the Plan for these words. Change the description to make a new one.")
+                            .foregroundStyle(colors.secondary)
+                    }
                 }
             }
         }
@@ -157,12 +164,15 @@ struct DescribeScreen: View {
                 do throws(PlanProblem) {
                     _ = try plan.makeWorkout()
                     remembered.describedPlan = plan
+                    remembered.describedPlanWords = description
                 } catch {
                     remembered.describedPlan = nil
+                    remembered.describedPlanWords = nil
                     problem = "That Plan can't run. \(error.explanation) Try describing it another way."
                 }
             } catch {
                 remembered.describedPlan = nil
+                remembered.describedPlanWords = nil
                 problem = error.explanation
             }
         }
