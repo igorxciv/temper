@@ -1,652 +1,716 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-12T20:14:18+00:00",
+  "generatedAt": "2026-11-13T17:08:36+00:00",
   "title": "Design System: Temper",
   "extensions": {
     "colorMeta": {
-      "board-ground": {
+      "ink-ground": {
         "role": "neutral",
-        "displayName": "Gloss Board",
-        "canonical": "#F6F7F5",
-        "increaseContrast": "#FFFFFF",
+        "displayName": "Ink Ground",
+        "canonical": "#11151D",
+        "increaseContrast": "#0A0D13",
         "tonalRamp": [
-          "#262924",
-          "#43493E",
-          "#616A57",
-          "#7E8C70",
-          "#9BA591",
-          "#B8BEB2",
-          "#D5D8D2",
-          "#F2F3F2"
-        ]
-      },
-      "board-panel": {
-        "role": "neutral",
-        "displayName": "Board Panel",
-        "canonical": "#E9EBE8",
-        "increaseContrast": "#ECEEF0",
-        "tonalRamp": [
-          "#262825",
-          "#424740",
-          "#5F665B",
-          "#7B8675",
-          "#99A195",
-          "#B7BCB4",
-          "#D5D7D3",
-          "#F2F3F2"
-        ]
-      },
-      "board-row": {
-        "role": "neutral",
-        "displayName": "Lifted Row",
-        "canonical": "#FFFFFF",
-        "increaseContrast": "#F1F2F4",
-        "tonalRamp": [
-          "#262626",
-          "#434343",
-          "#616161",
-          "#7E7E7E",
-          "#9B9B9B",
-          "#B8B8B8",
-          "#D5D5D5",
-          "#F2F2F2"
-        ]
-      },
-      "black-marker": {
-        "role": "primary",
-        "displayName": "Black Marker",
-        "canonical": "#1E2126",
-        "increaseContrast": "#000000",
-        "tonalRamp": [
-          "#242629",
+          "#090B0F",
+          "#22252B",
           "#3E4249",
-          "#575E6A",
-          "#6F7A8C",
-          "#9198A5",
-          "#B2B6BE",
-          "#D2D4D8",
-          "#F2F2F3"
+          "#5D616B",
+          "#7D828C",
+          "#A1A5AE",
+          "#C5C9D1",
+          "#EBEEF4"
         ]
       },
-      "secondary-ink": {
+      "ink-raised": {
         "role": "neutral",
-        "displayName": "Secondary Ink",
-        "canonical": "#5E646C",
-        "increaseContrast": "#3F444B",
+        "displayName": "Ink Raised",
+        "canonical": "#1B212C",
+        "increaseContrast": "#161B24",
         "tonalRamp": [
-          "#252628",
-          "#404347",
-          "#5B6066",
-          "#757C86",
-          "#959AA1",
-          "#B4B7BC",
-          "#D3D5D7",
-          "#F2F2F3"
+          "#090B10",
+          "#21252C",
+          "#3D424C",
+          "#5B616E",
+          "#7C838F",
+          "#9FA5B1",
+          "#C4C9D3",
+          "#EAEFF6"
         ]
       },
-      "eraser-ghost": {
+      "ink-separator": {
         "role": "neutral",
-        "displayName": "Eraser Ghost",
-        "canonical": "#868C93",
-        "increaseContrast": "#6A7077",
+        "displayName": "Ink Separator",
+        "canonical": "#2E3643",
+        "increaseContrast": "#6A7486",
         "tonalRamp": [
-          "#252628",
-          "#414346",
-          "#5C6065",
-          "#777D85",
-          "#969AA0",
-          "#B5B8BB",
-          "#D4D5D7",
-          "#F2F2F3"
+          "#080B11",
+          "#20252D",
+          "#3C424D",
+          "#59626F",
+          "#7A8391",
+          "#9EA6B2",
+          "#C3CAD4",
+          "#EAEFF7"
         ]
       },
-      "board-rule": {
+      "warm-white": {
         "role": "neutral",
-        "displayName": "Board Rule",
-        "canonical": "#D5D8DB",
-        "increaseContrast": "#8A9097",
-        "tonalRamp": [
-          "#252628",
-          "#404347",
-          "#5A6167",
-          "#747E87",
-          "#949BA2",
-          "#B4B8BC",
-          "#D3D5D7",
-          "#F2F2F3"
-        ]
-      },
-      "on-marker": {
-        "role": "neutral",
-        "displayName": "On Marker",
-        "canonical": "#F6F7F5",
+        "displayName": "Warm White",
+        "canonical": "#F3F1EA",
         "increaseContrast": "#FFFFFF",
         "tonalRamp": [
-          "#262924",
-          "#43493E",
-          "#616A57",
-          "#7E8C70",
-          "#9BA591",
-          "#B8BEB2",
-          "#D5D8D2",
-          "#F2F3F2"
+          "#0C0B09",
+          "#262522",
+          "#43423E",
+          "#63615C",
+          "#84827C",
+          "#A6A5A0",
+          "#CAC9C5",
+          "#EFEEEB"
         ]
       },
-      "prepare-ink": {
-        "role": "secondary",
-        "displayName": "Prepare Blue Ink",
-        "canonical": "#1F6FB2",
-        "increaseContrast": "#15568C",
+      "secondary-gray": {
+        "role": "neutral",
+        "displayName": "Secondary Gray",
+        "canonical": "#A9ADB5",
+        "increaseContrast": "#D3D6DB",
         "tonalRamp": [
-          "#172836",
-          "#214665",
-          "#27669B",
-          "#2685D5",
-          "#5DA0D8",
-          "#93BBDD",
-          "#C4D7E7",
-          "#EEF3F6"
+          "#0A0B0E",
+          "#232529",
+          "#3F4247",
+          "#5E6168",
+          "#7F8289",
+          "#A2A5AB",
+          "#C6C9CE",
+          "#ECEEF3"
         ]
       },
-      "work-ink": {
-        "role": "secondary",
-        "displayName": "Work Coral Ink",
-        "canonical": "#C63E22",
-        "increaseContrast": "#A3301A",
+      "amber": {
+        "role": "primary",
+        "displayName": "Amber",
+        "canonical": "#E6B566",
+        "increaseContrast": "#F3CA85",
         "tonalRamp": [
-          "#361C17",
-          "#662D21",
-          "#9B3A26",
-          "#D64426",
-          "#D9725D",
-          "#DDA093",
-          "#E7C9C3",
-          "#F6F0EE"
+          "#130900",
+          "#342100",
+          "#573C07",
+          "#7F5911",
+          "#A47A30",
+          "#C49E64",
+          "#E3C495",
+          "#FFECCF"
         ]
       },
-      "rest-ink": {
-        "role": "secondary",
-        "displayName": "Rest Teal Ink",
-        "canonical": "#0E7A6C",
-        "increaseContrast": "#0A5E53",
+      "on-amber": {
+        "role": "primary",
+        "displayName": "On Amber",
+        "canonical": "#221702",
+        "increaseContrast": "#1A1101",
         "tonalRamp": [
-          "#153833",
-          "#1D6A60",
-          "#1FA291",
-          "#1BE1C7",
-          "#55E0CE",
-          "#8FE1D7",
-          "#C1E9E4",
-          "#EEF7F6"
-        ]
-      },
-      "cooldown-ink": {
-        "role": "secondary",
-        "displayName": "Cooldown Indigo Ink",
-        "canonical": "#4A55B8",
-        "increaseContrast": "#353F96",
-        "tonalRamp": [
-          "#1D1F30",
-          "#2E3358",
-          "#3D4485",
-          "#4752B4",
-          "#757CC1",
-          "#A1A6CF",
-          "#CACCE0",
-          "#F0F0F5"
+          "#0F0A03",
+          "#2B2417",
+          "#4A412F",
+          "#6C6049",
+          "#8D8169",
+          "#AFA48F",
+          "#D1C8B7",
+          "#F5EEE0"
         ]
       },
       "prepare-field": {
-        "role": "tertiary",
-        "displayName": "Prepare Field",
+        "role": "secondary",
+        "displayName": "Prepare Blue Field",
         "canonical": "#0F2433",
         "increaseContrast": "#081A27",
         "tonalRamp": [
-          "#1A2832",
-          "#29485E",
-          "#34688E",
-          "#3A89C2",
-          "#6BA3CA",
-          "#9CBDD4",
-          "#C7D7E3",
-          "#EFF3F5"
+          "#050C13",
+          "#1A2730",
+          "#344451",
+          "#4F6474",
+          "#708697",
+          "#95A8B7",
+          "#BCCCD8",
+          "#E4F0FB"
         ]
       },
       "prepare-ring": {
-        "role": "tertiary",
-        "displayName": "Prepare Ring",
+        "role": "secondary",
+        "displayName": "Prepare Blue Ring",
         "canonical": "#8FCBEF",
         "increaseContrast": "#B5E0FA",
         "tonalRamp": [
-          "#162A37",
-          "#1F4C68",
-          "#23709E",
-          "#2095DB",
-          "#59ABDC",
-          "#91C2DF",
-          "#C2DAE8",
-          "#EEF3F7"
+          "#000D18",
+          "#05293A",
+          "#1B475E",
+          "#326885",
+          "#548AA9",
+          "#7FACC7",
+          "#AACFE6",
+          "#DFF2FE"
         ]
       },
       "prepare-track": {
-        "role": "tertiary",
-        "displayName": "Prepare Track",
+        "role": "secondary",
+        "displayName": "Prepare Blue Track",
         "canonical": "#274A60",
         "increaseContrast": "#4A748C",
         "tonalRamp": [
-          "#1D2830",
-          "#2F4858",
-          "#3E6883",
-          "#498AB2",
-          "#76A3C0",
-          "#A2BDCE",
-          "#CBD8E0",
-          "#F0F3F5"
+          "#020D15",
+          "#142834",
+          "#2B4556",
+          "#45667B",
+          "#66879E",
+          "#8CAABD",
+          "#B5CDDE",
+          "#DFF2FF"
         ]
       },
       "prepare-text": {
-        "role": "tertiary",
-        "displayName": "Prepare Text",
+        "role": "secondary",
+        "displayName": "Prepare Blue Text",
         "canonical": "#EFF8FD",
         "increaseContrast": "#FFFFFF",
         "tonalRamp": [
-          "#152B38",
-          "#1E4E69",
-          "#2073A1",
-          "#1D99DF",
-          "#57AEDF",
-          "#8FC4E1",
-          "#C2DBE9",
-          "#EEF4F7"
+          "#090C0D",
+          "#222628",
+          "#3D4346",
+          "#5B6266",
+          "#7C8488",
+          "#A0A6AA",
+          "#C5CACD",
+          "#EBEFF2"
         ]
       },
       "work-field": {
-        "role": "tertiary",
-        "displayName": "Work Field",
+        "role": "secondary",
+        "displayName": "Work Coral Field",
         "canonical": "#351C17",
         "increaseContrast": "#2A120E",
         "tonalRamp": [
-          "#2F201D",
-          "#563730",
-          "#814B40",
-          "#AF5D4C",
-          "#BD8478",
-          "#CDAAA3",
-          "#DFCFCB",
-          "#F5F1F0"
+          "#130806",
+          "#31201D",
+          "#523C37",
+          "#755A54",
+          "#987A74",
+          "#B89E99",
+          "#DAC3BF",
+          "#FCEAE6"
         ]
       },
       "work-ring": {
-        "role": "tertiary",
-        "displayName": "Work Ring",
+        "role": "secondary",
+        "displayName": "Work Coral Ring",
         "canonical": "#FFAE8A",
         "increaseContrast": "#FFC6AB",
         "tonalRamp": [
-          "#3C1E10",
-          "#743113",
-          "#B3410E",
-          "#FA4E01",
-          "#F27944",
-          "#ECA484",
-          "#EECBBC",
-          "#F8F0EC"
+          "#1C0300",
+          "#3F1804",
+          "#663118",
+          "#8F4D2E",
+          "#B46E4F",
+          "#D29479",
+          "#F0BCA5",
+          "#FEEAE1"
         ]
       },
       "work-track": {
-        "role": "tertiary",
-        "displayName": "Work Track",
+        "role": "secondary",
+        "displayName": "Work Coral Track",
         "canonical": "#59332A",
         "increaseContrast": "#986149",
         "tonalRamp": [
-          "#2E211E",
-          "#553932",
-          "#7E4E43",
-          "#AA6251",
-          "#BA877C",
-          "#CBACA5",
-          "#DED0CC",
-          "#F4F1F0"
+          "#150704",
+          "#351E19",
+          "#573932",
+          "#7D564D",
+          "#A0776D",
+          "#BF9B93",
+          "#E0C1BA",
+          "#FEE9E4"
         ]
       },
       "work-text": {
-        "role": "tertiary",
-        "displayName": "Work Text",
+        "role": "secondary",
+        "displayName": "Work Coral Text",
         "canonical": "#FFF5F0",
         "increaseContrast": "#FFFFFF",
         "tonalRamp": [
-          "#3C1F10",
-          "#743313",
-          "#B3450E",
-          "#FA5401",
-          "#F27E44",
-          "#ECA784",
-          "#EECDBC",
-          "#F8F0EC"
+          "#0D0A09",
+          "#282422",
+          "#47413D",
+          "#675F5B",
+          "#89807C",
+          "#ABA3A0",
+          "#CEC8C5",
+          "#F2EDEB"
         ]
       },
       "rest-field": {
-        "role": "tertiary",
-        "displayName": "Rest Field",
+        "role": "secondary",
+        "displayName": "Rest Teal Field",
         "canonical": "#0F2A2B",
         "increaseContrast": "#071F20",
         "tonalRamp": [
-          "#1C3031",
-          "#2C595B",
-          "#398688",
-          "#42B6BA",
-          "#71C2C5",
-          "#9FCFD1",
-          "#C9E0E1",
-          "#EFF5F5"
+          "#040D0E",
+          "#192829",
+          "#324647",
+          "#4D6768",
+          "#6E8889",
+          "#93AAAB",
+          "#BACECE",
+          "#E3F2F2"
         ]
       },
       "rest-ring": {
-        "role": "tertiary",
-        "displayName": "Rest Ring",
+        "role": "secondary",
+        "displayName": "Rest Teal Ring",
         "canonical": "#86DCCB",
         "increaseContrast": "#A8EFE1",
         "tonalRamp": [
-          "#1A322E",
-          "#295E54",
-          "#338E7C",
-          "#39C2A7",
-          "#6BCBB8",
-          "#9BD5C9",
-          "#C7E3DD",
-          "#EFF5F4"
+          "#000F0C",
+          "#012C26",
+          "#014E43",
+          "#1B7063",
+          "#439284",
+          "#74B3A7",
+          "#A2D6CA",
+          "#D1F9EF"
         ]
       },
       "rest-track": {
-        "role": "tertiary",
-        "displayName": "Rest Track",
+        "role": "secondary",
+        "displayName": "Rest Teal Track",
         "canonical": "#254A48",
         "increaseContrast": "#447E77",
         "tonalRamp": [
-          "#1F2E2D",
-          "#335452",
-          "#457C79",
-          "#54A7A3",
-          "#7EB8B5",
-          "#A7C9C7",
-          "#CDDDDD",
-          "#F0F4F4"
+          "#020E0D",
+          "#142928",
+          "#2C4846",
+          "#466967",
+          "#678A88",
+          "#8EACAA",
+          "#B6CFCD",
+          "#DFF3F2"
         ]
       },
       "rest-text": {
-        "role": "tertiary",
-        "displayName": "Rest Text",
+        "role": "secondary",
+        "displayName": "Rest Teal Text",
         "canonical": "#F0FBF8",
         "increaseContrast": "#FFFFFF",
         "tonalRamp": [
-          "#19332C",
-          "#275F50",
-          "#319076",
-          "#36C69E",
-          "#68CDB2",
-          "#9AD6C6",
-          "#C7E4DC",
-          "#EFF6F4"
+          "#090C0B",
+          "#212625",
+          "#3D4442",
+          "#5B6361",
+          "#7C8582",
+          "#9FA7A5",
+          "#C4CBC9",
+          "#EAF0EE"
         ]
       },
       "cooldown-field": {
-        "role": "tertiary",
-        "displayName": "Cooldown Field",
+        "role": "secondary",
+        "displayName": "Cooldown Indigo Field",
         "canonical": "#18223F",
         "increaseContrast": "#0F1830",
         "tonalRamp": [
-          "#1C2130",
-          "#2E3959",
-          "#3C4F86",
-          "#4662B6",
-          "#7488C2",
-          "#A1ADCF",
-          "#CAD0E0",
-          "#F0F1F5"
+          "#070B17",
+          "#1D2437",
+          "#38415A",
+          "#546080",
+          "#7582A3",
+          "#99A5C2",
+          "#BFC9E1",
+          "#E8EEFF"
         ]
       },
       "cooldown-ring": {
-        "role": "tertiary",
-        "displayName": "Cooldown Ring",
+        "role": "secondary",
+        "displayName": "Cooldown Indigo Ring",
         "canonical": "#AFC4FF",
         "increaseContrast": "#C9D7FF",
         "tonalRamp": [
-          "#101C3C",
-          "#132C74",
-          "#0E39B3",
-          "#0142FA",
-          "#4471F2",
-          "#849FEC",
-          "#BCC9EE",
-          "#ECEFF8"
+          "#05091D",
+          "#1A2340",
+          "#334066",
+          "#4F5F8F",
+          "#6F80B3",
+          "#94A4D0",
+          "#BAC8EE",
+          "#E8EEFE"
         ]
       },
       "cooldown-track": {
-        "role": "tertiary",
-        "displayName": "Cooldown Track",
+        "role": "secondary",
+        "displayName": "Cooldown Indigo Track",
         "canonical": "#2F3D66",
         "increaseContrast": "#586DAC",
         "tonalRamp": [
-          "#1E222E",
-          "#323B55",
-          "#42527F",
-          "#5067AC",
-          "#7B8BBB",
-          "#A5AFCB",
-          "#CCD1DE",
-          "#F0F1F4"
+          "#060A1A",
+          "#1B243C",
+          "#354161",
+          "#516088",
+          "#7181AC",
+          "#96A4CA",
+          "#BCC9E8",
+          "#E8EEFE"
         ]
       },
       "cooldown-text": {
-        "role": "tertiary",
-        "displayName": "Cooldown Text",
+        "role": "secondary",
+        "displayName": "Cooldown Indigo Text",
         "canonical": "#F3F6FF",
         "increaseContrast": "#FFFFFF",
         "tonalRamp": [
-          "#101B3C",
-          "#132B74",
-          "#0E37B3",
-          "#013FFA",
-          "#446FF2",
-          "#849EEC",
-          "#BCC9EE",
-          "#ECEFF8"
+          "#0A0B0E",
+          "#242529",
+          "#404247",
+          "#5F6168",
+          "#808289",
+          "#A3A5AB",
+          "#C7C9CE",
+          "#EDEEF3"
+        ]
+      },
+      "stop-red": {
+        "role": "tertiary",
+        "displayName": "Stop Red",
+        "canonical": "#FF5A5F",
+        "increaseContrast": "#FF8085",
+        "tonalRamp": [
+          "#200001",
+          "#4D0009",
+          "#7D0B1B",
+          "#B3182B",
+          "#DB464C",
+          "#F87877",
+          "#FBB4B0",
+          "#FEE9E7"
+        ]
+      },
+      "stop-dark-red": {
+        "role": "tertiary",
+        "displayName": "Stop Dark Red",
+        "canonical": "#40161A",
+        "increaseContrast": "#4D161A",
+        "tonalRamp": [
+          "#170607",
+          "#371C1E",
+          "#5A3738",
+          "#805355",
+          "#A47475",
+          "#C3999A",
+          "#E3BFBF",
+          "#FEE9E9"
+        ]
+      },
+      "on-stop-red": {
+        "role": "tertiary",
+        "displayName": "On Stop Red",
+        "canonical": "#1A0506",
+        "increaseContrast": "#000000",
+        "tonalRamp": [
+          "#120808",
+          "#302020",
+          "#513C3B",
+          "#755959",
+          "#977A7A",
+          "#B89E9D",
+          "#D9C3C3",
+          "#FBEAE9"
         ]
       }
     },
     "typographyMeta": {
       "running-time": {
-        "displayName": "Running time",
-        "purpose": "The time on the running field; set at 200 pt and scaled to the width (minimum scale 0.3)."
+        "displayName": "Running Time",
+        "purpose": "The time inside the running ring; the ring decides its size (scales to 0.4, or 0.3 with Done)."
       },
-      "total": {
-        "displayName": "Total",
-        "purpose": "The total on both complete screens."
+      "complete-total": {
+        "displayName": "Complete Total",
+        "purpose": "The total inside the complete ring on both complete screens, scaled to the ring (down to 0.3, or 0.2 in Open Rounds' 180pt ring)."
       },
-      "board-time": {
-        "displayName": "Board time",
-        "purpose": "A board line's time; an Off line's drops to 34 pt semibold."
+      "running-count": {
+        "displayName": "Running Count",
+        "purpose": "The Rounds count under the running ring."
       },
-      "board-phase": {
-        "displayName": "Board phase",
-        "purpose": "A board line's Phase name, in its ink."
-      },
-      "board-count": {
-        "displayName": "Board count",
-        "purpose": "A Rounds Block's count, '× 8' or '× ∞'."
+      "hollow-word": {
+        "displayName": "Hollow Word",
+        "purpose": "A setup row's outlined Phase name; scales to 0.5 to fit beside the digits."
       },
       "running-phase": {
-        "displayName": "Running phase",
-        "purpose": "The Phase name on the running field, in its ring color."
+        "displayName": "Running Phase",
+        "purpose": "The Phase name at the top of the running screen, in its ring color."
+      },
+      "wheel-digits": {
+        "displayName": "Wheel Digits",
+        "purpose": "The value sheet's digit wheels and colon."
+      },
+      "setup-digits": {
+        "displayName": "Setup Digits",
+        "purpose": "A setup row's value, right-aligned."
+      },
+      "running-caption": {
+        "displayName": "Running Caption",
+        "purpose": "The caption beside the running count, at 0.72 opacity."
       },
       "display": {
-        "displayName": "Display (Large Title bold)",
-        "purpose": "Screen titles."
+        "displayName": "Display (Large Title)",
+        "purpose": "\"Workout complete\" over both complete screens."
+      },
+      "control": {
+        "displayName": "Control (Title)",
+        "purpose": "Pause, Resume and Done."
       },
       "headline": {
-        "displayName": "Headline (Title 2 bold)",
-        "purpose": "Section headings and capsule labels."
+        "displayName": "Headline (Title 2)",
+        "purpose": "Labels of the amber capsules: Start, Close, Confirm, Make Plan."
       },
       "title": {
-        "displayName": "Title (Title 3 bold)",
-        "purpose": "A Plan cell's name."
+        "displayName": "Title (Title 3)",
+        "purpose": "The complete recap, and the Round count (secondary gray) on Open Rounds' complete screen."
+      },
+      "setup-caption": {
+        "displayName": "Setup Caption",
+        "purpose": "The secondary-gray caption under a setup row's digits."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Text entry and list rows; Body bold for a cell's lines."
+        "purpose": "List rows and text entry."
       },
       "label": {
-        "displayName": "Label (Subheadline / Footnote)",
-        "purpose": "Notes, captions, subtitles."
+        "displayName": "Label (Subheadline)",
+        "purpose": "The note above Start, the Health line, Preset summaries."
       }
     },
     "shadows": [],
     "motion": [
       {
-        "name": "tick-draw",
-        "value": "easeOut 0.3s, stagger 0.18s per line, after a 0.3s beat",
-        "purpose": "Ticks drawn down the complete board; shown at once with Reduce Motion."
+        "name": "complete-ring-close",
+        "value": "easeOut 0.8s, trim 0 to 1, from 12 o'clock",
+        "purpose": "The complete ring draws closed once as the complete screen appears; the success haptic plays when the animation completes. Under Reduce Motion it is shown closed and the haptic plays at once."
       },
       {
-        "name": "total-underline",
-        "value": "easeOut 0.35s, after the last tick + 0.1s (0.4s on Open Rounds)",
-        "purpose": "The marker line the total is written under."
+        "name": "wheel-fade",
+        "value": "opacity 1 to 0.15, scale 1 to 0.65 with distance from center",
+        "purpose": "Digit wheel rows fade and shrink away from the selected row; selection haptic on change."
       },
       {
-        "name": "rounds-stagger-cap",
-        "value": "10 Rounds",
-        "purpose": "Rounds past ten tick with the tenth."
+        "name": "done-tap",
+        "value": "light impact haptic",
+        "purpose": "Feedback when Done is tapped."
       }
     ],
-    "markerStroke": {
-      "lineWidth": "3.5pt",
-      "lineCap": "round",
-      "lineJoin": "round",
-      "cellFrame": "2.5pt in board-rule",
-      "miniBracket": "2pt"
+    "rings": [
+      {
+        "name": "running",
+        "lineWidth": "20pt",
+        "purpose": "The running Time Ring; Phase track under Phase ring, round caps."
+      },
+      {
+        "name": "complete",
+        "lineWidth": "18pt",
+        "purpose": "The complete ring on the Plan complete screen, 160 to 300pt wide."
+      },
+      {
+        "name": "rounds-complete",
+        "lineWidth": "14pt",
+        "purpose": "Open Rounds' complete ring, fixed at 180 x 180pt, around the total."
+      },
+      {
+        "name": "fallback",
+        "lineWidth": "as above",
+        "purpose": "With no known last Phase (rare; the app falls back to the final Phase), the complete ring is secondary-gray over ink-separator, never amber."
+      }
+    ],
+    "hollowWord": {
+      "construction": "12 copies of the word in the ring color offset 1pt around a circle, the ground color on top, composited, then one opacity",
+      "opacity": {
+        "phase": 0.62,
+        "rounds": 0.72,
+        "phaseIncreaseContrast": 0.8,
+        "roundsIncreaseContrast": 0.85
+      },
+      "minimumScaleFactor": 0.5
     },
-    "scope": "iPhone app only. The Apple Watch app and the Live Activity keep InkColors (Shared/Ink.swift) until a later round."
+    "liquidGlass": [
+      {
+        "style": "glassProminent",
+        "tint": "amber",
+        "uses": "Start, Confirm, Make Plan, Close"
+      },
+      {
+        "style": "glassProminent",
+        "tint": "work-ring",
+        "uses": "Done"
+      },
+      {
+        "style": "glass",
+        "tint": "none",
+        "uses": "Pause/Resume and Stop, in one GlassEffectContainer"
+      },
+      {
+        "style": "system",
+        "tint": "amber",
+        "uses": "Tab bar (never minimized), toolbar buttons"
+      }
+    ],
+    "dynamicTypeCaps": [
+      {
+        "element": "Amber bottom-bar buttons (Start, Close, Confirm, Make Plan)",
+        "cap": "xxxLarge"
+      },
+      {
+        "element": "Running controls",
+        "cap": "xxxLarge"
+      },
+      {
+        "element": "Note above Start",
+        "cap": "accessibility2"
+      },
+      {
+        "element": "Complete screens' title, recap, Round count and Health line",
+        "cap": "accessibility1"
+      }
+    ],
+    "scope": "iPhone app. The Watch app and Live Activity use the same InkColors and PhaseColors from Shared/Ink.swift; StopColors is Watch only."
   },
   "components": [
     {
-      "name": "Start (black marker capsule)",
+      "name": "Start (amber glass capsule)",
       "kind": "button",
-      "refersTo": "button-marker",
-      "description": "The one primary action per board screen, in the bottom bar, with the Workout's length.",
-      "html": "<button class=\"ds-btn-marker\">Start · 8:50</button>",
-      "css": ".ds-btn-marker { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #1E2126; color: #F6F7F5; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; min-height: 56px; width: 100%; border: none; border-radius: 9999px; transition: transform .15s, filter .15s; } .ds-btn-marker:hover { filter: brightness(1.25); } .ds-btn-marker:active { transform: scale(0.98); } .ds-btn-marker:focus-visible { outline: 3px solid #1F6FB2; outline-offset: 3px; }"
+      "refersTo": "button-primary",
+      "description": "The one primary action, in the bottom bar of setup and Describe. Shows the total only when the Workout ends by itself.",
+      "html": "<button class=\"ds-btn-primary\">Start · 08:50</button>",
+      "css": ".ds-btn-primary { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #E6B566; color: #221702; font-size: 22px; font-weight: 700; width: 100%; border: none; border-radius: 9999px; transition: transform .15s, filter .15s; font-variant-numeric: tabular-nums; min-height: 52px; } .ds-btn-primary:hover { filter: brightness(1.08); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 3px solid #F3CA85; outline-offset: 3px; }"
     },
     {
-      "name": "Done (Work ring capsule)",
+      "name": "Close (complete screens)",
+      "kind": "button",
+      "refersTo": "button-close",
+      "description": "Leaves the complete screen for setup, where Start sat. Never labeled Done.",
+      "html": "<button class=\"ds-btn-close\">Close</button>",
+      "css": ".ds-btn-close { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #E6B566; color: #221702; font-size: 22px; font-weight: 700; width: 100%; border: none; border-radius: 9999px; transition: transform .15s, filter .15s; min-height: 56px; } .ds-btn-close:hover { filter: brightness(1.08); } .ds-btn-close:active { transform: scale(0.98); } .ds-btn-close:focus-visible { outline: 3px solid #F3CA85; outline-offset: 3px; }"
+    },
+    {
+      "name": "Running controls (glass)",
+      "kind": "button",
+      "refersTo": "button-running",
+      "description": "Pause/Resume filling the width and a circular Stop, plain Liquid Glass on the Phase field.",
+      "html": "<div class=\"ds-run\"><button class=\"ds-run-pause\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"6\" y=\"4\" width=\"4\" height=\"16\" rx=\"1.5\"/><rect x=\"14\" y=\"4\" width=\"4\" height=\"16\" rx=\"1.5\"/></svg>Pause</button><button class=\"ds-run-stop\" aria-label=\"Stop\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"3\"/></svg></button></div>",
+      "css": ".ds-run { font-family: ui-rounded, 'SF Pro Rounded', system-ui; display: flex; gap: 12px; padding: 16px; background: #351C17; } .ds-run button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 72px; border: 1px solid rgba(255,255,255,0.18); border-radius: 9999px; background: rgba(255,255,255,0.12); color: #FFFFFF; font-size: 28px; font-weight: 700; backdrop-filter: blur(20px); transition: background .15s, transform .15s; } .ds-run-pause { flex: 1; } .ds-run-stop { width: 72px; } .ds-run button:hover { background: rgba(255,255,255,0.18); } .ds-run button:active { transform: scale(0.97); } .ds-run button:focus-visible { outline: 3px solid #FFAE8A; outline-offset: 3px; }"
+    },
+    {
+      "name": "Done",
       "kind": "button",
       "refersTo": "button-done",
-      "description": "Ends an open Work Phase on the running field; disabled, it dims in place.",
-      "html": "<div class=\"ds-field-work\"><button class=\"ds-btn-done\">Done</button></div>",
-      "css": ".ds-field-work { background: #351C17; padding: 16px; } .ds-btn-done { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #FFAE8A; color: #351C17; font-size: 28px; font-weight: 700; min-height: 88px; width: 100%; border: none; border-radius: 9999px; transition: transform .15s; } .ds-btn-done:active { transform: scale(0.98); } .ds-btn-done:focus-visible { outline: 3px solid #FFF5F0; outline-offset: 3px; } .ds-btn-done:disabled { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); }"
+      "description": "Ends an open Work in Open Rounds and Stopwatch: Work's ring with Work's field as the label, 88 pt tall. Disabled, it dims in place.",
+      "html": "<button class=\"ds-btn-done\">Done</button>",
+      "css": ".ds-btn-done { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #FFAE8A; color: #351C17; font-size: 28px; font-weight: 700; min-height: 88px; width: 100%; border: none; border-radius: 9999px; transition: transform .15s, filter .15s; } .ds-btn-done:hover { filter: brightness(1.05); } .ds-btn-done:active { transform: scale(0.98); } .ds-btn-done:focus-visible { outline: 3px solid #FFF5F0; outline-offset: 3px; } .ds-btn-done:disabled { background: rgba(255,174,138,0.25); color: rgba(235,235,245,0.6); }"
     },
     {
-      "name": "Plan Board",
+      "name": "Setup rows (hollow words)",
       "kind": "custom",
-      "refersTo": "board-line",
-      "description": "A Plan written up as it will run: Phase names left in their inks, times right in one tabular column, Rounds in a marker bracket.",
-      "html": "<div class=\"ds-board\"><div class=\"ds-line ds-prepare\" tabindex=\"0\"><span>Prepare</span><b>0:10</b></div><div class=\"ds-rounds\"><span class=\"ds-count\">× 8</span><svg class=\"ds-bracket\" viewBox=\"0 0 16 140\" preserveAspectRatio=\"none\"><path d=\"M14 1 Q6 -0.5 1 3 Q-1.5 70 2 137 Q7 140.5 15 139\" fill=\"none\" stroke=\"#1E2126\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/></svg><div class=\"ds-rlines\"><div class=\"ds-line ds-work\" tabindex=\"0\"><span>Work</span><b>0:40</b></div><div class=\"ds-line ds-rest\" tabindex=\"0\"><span>Rest</span><b>0:20</b></div></div></div><div class=\"ds-line ds-off\" tabindex=\"0\"><span>Cooldown</span><b class=\"ds-offtime\">Off</b></div></div>",
-      "css": ".ds-board { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #F6F7F5; padding: 20px; display: flex; flex-direction: column; gap: 4px; } .ds-line { display: flex; align-items: baseline; justify-content: space-between; min-height: 64px; cursor: pointer; } .ds-line span { font-size: 34px; font-weight: 700; } .ds-line b { font-size: 52px; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-line:hover { opacity: .8; } .ds-line:focus-visible { outline: 2px solid #1E2126; } .ds-prepare { color: #1F6FB2; } .ds-work { color: #C63E22; } .ds-rest { color: #0E7A6C; } .ds-off { color: #868C93; } .ds-off .ds-offtime { font-size: 34px; font-weight: 600; } .ds-rounds { display: flex; align-items: center; padding: 6px 0; } .ds-count { width: 64px; font-size: 30px; font-weight: 700; color: #1E2126; } .ds-bracket { width: 16px; align-self: stretch; padding: 4px 0; } .ds-rlines { flex: 1; padding-left: 10px; display: flex; flex-direction: column; gap: 4px; }"
+      "refersTo": "setup-row",
+      "description": "One row per Phase in the order it runs: a hollow word in the Phase's ring color at the left (Rounds in secondary gray), 52 pt tabular digits at the right, 1 pt hairlines between.",
+      "html": "<div class=\"ds-setup\"><button class=\"ds-row\"><span class=\"ds-word\" style=\"--c:#8FCBEF;opacity:.62\">Prepare</span><span class=\"ds-digits\">00:10</span></button><button class=\"ds-row\"><span class=\"ds-word\" style=\"--c:#A9ADB5;opacity:.72\">Rounds</span><span class=\"ds-digits\">8</span></button><button class=\"ds-row\"><span class=\"ds-word\" style=\"--c:#FFAE8A;opacity:.62\">Work</span><span class=\"ds-digits\">00:40</span></button><button class=\"ds-row\"><span class=\"ds-word\" style=\"--c:#86DCCB;opacity:.62\">Rest</span><span class=\"ds-digits\">00:20</span></button></div>",
+      "css": ".ds-setup { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #11151D; padding: 0 16px; } .ds-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 96px; max-height: 168px; background: none; border: none; border-bottom: 1px solid #2E3643; cursor: pointer; } .ds-row:last-child { border-bottom: none; } .ds-word { font-size: 60px; font-weight: 700; color: #11151D; -webkit-text-stroke: 2px var(--c); paint-order: stroke fill; } .ds-digits { font-size: 52px; font-weight: 600; font-variant-numeric: tabular-nums; color: #F3F1EA; } .ds-row:hover .ds-digits { color: #FFFFFF; } .ds-row:focus-visible { outline: 3px solid #E6B566; outline-offset: -3px; }"
     },
     {
-      "name": "Plan Cell",
-      "kind": "card",
-      "refersTo": "plan-cell",
-      "description": "A whole Plan at cell size on the Plans grid, boxed by a bowed marker frame, no fill or shadow.",
-      "html": "<div class=\"ds-cell\" tabindex=\"0\"><div class=\"ds-cell-title\">Stopwatch</div><div class=\"ds-mini\"><span style=\"color:#1F6FB2\">Prepare</span><span style=\"color:#1F6FB2\">0:10</span><span style=\"color:#C63E22\">Work</span><span style=\"color:#C63E22\">10:00</span></div><div class=\"ds-cell-total\">10:10</div></div>",
-      "css": ".ds-cell { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #F6F7F5; border: 2.5px solid #D5D8DB; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: border-color .15s; } .ds-cell:hover { border-color: #868C93; } .ds-cell:focus-visible { outline: 3px solid #1F6FB2; outline-offset: 2px; } .ds-cell-title { font-size: 20px; font-weight: 700; color: #1E2126; } .ds-mini { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-cell-total { font-size: 15px; font-weight: 700; color: #5E646C; font-variant-numeric: tabular-nums; }"
+      "name": "Time ring",
+      "kind": "custom",
+      "refersTo": "button-running",
+      "description": "The running screen: the Phase's field, its name in its ring color, a 20 pt ring over its track with round caps, the time inside in its text color.",
+      "html": "<div class=\"ds-field\"><div class=\"ds-phase\">Work</div><svg class=\"ds-ring\" viewBox=\"0 0 240 240\" aria-hidden=\"true\"><circle cx=\"120\" cy=\"120\" r=\"110\" fill=\"none\" stroke=\"#59332A\" stroke-width=\"20\"/><circle class=\"ds-fill\" cx=\"120\" cy=\"120\" r=\"110\" fill=\"none\" stroke=\"#FFAE8A\" stroke-width=\"20\" stroke-linecap=\"round\" stroke-dasharray=\"691\" stroke-dashoffset=\"230\" transform=\"rotate(-90 120 120)\"/><text x=\"120\" y=\"140\" text-anchor=\"middle\" class=\"ds-time\">00:27</text></svg></div>",
+      "css": ".ds-field { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #351C17; padding: 16px; text-align: center; } .ds-phase { color: #FFAE8A; font-size: 56px; font-weight: 600; } .ds-ring { width: 240px; height: 240px; } .ds-time { fill: #FFF5F0; font-size: 60px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-fill { transition: stroke-dashoffset .2s linear; } .ds-field:hover .ds-fill { stroke-dashoffset: 200; }"
     },
     {
-      "name": "Describe Text Field",
+      "name": "Complete ring",
+      "kind": "custom",
+      "refersTo": "button-close",
+      "description": "The ring run full, around the total on both complete screens. Draws closed once in 0.8 s ease-out in the last Phase's ring color, with a success haptic when it finishes; shown closed with the haptic at once under Reduce Motion. Secondary gray, never amber, if no last Phase is known.",
+      "html": "<div class=\"ds-complete\"><div class=\"ds-ctitle\">Workout complete</div><svg class=\"ds-cring\" viewBox=\"0 0 240 240\" aria-hidden=\"true\"><circle cx=\"120\" cy=\"120\" r=\"111\" fill=\"none\" stroke=\"#254A48\" stroke-width=\"18\"/><circle class=\"ds-cfill\" cx=\"120\" cy=\"120\" r=\"111\" fill=\"none\" stroke=\"#86DCCB\" stroke-width=\"18\" stroke-linecap=\"round\" stroke-dasharray=\"698\" transform=\"rotate(-90 120 120)\"/><text x=\"120\" y=\"140\" text-anchor=\"middle\" class=\"ds-ctotal\">8:50</text></svg><div class=\"ds-recap\"><span class=\"ds-sec\">8 ×</span> <span style=\"color:#FFAE8A\">0:40 Work</span> <span class=\"ds-sec\">·</span> <span style=\"color:#86DCCB\">0:20 Rest</span></div></div>",
+      "css": ".ds-complete { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #11151D; padding: 16px; text-align: center; } .ds-ctitle { color: #F3F1EA; font-size: 34px; font-weight: 600; } .ds-cring { width: 240px; height: 240px; margin: 20px auto; display: block; } .ds-cfill { animation: ds-close .8s ease-out both; } @keyframes ds-close { from { stroke-dashoffset: 698; } to { stroke-dashoffset: 0; } } @media (prefers-reduced-motion: reduce) { .ds-cfill { animation: none; } } .ds-ctotal { fill: #F3F1EA; font-size: 64px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-recap { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-sec { color: #A9ADB5; }"
+    },
+    {
+      "name": "Value sheet",
       "kind": "input",
-      "refersTo": "text-field",
-      "description": "A field set into the board in panel tone, for describing a Workout in words.",
-      "html": "<textarea class=\"ds-field\" placeholder=\"Describe today's Workout\"></textarea>",
-      "css": ".ds-field { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #E9EBE8; color: #1E2126; caret-color: #1E2126; font-size: 17px; border: none; border-radius: 16px; padding: 12px 14px; min-height: 96px; width: 100%; resize: none; } .ds-field::placeholder { color: #5E646C; } .ds-field:focus-visible { outline: 2px solid #1E2126; outline-offset: 2px; }"
+      "refersTo": "value-band",
+      "description": "A medium sheet in the Phase's field: its name in the ring color, digit wheels in its text color over a 68 pt band in its track, amber Confirm.",
+      "html": "<div class=\"ds-sheet\"><div class=\"ds-stitle\">Work</div><div class=\"ds-wheel\"><div class=\"ds-band\"></div><div class=\"ds-dim\">00 : 39</div><div class=\"ds-sel\">00 : 40</div><div class=\"ds-dim\">00 : 41</div></div><button class=\"ds-btn-confirm\">Confirm</button></div>",
+      "css": ".ds-sheet { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #351C17; padding: 20px 16px 6px; border-radius: 28px 28px 0 0; text-align: center; color: #FFF5F0; } .ds-stitle { color: #FFAE8A; font-size: 17px; font-weight: 600; } .ds-wheel { position: relative; margin: 8px 0; font-size: 54px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-band { position: absolute; left: 0; right: 0; top: 68px; height: 68px; background: #59332A; border-radius: 18px; } .ds-wheel div:not(.ds-band) { position: relative; height: 68px; line-height: 68px; } .ds-dim { opacity: .4; transform: scale(.8); } .ds-btn-confirm { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #E6B566; color: #221702; font-size: 22px; font-weight: 700; width: 100%; border: none; border-radius: 9999px; transition: transform .15s, filter .15s; min-height: 52px; } .ds-btn-confirm:hover { filter: brightness(1.08); } .ds-btn-confirm:focus-visible { outline: 3px solid #F3CA85; outline-offset: 3px; }"
     },
     {
-      "name": "Describe Link (marker underline)",
-      "kind": "nav",
-      "refersTo": null,
-      "description": "A board link written in black marker and underlined with a sagging marker stroke, with a secondary-ink chevron.",
-      "html": "<a class=\"ds-link\" href=\"#\"><span class=\"ds-link-text\">Describe a Workout<svg viewBox=\"0 0 100 8\" preserveAspectRatio=\"none\"><path d=\"M0 5 C35 6.5 70 3.5 100 2.5\" fill=\"none\" stroke=\"#1E2126\" stroke-width=\"3.5\" stroke-linecap=\"round\" vector-effect=\"non-scaling-stroke\"/></svg></span><svg class=\"ds-chev\" viewBox=\"0 0 12 20\"><path d=\"M2 2 L10 10 L2 18\" fill=\"none\" stroke=\"#5E646C\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></a>",
-      "css": ".ds-link { font-family: ui-rounded, 'SF Pro Rounded', system-ui; display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 6px 0; text-decoration: none; color: #1E2126; font-size: 22px; font-weight: 700; } .ds-link-text { position: relative; padding-bottom: 12px; } .ds-link-text svg { position: absolute; left: 0; bottom: 0; width: 100%; height: 8px; } .ds-chev { width: 12px; height: 20px; transition: transform .15s; } .ds-link:hover .ds-chev { transform: translateX(2px); } .ds-link:focus-visible { outline: 2px solid #1E2126; outline-offset: 4px; }"
-    },
-    {
-      "name": "Running Field",
-      "kind": "custom",
-      "refersTo": null,
-      "description": "A running Workout: flat Phase field, name in ring color, the time as wide as the screen, a capsule progress bar.",
-      "html": "<div class=\"ds-run\"><div class=\"ds-run-phase\">Prepare</div><div class=\"ds-run-time\">0:08</div><div class=\"ds-run-bar\"><i></i></div><div class=\"ds-run-count\">8 <small>Rounds</small></div></div>",
-      "css": ".ds-run { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #0F2433; color: #EFF8FD; padding: 24px 16px; text-align: center; } .ds-run-phase { color: #8FCBEF; font-size: 56px; font-weight: 600; } .ds-run-time { font-size: 140px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; } .ds-run-bar { height: 10px; border-radius: 9999px; background: #274A60; overflow: hidden; } .ds-run-bar i { display: block; height: 100%; width: 70%; background: #8FCBEF; border-radius: 9999px; } .ds-run-count { font-size: 64px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-run-count small { font-size: 32px; font-weight: 500; opacity: .72; }"
+      "name": "Grouped list",
+      "kind": "card",
+      "refersTo": "list-row",
+      "description": "Native grouped list on the ink ground: raised rows, warm white text, secondary gray headers and footers, amber toggle.",
+      "html": "<div class=\"ds-list\"><div class=\"ds-lhead\">Music</div><div class=\"ds-lrow\"><span>Dip</span><span class=\"ds-toggle\" role=\"switch\" aria-checked=\"true\" tabindex=\"0\"></span></div><div class=\"ds-lfoot\">Lowers other audio while a Cue speaks. Music never pauses.</div></div>",
+      "css": ".ds-list { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #11151D; padding: 16px; } .ds-lhead, .ds-lfoot { color: #A9ADB5; font-size: 13px; padding: 6px 16px; } .ds-lrow { display: flex; justify-content: space-between; align-items: center; background: #1B212C; color: #F3F1EA; font-size: 17px; padding: 12px 16px; border-radius: 26px; } .ds-toggle { width: 51px; height: 31px; border-radius: 9999px; background: #E6B566; position: relative; } .ds-toggle::after { content: ''; position: absolute; right: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #FFFFFF; } .ds-lrow:hover { background: #222936; } .ds-toggle:focus-visible { outline: 3px solid #F3CA85; outline-offset: 2px; }"
     }
   ],
   "narrative": {
-    "northStar": "The Coach's Whiteboard",
-    "overview": "Every iPhone screen but the running one is a gloss whiteboard. A Plan is written on it exactly as it will run: each Phase's name in its own marker ink at the left, its time large in one tabular column at the right, and the lines that repeat held in a hand-drawn bracket under their count. When the Workout ends, the same board comes back with every line ticked off and the total written under a marker line.\n\nStarting a Workout flips the board to a flat dark field in the Phase's color, where the time gets nearly all of the screen so it reads from across a room. The two halves share the Phase hues and SF Rounded, and nothing else: the board is light, quiet and written by hand; the field is dark, flat and given wholly to one number.\n\nMarker strokes (round-nib, slightly wobbly, round caps) draw structure: brackets, ticks, underlines and cell frames. They never draw letters. Everything that reads is SF Rounded. The rest is native iOS 27: Liquid Glass bar buttons, navigation, menus, sheets and grouped lists, recolored onto the board.\n\nScope: this records the iPhone app. The Apple Watch app and the Live Activity keep their earlier dark ink (`InkColors` in `Shared/Ink.swift`) until a later round. They are not part of the board system, and nothing here should be applied to them yet.",
+    "northStar": "Phases in Ink",
+    "overview": "Temper is dark ink with four Phase colors laid on it. Setup is the Workout written in those colors before Start: one row per Phase in the order it runs, a big hollow word in the Phase's ring color at the left, large tabular digits at the right, rows split by hairlines. Starting turns the whole screen into the current Phase's field, with its name at the top, a ring and the time in the middle, and the controls at the foot. When the Workout ends, the complete screen closes that ring in the last Phase's color around the total.\n\nEverything else is native iOS 27 recolored onto the ink: the Liquid Glass tab bar and buttons, navigation, menus, sheets and grouped lists. The app is dark only; there is no light variant. Every color has an Increase Contrast value, listed in the sidecar. SF Rounded is set once at the root and used everywhere.\n\nScope: this records the iPhone app. The Apple Watch app and the Live Activity draw from the same `InkColors` and `PhaseColors` in `Shared/Ink.swift`; the Watch also uses `StopColors` for its Stop.",
     "keyCharacteristics": [
-      "Light whiteboard ground; black marker for structure, names and Start.",
-      "Four Phase marker inks, used as text and strokes, never as fills on the board.",
-      "Times big, bold, tabular, right-aligned in one column.",
-      "Hand-drawn marker strokes for brackets, ticks, underlines and frames; never for words.",
-      "The running Workout is a flat dark Phase field: no gradients, no tinted glass, no ring.",
-      "Every color has an Increase Contrast variant."
+      "Dark ink ground, raised rows one step lighter, hairline separators.",
+      "Amber marks the action to take and nothing else.",
+      "Each Phase has a field, ring, track and text color; a Phase is recognised by its field from across a room.",
+      "Setup labels are hollow words in the Phase's ring color; digits are large, semibold and tabular.",
+      "Liquid Glass for buttons: prominent amber for the primary action, plain glass for the running controls.",
+      "One motion: the complete ring draws closed once, with a success haptic when it closes."
     ],
     "rules": [
       {
-        "name": "The Ink Is the Phase Rule",
-        "body": "On the board a Phase's name and time are always in that Phase's ink, and a value sheet's title and wheels take the ink of the line that opened it. Black marker is for structure (counts, brackets, headings), not for Phase content.",
+        "name": "The Amber Means Act Rule",
+        "body": "Amber is the action to take here and nothing else. A label, a count or a decoration is never amber; Rounds' hollow word is secondary gray for this reason.",
         "section": "colors"
       },
       {
-        "name": "The Ghost Means Off Rule",
-        "body": "A line that won't run is wiped toward eraser ghost, its time drops to 34 pt semibold, and it's left off the complete board. Ghost is never used for live content.",
+        "name": "The Phase Is the Field Rule",
+        "body": "On the running screen the whole background is the Phase's field, and its name and ring are in the Phase's ring color. A value sheet opened from a Phase row takes that Phase's field, ring, track and text.",
         "section": "colors"
       },
       {
         "name": "The Contrast Pair Rule",
-        "body": "Every color has an Increase Contrast value (in `BoardInk` and `PhaseColors`; listed in the sidecar). A new color without one doesn't ship.",
+        "body": "Every color has an Increase Contrast value in `Shared/Ink.swift`. A new color without one doesn't ship.",
         "section": "colors"
       },
       {
-        "name": "The One Column Rule",
-        "body": "Every time on a board is right-aligned in one column, in tabular figures, at the same size as its siblings. Names sit left, times sit right, nothing between them but space.",
+        "name": "The Tabular Rule",
+        "body": "Every number Temper shows uses tabular figures, so a counting time never jitters.",
         "section": "typography"
       },
       {
-        "name": "The Bold Board Rule",
-        "body": "Board content is bold (700). Regular weight is for notes and system text only.",
+        "name": "The Ring Decides Rule",
+        "body": "The running time and the complete total are set above any phone's width and scale down to fit their ring. Size the ring, not the text.",
         "section": "typography"
       },
       {
-        "name": "The Flat Board Rule",
-        "body": "Nothing on the board casts a shadow or sits on a card fill. A group is boxed with a marker stroke, not raised.",
+        "name": "The Flat Ink Rule",
+        "body": "Nothing casts a shadow of its own. If something needs to stand out, it gets a tone step or Liquid Glass, not a shadow.",
         "section": "elevation"
       },
       {
-        "name": "The Strokes Not Letters Rule",
-        "body": "Marker strokes draw brackets, ticks, underlines and frames. Words stay in SF Rounded.",
+        "name": "The Hollow Word Rule",
+        "body": "A setup row's Phase name is an outlined word: the word in the Phase's ring color, offset 1 pt in twelve directions, with the ground color on top, then one opacity over the whole: 0.62 for a Phase and 0.72 for Rounds, or 0.8 and 0.85 with Increase Contrast. That keeps it a backdrop that still reads at about 4.5:1 (8:1 with Increase Contrast).",
         "section": "shapes"
       }
     ],
     "dos": [
-      "**Do** write a Phase's name and time in its marker ink on the board, and a Rounds count and bracket in black marker.",
-      "**Do** put every time in the right-hand tabular column at the fixed board size (52 pt for a line, 60 pt for a total).",
-      "**Do** keep one black marker capsule per screen, in the bottom bar.",
-      "**Do** draw structure with the 3.5 pt round-cap marker stroke as gently bowed curves.",
-      "**Do** give every new color an Increase Contrast variant and check it against the board (4.5:1, or 3:1 for text 34 pt and up).",
-      "**Do** let Reduce Motion show drawn strokes in their finished state."
+      "Do keep amber for the action to take on the screen: one prominent amber capsule in the bottom bar.",
+      "Do put a Phase's name in its ring color, on setup, on Describe, in the recap and on the running screen.",
+      "Do use tabular figures for every number, and fixed sizes that scale down for anything read at a distance.",
+      "Do give every new color an Increase Contrast value in `Shared/Ink.swift`.",
+      "Do cap Dynamic Type on bottom-bar buttons and running controls at XXX Large so they can't crowd the iPhone SE.",
+      "Do show the complete ring closed, without animation, under Reduce Motion."
     ],
     "donts": [
-      "**Don't** fill board containers or give them shadows; box them with a marker stroke.",
-      "**Don't** draw letters or words as marker strokes.",
-      "**Don't** use a Phase ink as a fill on the board; fills in Phase color belong to the running field.",
-      "**Don't** add gradients, tinted glass panes or an activity ring to the running field.",
-      "**Don't** use eraser ghost for anything that will run.",
-      "**Don't** apply the board system to the Watch app or the Live Activity yet."
+      "Don't color Rounds, a label or a decoration amber.",
+      "Don't show a total on Start when the Workout waits for Done.",
+      "Don't call the complete screen's action Done; it is Close.",
+      "Don't add custom shadows, gradients or tinted glass panes; depth is tone and native Liquid Glass.",
+      "Don't add a light variant; the app is dark only."
     ]
   }
 }

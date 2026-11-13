@@ -1,19 +1,14 @@
 ---
 name: Temper
-description: An iOS interval timer whose Plans are written up on a whiteboard and run as flat, dark Phase fields.
+description: An iOS interval timer in dark ink, where each Phase is a whole color world and setup is the Workout written in those colors.
 colors:
-  board-ground: "#F6F7F5"
-  board-panel: "#E9EBE8"
-  board-row: "#FFFFFF"
-  black-marker: "#1E2126"
-  secondary-ink: "#5E646C"
-  eraser-ghost: "#868C93"
-  board-rule: "#D5D8DB"
-  on-marker: "#F6F7F5"
-  prepare-ink: "#1F6FB2"
-  work-ink: "#C63E22"
-  rest-ink: "#0E7A6C"
-  cooldown-ink: "#4A55B8"
+  ink-ground: "#11151D"
+  ink-raised: "#1B212C"
+  ink-separator: "#2E3643"
+  warm-white: "#F3F1EA"
+  secondary-gray: "#A9ADB5"
+  amber: "#E6B566"
+  on-amber: "#221702"
   prepare-field: "#0F2433"
   prepare-ring: "#8FCBEF"
   prepare-track: "#274A60"
@@ -30,258 +25,283 @@ colors:
   cooldown-ring: "#AFC4FF"
   cooldown-track: "#2F3D66"
   cooldown-text: "#F3F6FF"
+  stop-red: "#FF5A5F"
+  stop-dark-red: "#40161A"
+  on-stop-red: "#1A0506"
 typography:
   running-time:
-    fontFamily: "SF Pro Rounded, system-ui"
-    fontSize: "200pt"
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
+    fontSize: "180pt"
     fontWeight: 600
     fontFeature: "tnum"
-  total:
-    fontFamily: "SF Pro Rounded, system-ui"
+  complete-total:
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
+    fontSize: "120pt"
+    fontWeight: 600
+    fontFeature: "tnum"
+  running-count:
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
+    fontSize: "64pt"
+    fontWeight: 600
+    fontFeature: "tnum"
+  hollow-word:
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
     fontSize: "60pt"
     fontWeight: 700
-    fontFeature: "tnum"
-  board-time:
-    fontFamily: "SF Pro Rounded, system-ui"
-    fontSize: "52pt"
-    fontWeight: 700
-    fontFeature: "tnum"
-  board-phase:
-    fontFamily: "SF Pro Rounded, system-ui"
-    fontSize: "34pt"
-    fontWeight: 700
-  board-count:
-    fontFamily: "SF Pro Rounded, system-ui"
-    fontSize: "30pt"
-    fontWeight: 700
-    fontFeature: "tnum"
   running-phase:
-    fontFamily: "SF Pro Rounded, system-ui"
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
     fontSize: "56pt"
     fontWeight: 600
+  wheel-digits:
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
+    fontSize: "54pt"
+    fontWeight: 600
+    fontFeature: "tnum"
+  setup-digits:
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
+    fontSize: "52pt"
+    fontWeight: 600
+    fontFeature: "tnum"
+  running-caption:
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
+    fontSize: "32pt"
+    fontWeight: 500
+    fontFeature: "tnum"
   display:
-    fontFamily: "SF Pro Rounded, system-ui"
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
     fontSize: "34pt"
+    fontWeight: 600
+  control:
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
+    fontSize: "28pt"
     fontWeight: 700
   headline:
-    fontFamily: "SF Pro Rounded, system-ui"
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
     fontSize: "22pt"
     fontWeight: 700
   title:
-    fontFamily: "SF Pro Rounded, system-ui"
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
     fontSize: "20pt"
-    fontWeight: 700
+    fontWeight: 600
+  setup-caption:
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
+    fontSize: "17pt"
+    fontWeight: 600
   body:
-    fontFamily: "SF Pro Rounded, system-ui"
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
     fontSize: "17pt"
     fontWeight: 400
   label:
-    fontFamily: "SF Pro Rounded, system-ui"
+    fontFamily: "SF Pro Rounded, ui-rounded, system-ui"
     fontSize: "15pt"
     fontWeight: 400
 rounded:
-  field: "16pt"
-  cell: "18pt"
+  band: "18pt"
   capsule: "9999pt"
 spacing:
-  line: "4pt"
-  bracket-gap: "10pt"
-  cell-gap: "12pt"
-  cell-inset: "16pt"
-  screen-edge: "20pt"
-  section: "28pt"
+  hairline: "1pt"
+  bar-bottom: "6pt"
+  bar-top: "8pt"
+  stack: "12pt"
+  screen-edge: "16pt"
+  complete-stack: "20pt"
 components:
-  button-marker:
-    backgroundColor: "{colors.black-marker}"
-    textColor: "{colors.on-marker}"
+  button-primary:
+    backgroundColor: "{colors.amber}"
+    textColor: "{colors.on-amber}"
+    typography: "{typography.headline}"
+    rounded: "{rounded.capsule}"
+    height: "52pt"
+  button-close:
+    backgroundColor: "{colors.amber}"
+    textColor: "{colors.on-amber}"
     typography: "{typography.headline}"
     rounded: "{rounded.capsule}"
     height: "56pt"
+  button-running:
+    typography: "{typography.control}"
+    rounded: "{rounded.capsule}"
+    height: "72pt"
   button-done:
     backgroundColor: "{colors.work-ring}"
     textColor: "{colors.work-field}"
+    typography: "{typography.control}"
     rounded: "{rounded.capsule}"
     height: "88pt"
-  plan-cell:
-    backgroundColor: "{colors.board-ground}"
-    textColor: "{colors.black-marker}"
-    rounded: "{rounded.cell}"
-    padding: "16pt"
-  board-line:
-    backgroundColor: "{colors.board-ground}"
-    typography: "{typography.board-phase}"
-    height: "64pt"
-  text-field:
-    backgroundColor: "{colors.board-panel}"
-    textColor: "{colors.black-marker}"
-    rounded: "{rounded.field}"
-    padding: "12pt 14pt"
+  setup-row:
+    backgroundColor: "{colors.ink-ground}"
+    textColor: "{colors.warm-white}"
+    typography: "{typography.setup-digits}"
+    padding: "0 16pt"
   value-band:
-    backgroundColor: "{colors.board-panel}"
-    rounded: "{rounded.cell}"
+    backgroundColor: "{colors.ink-separator}"
+    rounded: "{rounded.band}"
+    height: "68pt"
   list-row:
-    backgroundColor: "{colors.board-row}"
-    textColor: "{colors.black-marker}"
+    backgroundColor: "{colors.ink-raised}"
+    textColor: "{colors.warm-white}"
+    typography: "{typography.body}"
 ---
 
 # Design System: Temper
 
 ## Overview
 
-**Creative North Star: "The Coach's Whiteboard"**
+**Creative North Star: "Phases in Ink"**
 
-Every iPhone screen but the running one is a gloss whiteboard. A Plan is written on it exactly as it will run: each Phase's name in its own marker ink at the left, its time large in one tabular column at the right, and the lines that repeat held in a hand-drawn bracket under their count. When the Workout ends, the same board comes back with every line ticked off and the total written under a marker line.
+Temper is dark ink with four Phase colors laid on it. Setup is the Workout written in those colors before Start: one row per Phase in the order it runs, a big hollow word in the Phase's ring color at the left, large tabular digits at the right, rows split by hairlines. Starting turns the whole screen into the current Phase's field, with its name at the top, a ring and the time in the middle, and the controls at the foot. When the Workout ends, the complete screen closes that ring in the last Phase's color around the total.
 
-Starting a Workout flips the board to a flat dark field in the Phase's color, where the time gets nearly all of the screen so it reads from across a room. The two halves share the Phase hues and SF Rounded, and nothing else: the board is light, quiet and written by hand; the field is dark, flat and given wholly to one number.
+Everything else is native iOS 27 recolored onto the ink: the Liquid Glass tab bar and buttons, navigation, menus, sheets and grouped lists. The app is dark only; there is no light variant. Every color has an Increase Contrast value, listed in the sidecar. SF Rounded is set once at the root and used everywhere.
 
-Marker strokes (round-nib, slightly wobbly, round caps) draw structure: brackets, ticks, underlines and cell frames. They never draw letters. Everything that reads is SF Rounded. The rest is native iOS 27: Liquid Glass bar buttons, navigation, menus, sheets and grouped lists, recolored onto the board.
-
-Scope: this records the iPhone app. The Apple Watch app and the Live Activity keep their earlier dark ink (`InkColors` in `Shared/Ink.swift`) until a later round. They are not part of the board system, and nothing here should be applied to them yet.
+Scope: this records the iPhone app. The Apple Watch app and the Live Activity draw from the same `InkColors` and `PhaseColors` in `Shared/Ink.swift`; the Watch also uses `StopColors` for its Stop.
 
 **Key Characteristics:**
-- Light whiteboard ground; black marker for structure, names and Start.
-- Four Phase marker inks, used as text and strokes, never as fills on the board.
-- Times big, bold, tabular, right-aligned in one column.
-- Hand-drawn marker strokes for brackets, ticks, underlines and frames; never for words.
-- The running Workout is a flat dark Phase field: no gradients, no tinted glass, no ring.
-- Every color has an Increase Contrast variant.
+- Dark ink ground, raised rows one step lighter, hairline separators.
+- Amber marks the action to take and nothing else.
+- Each Phase has a field, ring, track and text color; a Phase is recognised by its field from across a room.
+- Setup labels are hollow words in the Phase's ring color; digits are large, semibold and tabular.
+- Liquid Glass for buttons: prominent amber for the primary action, plain glass for the running controls.
+- One motion: the complete ring draws closed once, with a success haptic when it closes.
 
 ## Colors
 
-A near-white board, a near-black marker, and four saturated marker inks, deepened from the brand Phase colors until each clears 4.5:1 on the board.
+A blue-black ink with a warm white, one amber, and four Phase sets that each run from a deep field to a light ring.
 
 ### Primary
-- **Black Marker** (black-marker): names, counts, brackets, underlines, headings, and the fill of every primary capsule (Start, Close, Confirm, Make Plan, Allow). Also the app-wide tint.
+- **Amber** (amber): the action to take on this screen. The fill of Start, Close, Confirm and Make Plan; the Dip toggle; the selected tab; text buttons that ask for something (Save Workouts to Health, Allow Heart Rate, Make New Plan).
+- **On Amber** (on-amber): the label on an amber fill.
 
-### Secondary (the Phase marker inks)
-- **Prepare Blue Ink** (prepare-ink): the Prepare line's name, time and tick.
-- **Work Coral Ink** (work-ink): the Work line, each Round's time on Open Rounds' complete screen, and Describe's error text.
-- **Rest Teal Ink** (rest-ink): the Rest line, and the Apple Health "On" state in Settings.
-- **Cooldown Indigo Ink** (cooldown-ink): the Cooldown line.
+### Secondary (the Phase sets)
+Each Phase has four colors: a field (the running screen's background and the value sheet's background), a ring (the Phase name on the running screen, the ring's fill, the setup row's hollow word, the Phase's time in the recap and on Describe, the value sheet's title and "Off"), a track (the ring's unfilled stroke and the band behind the wheel's center row), and a text color (the time on the running screen and the wheel's digits).
+- **Prepare Blue** (prepare-field, prepare-ring, prepare-track, prepare-text).
+- **Work Coral** (work-field, work-ring, work-track, work-text). Work's ring also fills Done, with Work's field as its label, and colors each Round's Work time on Open Rounds' complete screen.
+- **Rest Teal** (rest-field, rest-ring, rest-track, rest-text).
+- **Cooldown Indigo** (cooldown-field, cooldown-ring, cooldown-track, cooldown-text).
 
-### Tertiary (the running Phase fields)
-Each Phase has a field (the whole screen's background), a ring (the Phase name, the progress fill, and Done's fill for Work), a track (the unfilled progress bar), and a text color (the time and the count). These are the brand Phase colors from PRODUCT.md and how a Phase is recognised from across a room. The running screen forces the dark color scheme.
+Prepare and Cooldown nearly match under color blindness. That is accepted: they are never adjacent, and the Phase name and Cue tell them apart.
+
+### Tertiary (Watch only)
+- **Stop Red** (stop-red, stop-dark-red, on-stop-red): the Watch's Stop, red on a dark red fill, then solid red with dark text when it asks for a second tap. The iPhone app does not use it.
 
 ### Neutral
-- **Gloss Board** (board-ground): the background of every board screen and sheet.
-- **Board Panel** (board-panel): a field set into the board: the Describe text field, the band behind the value wheel's center row.
-- **Lifted Row** (board-row): grouped list rows in Settings and the Preset sheets.
-- **Secondary Ink** (secondary-ink): notes, footnotes, captions, a cell's total, the chevron, Preset subtitles.
-- **Eraser Ghost** (eraser-ghost): a line that won't run (an Off Phase) and the "Off" under the wheel. It clears 3:1 and is only used at 34 pt or larger, or as the cell's body-bold text.
-- **Board Rule** (board-rule): the hand-drawn frame round each Plan cell.
-- **On Marker** (on-marker): text on a black marker capsule.
+- **Ink Ground** (ink-ground): the background of every screen that isn't a Phase field.
+- **Ink Raised** (ink-raised): grouped list rows, and the background of the Preset sheets and of the value sheet for Rounds.
+- **Ink Separator** (ink-separator): the 1 pt hairlines between setup rows, the wheel band for Rounds, and the complete ring's track in the rare case no last Phase is known.
+- **Warm White** (warm-white): digits, titles, list text.
+- **Secondary Gray** (secondary-gray): notes, section headers and footers, captions under digits, the "×" and "·" in the recap, Rounds' hollow word, the value sheet's title for Rounds, the Round count on Open Rounds' complete screen, Preset summaries, and the complete ring's fill when no last Phase is known. The Describe prompt uses it at 0.78 opacity, about 4.5:1 on the raised row.
 
 ### Named Rules
-**The Ink Is the Phase Rule.** On the board a Phase's name and time are always in that Phase's ink, and a value sheet's title and wheels take the ink of the line that opened it. Black marker is for structure (counts, brackets, headings), not for Phase content.
+**The Amber Means Act Rule.** Amber is the action to take here and nothing else. A label, a count or a decoration is never amber; Rounds' hollow word is secondary gray for this reason.
 
-**The Ghost Means Off Rule.** A line that won't run is wiped toward eraser ghost, its time drops to 34 pt semibold, and it's left off the complete board. Ghost is never used for live content.
+**The Phase Is the Field Rule.** On the running screen the whole background is the Phase's field, and its name and ring are in the Phase's ring color. A value sheet opened from a Phase row takes that Phase's field, ring, track and text.
 
-**The Contrast Pair Rule.** Every color has an Increase Contrast value (in `BoardInk` and `PhaseColors`; listed in the sidecar). A new color without one doesn't ship.
+**The Contrast Pair Rule.** Every color has an Increase Contrast value in `Shared/Ink.swift`. A new color without one doesn't ship.
 
 ## Typography
 
-**Display Font:** SF Pro Rounded (the system font with `.fontDesign(.rounded)` set at the app root, plus rounded inline navigation titles set through UIKit appearance)
+**Display Font:** SF Pro Rounded (the system font, via `.fontDesign(.rounded)` at the app root and again on the value sheet)
 **Body Font:** SF Pro Rounded
-**Label/Mono Font:** none distinct; numbers use tabular figures (`.monospacedDigit()`)
+**Label/Mono Font:** none distinct; every number uses tabular figures (`.monospacedDigit()`)
 
-**Character:** One friendly, heavy rounded face throughout, so the board reads as a coach's hand-printed lettering without imitating handwriting.
+**Character:** One rounded face at heavy weights, friendly at a glance and steady when digits change.
 
 ### Hierarchy
-- **Running time** (600, 200 pt, scaled down to the width): the time on the running field. The width alone decides its size.
-- **Total** (700, 60 pt, tabular): the total on both complete screens, the biggest number on the board.
-- **Running phase** (600, 56 pt): the Phase name on the running field, in its ring color. The count under the time is 64 pt semibold with a 32 pt medium caption at 72% opacity.
-- **Board time** (700, 52 pt, tabular): a line's time. An Off line's time drops to 34 pt semibold.
-- **Board phase** (700, 34 pt): a line's Phase name, in its ink. Line minimum height 64 pt.
-- **Board count** (700, 30 pt, tabular): a Rounds Block's count, "× 8" with a thin space, or "× ∞" for Rounds until Stop.
-- **Display** (700, Large Title): screen titles: "Plans", "Settings", "Workout complete".
-- **Headline** (700, Title 2): section headings, Start and other capsule labels, "Describe a Workout", "Total", "Round 3".
-- **Title** (700, Title 3): a Plan cell's name. The cell's lines are Body bold; its count and total are Subheadline bold, tabular.
-- **Body** (400, Body): text entry and list rows.
-- **Label** (400, Subheadline / Footnote): notes under the board, Health notes, Preset subtitles, captions.
+- **Running time** (600, 180 pt, tabular): the time inside the running ring. Set larger than any phone allows so the ring decides the size; scales down to 0.4, or 0.3 when Done is shown.
+- **Complete total** (600, 120 pt, tabular): the total inside the complete ring on both complete screens, scaled to the ring (down to 0.3, or 0.2 in Open Rounds' smaller ring).
+- **Running count** (600, 64 pt, tabular): the Rounds count under the ring, with a running caption (500, 32 pt) at 0.72 opacity. "Paused" takes its place at 42 pt semibold in a slot of fixed height, so the ring doesn't move.
+- **Hollow word** (700, 60 pt): a setup row's Phase name, outlined; scales down to 0.5 to fit beside the digits.
+- **Running phase** (600, 56 pt): the Phase name at the top of the running screen, in its ring color; scales down to 0.6.
+- **Wheel digits** (600, 54 pt, tabular): the value sheet's wheels and their colon.
+- **Setup digits** (600, 52 pt, tabular): a setup row's value. A setup caption (600, 17 pt, secondary gray) sits under it when the row needs one, such as "then until Done".
+- **Display** (600, Large Title): "Workout complete" over both complete screens.
+- **Control** (700, Title): Pause, Resume and Done.
+- **Headline** (700, Title 2): the labels of Start, Close, Confirm and Make Plan.
+- **Title** (600, Title 3): the recap line on the complete screen, and the Round count (secondary gray) on Open Rounds' complete screen, whose Round rows are Title 3 regular. Describe's Plan rows use Title 3 bold for the Phase name and semibold tabular for its time.
+- **Body** (400, Body): list rows and text entry.
+- **Label** (400, Subheadline): the note above Start, the Health line, Preset summaries.
 
-The board's sizes are fixed so a line reads at arm's length on every iPhone; they scale down (`minimumScaleFactor`) rather than up. Text-style roles follow Dynamic Type. Capsule buttons cap at XXX Large so they can't crowd the board on an iPhone SE.
+Fixed sizes are for what is read at a distance (times, Phase names, setup words and digits); they scale down with `minimumScaleFactor`, never up. Text-style roles follow Dynamic Type, capped where they would crowd the iPhone SE: amber buttons and the running controls at XXX Large, the note above Start at Accessibility 2, and the complete screens' title, recap, Round count and Health line at Accessibility 1.
 
 ### Named Rules
-**The One Column Rule.** Every time on a board is right-aligned in one column, in tabular figures, at the same size as its siblings. Names sit left, times sit right, nothing between them but space.
+**The Tabular Rule.** Every number Temper shows uses tabular figures, so a counting time never jitters.
 
-**The Bold Board Rule.** Board content is bold (700). Regular weight is for notes and system text only.
+**The Ring Decides Rule.** The running time and the complete total are set above any phone's width and scale down to fit their ring. Size the ring, not the text.
 
 ## Layout
 
-Single column on a phone. Board screens use a 20 pt screen edge; Plans uses 16 pt so its cells get more width. Sections stack 28 pt apart; cells sit 12 pt apart; board lines 4 pt apart with a 64 pt minimum height; a Rounds Block adds 6 pt above and below.
+Single column on the phone, 16 pt from the screen edges. Layouts must hold on the iPhone SE (375 × 667 pt) at every text size.
 
-Plans is a grid of whole Plan cells: Intervals across the full width, the other Workout Types two to a row at equal height, Presets two to a row with an odd last cell spanning the row, then Described and the underlined "Describe a Workout" link. At accessibility text sizes it falls to one cell per row, and a cell's line wraps its time under its name rather than truncating.
+Setup fills the space between the navigation bar and the bottom bar with its rows: each row grows to at most 168 pt, so a Workout Type with two rows doesn't stretch them, and the space left over gathers once under the rows. Rows don't scroll; the scroll view is there so a drag stretches them and they spring back. A 1 pt separator-colored hairline runs between rows. In a row, the hollow word sits at the left as an overlay on empty space (its width never widens the row) and the digits at the right, 12 pt apart.
 
-The primary action lives in a bottom bar (`safeAreaBar`) with the notes just above it, so it stays in the thumb zone while the board scrolls. Layouts must hold on the iPhone SE (375 × 667 pt) at every text size.
+The primary action lives in a bottom bar (`safeAreaBar`), 8 pt above and 6 pt below, with at most one secondary-gray note line 12 pt above it. Start, Close and Make Plan all sit in that same place, in the thumb zone.
 
-On the running field, the Phase name sits at the top, the time and a 10 pt capsule progress bar in the middle, and the controls at the bottom (72 pt Pause and Stop, an 88 pt Done above them when open).
+The running screen stacks the Phase name at the top, the ring with 10 pt of inset for its stroke, the count line, and the controls at the foot, 8 pt apart, with flexible space taking up the rest. The running and complete screens replace the tab bar entirely.
+
+The complete screen stacks the title, the ring (160 to 300 pt wide, giving way first when space runs short), the recap and the Health line, 20 pt apart. Open Rounds' complete screen has the same order, 12 pt apart: the title, a fixed 180 × 180 pt ring around the total, the Round count, then the list of each Round's Work time with the Health line in its footer. Only that list scrolls.
 
 ## Elevation & Depth
 
-The board is flat. Depth comes from tone only: the panel is a step darker than the board, list rows a step lighter. There are no drop shadows. The only lift is native Liquid Glass, on the bar buttons and the capsule buttons, as the system draws it. The running field is flat too: one solid color per Phase, no gradients and no tinted glass panes; its Pause and Stop are plain `.glass`.
+Flat. Depth comes from tone only: list rows and sheets are ink raised, one step above the ground. There are no custom shadows. The only lift is native Liquid Glass, drawn by the system: the tab bar, toolbar buttons, the prominent amber buttons, Done, and the plain glass Pause and Stop, grouped in one glass container. Phase fields are a single solid color; no gradients and no tinted glass panes.
 
 ### Named Rules
-**The Flat Board Rule.** Nothing on the board casts a shadow or sits on a card fill. A group is boxed with a marker stroke, not raised.
+**The Flat Ink Rule.** Nothing casts a shadow of its own. If something needs to stand out, it gets a tone step or Liquid Glass, not a shadow.
 
 ## Shapes
 
-Corners are generous and soft: capsules for every button and the progress bar; 18 pt for a Plan cell's frame and the value wheel's band; 16 pt continuous for the text field.
-
-The signature shape is the marker stroke (3.5 pt, round cap, round join), drawn as gently bowed curves rather than straight lines:
-- **Bracket:** opens right, 14 pt arms, the spine bowing outward a hair. It holds a Rounds Block's lines (2 pt and 6 pt wide at cell size).
-- **Tick:** a short downstroke and a long flick up, in the line's ink, 22 × 18 pt.
-- **Underline:** sags in the middle and lifts at the end; under "Describe a Workout" and above a complete screen's total.
-- **Cell frame:** a closed rounded box with slightly bowed sides, 2.5 pt in board rule.
+Round, everywhere. Buttons are capsules, as Liquid Glass draws them; Stop is a 72 pt glass circle. The rings are full circles with round line caps, starting at 12 o'clock: 20 pt wide on the running screen, 18 pt on the complete screen, 14 pt on Open Rounds' smaller complete ring. The value wheel's center band has 18 pt corners. Separators are straight 1 pt hairlines.
 
 ### Named Rules
-**The Strokes Not Letters Rule.** Marker strokes draw brackets, ticks, underlines and frames. Words stay in SF Rounded.
+**The Hollow Word Rule.** A setup row's Phase name is an outlined word: the word in the Phase's ring color, offset 1 pt in twelve directions, with the ground color on top, then one opacity over the whole: 0.62 for a Phase and 0.72 for Rounds, or 0.8 and 0.85 with Increase Contrast. That keeps it a backdrop that still reads at about 4.5:1 (8:1 with Increase Contrast).
 
 ## Components
 
 ### Buttons
-- **Shape:** capsule, full width, 56 pt minimum height, Title 2 bold label.
-- **Primary (black marker):** `.glassProminent` tinted black marker with on-marker text: Start (with the Workout's length, "Start · 8:50"), Close, Confirm, Make Plan, Allow in Settings. One per screen, in the bottom bar.
-- **Secondary:** `.glass` tinted black marker (Make New Plan once a Plan exists).
-- **Running controls:** `.glass` Pause (72 pt tall, flexible width) and a 72 pt square Stop with an SF Symbol. Done is `.glassProminent` tinted the Work ring with Work-field text, 88 pt tall; disabled, it dims in place.
-- **Toolbar:** native glass circles with SF Symbols (Settings gear, Presets bookmark, Back).
+- **Shape:** capsule, full width.
+- **Primary (amber):** `.glassProminent` tinted amber, Title 2 bold label in on-amber, 52 pt minimum height: Start, Confirm, Make Plan. Close on the complete screens is the same at 56 pt. One per screen, in the bottom bar.
+- **Start's label:** "Start · 08:50" with the Workout's total only when the Workout ends by itself. If any Phase is open or runs past its length until Done, it says only "Start".
+- **Close:** the complete screens' action is Close, never Done. Done ends an open Phase.
+- **Running controls:** `.glass`, Title bold. Pause/Resume is 72 pt tall and fills the width with an SF Symbol and label; Stop is a 72 pt circle with a stop symbol, and asks before it ends the Workout.
+- **Done:** `.glassProminent` tinted Work's ring with Work's field as its label, 88 pt tall, above Pause and Stop in Open Rounds and Stopwatch. Disabled, it stays in place and dims to the system's secondary style. A light impact haptic on tap.
+- **Disabled amber:** Make Plan keeps its place and drops its label to the system's secondary style.
 
-### Cards / Containers (Plan cell)
-- **Corner Style:** 18 pt, drawn as a marker cell frame in board rule.
-- **Background:** the board itself; no fill.
-- **Shadow Strategy:** none (Flat Board Rule).
-- **Internal Padding:** 16 pt; name (Title 3 bold) and optional subtitle (Footnote, secondary ink), then a mini board, then the total (or "Until Stop") in Subheadline bold secondary ink at the foot.
+### Lists
+- **Style:** native grouped forms and lists on the ink ground (`scrollContentBackground` hidden), rows in ink raised, row text in warm white, headers and footers in secondary gray.
+- **Used by:** Settings, Describe, Open Rounds' complete screen, the Preset sheets. A footer, not a row, holds anything that isn't tappable (the About line).
 
 ### Inputs / Fields
-- **Text field:** board panel fill, 16 pt continuous corners, 12 × 14 pt padding, black marker text and caret, secondary ink prompt.
-- **Value sheet:** a medium-detent sheet on the board ground; a 54 pt semibold tabular digit wheel in the line's ink over an 18 pt panel band; "Off" in ghost when the draft is zero; black marker Confirm.
-- **Lists:** native grouped lists on the board ground, rows in lifted row white, headers and labels in black marker, footers in secondary ink.
+- **Text field:** a native field in an ink raised row, warm white text, secondary gray prompt. Describe's field grows from 3 to 8 lines.
+- **Toggle:** native, tinted amber.
+
+### Value Sheet
+A medium-detent sheet in the Phase's field (ink raised for Rounds). The value's name in Headline in the Phase's ring color (secondary gray for Rounds), then the wheels in the Phase's text color over a band in the Phase's track (ink separator for Rounds), 68 pt tall with 18 pt corners. Digits fade to 0.15 opacity and shrink to 0.65 scale away from the center, with a selection haptic as the value changes. "Off" appears in the ring color when a time that can be off reaches zero, always laid out so the wheels don't shift. Amber Confirm at the foot.
 
 ### Navigation
-Native iOS 27 navigation. "Plans" and "Settings" set their large titles themselves so they're rounded (Large Title bold, black marker). A Plan's screen has an inline rounded title with a title menu and a Presets menu at the trailing edge. Board links are underlined in marker with a secondary-ink chevron.
+- **Tab bar:** the system Liquid Glass tab bar, tinted amber, never minimized: Intervals, Stopwatch, Open Rounds, Describe, Settings, each with an SF Symbol.
+- **Setup:** an inline title with the Presets title menu, the picked Preset as subtitle, and a bookmark Presets menu at the trailing edge. Settings uses the system large title.
+- **Preset sheets:** native navigation with Cancel and Save, or Edit and Done; the picked Preset is marked with a checkmark.
 
-### Plan Board (signature)
-Lines top to bottom: Phase name left (34 pt bold, its ink), time right (52 pt bold tabular, its ink), an optional 17 pt semibold caption under the time in secondary ink. A Rounds Block puts its count in a 64 pt column at the left, then the marker bracket, then its lines 10 pt in. An Off line is ghosted; an open line reads "until Done". With editing on, each line and count is a plain button that opens its value. One note line and "Tap a line to change it." sit above Start in secondary ink.
+### Setup Row (signature)
+A hollow word at the left in the Phase's ring color (secondary gray for Rounds), setup digits at the right in warm white, an optional setup caption under them. A row that sets a value is a plain button that opens the value sheet; Open Rounds' open Work row only reads.
 
-### Complete Board (signature)
-"Workout complete", then the board as it ran with each line ticked in its ink, the ticks drawn top to bottom (0.3 s ease-out, 0.18 s apart, after a 0.3 s beat), then a marker underline drawn after the last tick, then "Total" with the 60 pt total, then the Health note. Reduce Motion shows the ticks at once. Open Rounds lists "Round N" in black marker with its Work time in work ink, ticked in work ink, the stagger capped at ten Rounds.
+### Time Ring (signature)
+The running screen's ring: a track circle in the Phase's track and a fill in its ring color, 20 pt wide with round caps, the running time inside in the Phase's text color. Both redraw on every display frame.
 
-### Running Field (signature)
-Flat Phase field, Phase name in ring color, the time in the Phase's text color as wide as the screen allows, a capsule progress bar (ring on track), the Rounds count below. Dark color scheme throughout.
+### Complete Ring (signature)
+The running ring, run full. It draws closed once as the complete screen appears, in 0.8 s ease-out, in the last Phase's ring color over its track, and the success haptic plays when the animation completes. With Reduce Motion it is shown closed and the haptic plays at once. If no last Phase is known (rare: the app falls back to the Workout's final Phase), the ring is secondary gray over the separator, never amber. Both complete screens use it around the total. The total sits inside; under it, the recap reads "8 × 0:40 Work · 0:20 Rest" with each Phase in its ring color and the "×" and "·" in secondary gray, and nothing for a Workout without a set number of Rounds. Then one Health line in secondary gray, with a heart symbol in warm white only when the Workout is going to Health ("Saving to Apple Health.", or "Saving to Apple Health, without heart rate." when workouts are allowed but heart rate isn't).
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** write a Phase's name and time in its marker ink on the board, and a Rounds count and bracket in black marker.
-- **Do** put every time in the right-hand tabular column at the fixed board size (52 pt for a line, 60 pt for a total).
-- **Do** keep one black marker capsule per screen, in the bottom bar.
-- **Do** draw structure with the 3.5 pt round-cap marker stroke as gently bowed curves.
-- **Do** give every new color an Increase Contrast variant and check it against the board (4.5:1, or 3:1 for text 34 pt and up).
-- **Do** let Reduce Motion show drawn strokes in their finished state.
+- **Do** keep amber for the action to take on the screen: one prominent amber capsule in the bottom bar.
+- **Do** put a Phase's name in its ring color, on setup, on Describe, in the recap and on the running screen.
+- **Do** use tabular figures for every number, and fixed sizes that scale down for anything read at a distance.
+- **Do** give every new color an Increase Contrast value in `Shared/Ink.swift`.
+- **Do** cap Dynamic Type on bottom-bar buttons and running controls at XXX Large so they can't crowd the iPhone SE.
+- **Do** show the complete ring closed, without animation, under Reduce Motion.
 
 ### Don't:
-- **Don't** fill board containers or give them shadows; box them with a marker stroke.
-- **Don't** draw letters or words as marker strokes.
-- **Don't** use a Phase ink as a fill on the board; fills in Phase color belong to the running field.
-- **Don't** add gradients, tinted glass panes or an activity ring to the running field.
-- **Don't** use eraser ghost for anything that will run.
-- **Don't** apply the board system to the Watch app or the Live Activity yet.
+- **Don't** color Rounds, a label or a decoration amber.
+- **Don't** show a total on Start when the Workout waits for Done.
+- **Don't** call the complete screen's action Done; it is Close.
+- **Don't** add custom shadows, gradients or tinted glass panes; depth is tone and native Liquid Glass.
+- **Don't** add a light variant; the app is dark only.

@@ -24,7 +24,9 @@ struct RunningScreen: View {
                 .minimumScaleFactor(0.6)
                 .padding(.top, 8)
             Spacer(minLength: 0)
-            PhaseTime(display: display, colors: colors)
+            TimeRing(display: display, colors: colors)
+                // A stroke straddles its path, so half the line's width keeps the ring inside its frame.
+                .padding(10)
             RingLineView(line: display.line, colors: colors)
             Spacer(minLength: 0)
             RunningControls(
@@ -39,62 +41,45 @@ struct RunningScreen: View {
         }
         .padding(.horizontal, 16)
         .background(colors.background.ignoresSafeArea())
-        // The board is light, and a running Workout is its dark Phase field, status bar and controls included.
-        .preferredColorScheme(.dark)
     }
 }
 
-/// The time, as large as the width allows, and the Phase's progress in a thin bar under it. Both read the engine's
-/// clock on every display frame.
-private struct PhaseTime: View {
+/// The ring and its time. Both read the engine's clock on every display frame.
+private struct TimeRing: View {
     let display: WorkoutRunner.Display
     let colors: PhaseColors
 
-    var body: some View {
-        TimelineView(.animation(paused: display.snapshot.isPaused)) { _ in
-            let ring = display.ring(at: .now)
-
-            VStack(spacing: 0) {
-                // No `.numericText()` transition, because it blurred the digits.
-                Text(ring.shortTime)
-                    // Set above any phone's width, so the width alone decides the size. From 3 m that's roughly 20
-                    // arcmin for a time under ten minutes, as 0:08, on an iPhone SE and 25 on the largest phone, and
-                    // 16 to 20 for a longer one, as 12:30, against the 20 to 22 usually cited for reading at a
-                    // distance.
-                    .font(.system(size: 200, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(colors.text)
-                    .lineLimit(1)
-                    // Low enough for "72:15" on an iPhone SE, with Done taking height under it.
-                    .minimumScaleFactor(0.3)
-                    // Read only when focus lands on it. The `updatesFrequently` trait would announce it as it
-                    // changes, and the Cues already speak every Phase change.
-                    .accessibilityLabel(ring.spokenTime)
-                PhaseBar(fill: ring.fill, colors: colors)
-            }
-        }
-    }
-}
-
-/// A thin bar of the Phase's progress, as on the Watch. An open Phase shows only the track.
-private struct PhaseBar: View {
-    let fill: Double
-    let colors: PhaseColors
-
-    private let height: CGFloat = 10
+    private let lineWidth: CGFloat = 20
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule().fill(colors.track)
-                if fill > 0 {
-                    Capsule()
-                        .fill(colors.ring)
-                        .frame(width: max(proxy.size.width * fill, height))
+        ZStack {
+            Circle().stroke(colors.track, lineWidth: lineWidth)
+            TimelineView(.animation(paused: display.snapshot.isPaused)) { _ in
+                let ring = display.ring(at: .now)
+
+                ZStack {
+                    Circle()
+                        .trim(from: 0, to: ring.fill)
+                        .stroke(colors.ring, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    // No `.numericText()` transition, because it blurred the digits.
+                    Text(ring.time)
+                        // Set above any phone's width, so the ring alone decides the size. From 3 m that's about
+                        // 12.6 arcmin on an iPhone SE to 16.3 on the largest phone, under the 20 to 22 usually
+                        // cited for reading at a distance. The owner accepted that to keep the ring's size.
+                        .font(.system(size: 180, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(colors.text)
+                        .lineLimit(1)
+                        // With Done, low enough for "72:15" in the smaller ring it leaves on an iPhone SE.
+                        .minimumScaleFactor(display.doneButton == nil ? 0.4 : 0.3)
+                        .padding(.horizontal, 24)
+                        // Read only when focus lands on it. The `updatesFrequently` trait would announce it as it
+                        // changes, and the Cues already speak every Phase change.
+                        .accessibilityLabel(ring.spokenTime)
                 }
             }
         }
-        .frame(height: height)
-        .accessibilityHidden(true)
+        .aspectRatio(1, contentMode: .fit)
     }
 }
 
@@ -130,7 +115,7 @@ private struct RingLineView: View {
         .foregroundStyle(colors.text)
         .lineLimit(1)
         .minimumScaleFactor(0.6)
-        // Paused is shorter than a count, and swapping them mustn't move the time.
+        // Paused is shorter than a count, and swapping them mustn't move the ring.
         .frame(height: numberSize * 1.15)
     }
 }
@@ -145,8 +130,8 @@ private struct CaptionText: View {
     }
 }
 
-/// Pause or Resume, and Stop, with Done above them in Open Rounds and Stopwatch. The Phase name, time and line above
-/// give up height to Done.
+/// Pause or Resume, and Stop, with Done above them in Open Rounds and Stopwatch. The Phase name, ring and line above give up height
+/// to Done, so the ring shrinks to make room for it.
 private struct RunningControls: View {
     let isPaused: Bool
     let doneButton: WorkoutRunner.Display.DoneButton?

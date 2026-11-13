@@ -27,7 +27,7 @@ struct PresetNameSheet: View {
     }
 
     var body: some View {
-        let ink = BoardInk(contrast: contrast)
+        let colors = InkColors(contrast: contrast)
         let problem = check(name)
 
         NavigationStack {
@@ -37,11 +37,10 @@ struct PresetNameSheet: View {
                         .focused($isFocused)
                         .submitLabel(.done)
                         .onSubmit(confirm)
-                        .foregroundStyle(ink.marker)
-                        .listRowBackground(ink.row)
+                        .listRowBackground(colors.background)
                 } footer: {
                     if let footer = problem?.footer {
-                        Text(footer).foregroundStyle(ink.secondary)
+                        Text(footer).foregroundStyle(colors.secondary)
                     }
                 }
             }
@@ -71,7 +70,7 @@ struct PresetNameSheet: View {
             }
         }
         .presentationDetents([.medium])
-        .presentationBackground(ink.ground)
+        .presentationBackground(colors.raised)
     }
 
     /// Save and Return both land here, and do nothing while the name check reports a problem.

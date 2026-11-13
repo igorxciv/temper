@@ -1,110 +1,82 @@
 import SwiftUI
 import TemperCore
 
-/// Open Rounds' complete screen, after Stop: each Round's Work time as a line on the board, ticked off, then the total
-/// written under the last of them with the number of Rounds, and whether it goes to Health.
+/// Open Rounds' complete screen, after Stop: the ring closed in the last Phase's color around the total active time,
+/// the number of Rounds under it, then each Round's Work time.
 ///
-/// The heading, the Rounds and the total scroll together, so the total always sits under the lines it adds up, and
-/// only Close stays put. Has to hold together on the iPhone SE, 375 by 667 pt, at every text size.
+/// Only the list scrolls, so the ring and Close stay put however many Rounds there were. Has to hold together on the
+/// iPhone SE, 375 by 667 pt, at every text size.
 struct RoundsCompleteScreen: View {
     let summary: RoundsSummary
-    /// The Workout record's active time, which decides whether it goes to Health.
+    /// The Workout record's active time, for the Health line.
     let activeTime: Duration
+    /// The last Phase that ran, whose color the ring closes in.
+    let lastPhase: Phase.Kind?
     let health: HealthSaves
     let close: () -> Void
 
-    @State private var isTicked = false
-
     @Environment(\.colorSchemeContrast) private var contrast
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let ink = BoardInk(contrast: contrast)
-        // With Reduce Motion the lines arrive already ticked, so nothing is drawn in.
-        let isDrawn = isTicked || reduceMotion
+        let colors = InkColors(contrast: contrast)
 
-        ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 20) {
-                CompleteHeading()
-                VStack(alignment: .leading, spacing: 8) {
-                    LazyVStack(alignment: .leading, spacing: 4) {
-                        ForEach(summary.rows) { row in
-                            RoundLine(row: row, ink: ink, isDrawn: isDrawn)
-                        }
-                    }
-                    MarkerUnderline()
-                        .trim(from: 0, to: isDrawn ? 1 : 0)
-                        .stroke(ink.marker, style: .marker)
-                        .frame(height: 10)
-                        // Drawn once the last tick is, as the line a total is written under.
-                        .animation(
-                            .easeOut(duration: 0.35).delay(RoundLine.lastTickDelay(of: summary.rows) + 0.4),
-                            value: isDrawn
-                        )
-                        .accessibilityHidden(true)
-                }
-                CompleteTotal(
-                    time: activeTime.shortClockText(rounding: .down), spokenTime: summary.spokenTotal,
-                    caption: summary.countText)
-                CompleteHealthLine(health: health, activeTime: activeTime)
+        VStack(spacing: 12) {
+            CompleteTitle()
+                .padding(.top, 16)
+                .padding(.horizontal)
+            CompleteRing(kind: lastPhase, lineWidth: 14) {
+                Text(summary.total)
+                    // Set above any ring's width, so the ring decides the size, as on the running screen.
+                    .font(.system(size: 120, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(colors.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.2)
+                    .padding(.horizontal, 26)
+                    .accessibilityLabel("Total, \(summary.spokenTotal)")
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 24)
-            .padding(.bottom, 16)
+            // Smaller than the Plan's ring, since the Rounds below need the room.
+            .frame(width: 180, height: 180)
+            Text(summary.countText)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(colors.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+
+            List {
+                Section {
+                    ForEach(summary.rows) { row in
+                        HStack {
+                            Text("Round \(row.round)")
+                                .foregroundStyle(colors.text)
+                            Spacer()
+                            Text(row.time)
+                                .monospacedDigit()
+                                .foregroundStyle(PhaseColors(kind: .work, contrast: contrast).ring)
+                        }
+                        .font(.title3)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .listRowBackground(colors.raised)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(row.spokenTime)
+                    }
+                } header: {
+                    Text("Work").foregroundStyle(colors.secondary)
+                } footer: {
+                    CompleteHealthLine(health: health, activeTime: activeTime)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                        .padding(.top, 8)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
+            .contentMargins(.top, 0, for: .scrollContent)
         }
-        .scrollBounceBehavior(.basedOnSize)
+        .frame(maxWidth: .infinity)
         .safeAreaBar(edge: .bottom) {
             CompleteCloseButton(close: close)
         }
-        .background(ink.ground.ignoresSafeArea())
-        .task {
-            // A beat to take in the screen before the first stroke.
-            try? await Task.sleep(for: .seconds(0.3))
-            isTicked = true
-        }
-    }
-}
-
-/// One Round on the board: ticked, "Round 3" in black marker at the left, its Work time in Work's ink at the right.
-private struct RoundLine: View {
-    /// Rounds past this many are ticked with the last of them, so a long Workout isn't still being ticked a minute on.
-    private static let staggeredRounds = 10
-    /// How long after one tick starts the next one does.
-    private static let stagger = 0.18
-
-    let row: RoundsSummary.Row
-    let ink: BoardInk
-    let isDrawn: Bool
-
-    /// How long after the first tick starts the last one does.
-    static func lastTickDelay(of rows: [RoundsSummary.Row]) -> Double {
-        Double(min(max(rows.count - 1, 0), staggeredRounds)) * stagger
-    }
-
-    var body: some View {
-        let work = ink.ink(.work)
-        let order = min(row.round - 1, Self.staggeredRounds)
-
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            MarkerTick()
-                .trim(from: 0, to: isDrawn ? 1 : 0)
-                .stroke(work, style: .marker)
-                .frame(width: 20, height: 16)
-                .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 2 }
-                .animation(.easeOut(duration: 0.3).delay(Double(order) * Self.stagger), value: isDrawn)
-            Text("Round \(row.round)")
-                .font(.title2.bold())
-                .foregroundStyle(ink.marker)
-            Spacer(minLength: 8)
-            Text(row.time)
-                .font(.title.bold().monospacedDigit())
-                .foregroundStyle(work)
-                .layoutPriority(1)
-        }
-        .lineLimit(1)
-        .minimumScaleFactor(0.5)
-        .frame(minHeight: 48)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(row.spokenTime)
+        .background(colors.background.ignoresSafeArea())
     }
 }

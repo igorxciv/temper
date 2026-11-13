@@ -3,18 +3,18 @@
     import TemperCore
 
     /// Launch arguments that open a screen at launch, so the Simulator can show every screen with no taps:
-    /// `-debugRoute plans|describe|settings|intervals|stopwatch|openRounds` opens a screen over Plans, and
-    /// `-debugStart intervals|stopwatch|openRounds|complete|roundsComplete` starts a Workout, the last two short ones
-    /// that end on their complete screens. It returns the board of the Workout it started, for the complete screen.
+    /// `-debugTab intervals|stopwatch|openRounds|describe|settings` selects a tab, and
+    /// `-debugStart intervals|stopwatch|openRounds|planComplete|roundsComplete` starts a Workout, the last two short ones
+    /// that end on their complete screens. It returns the Plan of the Workout it started, for the complete screen.
     @MainActor
     enum DebugLaunch {
         static func apply(runner: WorkoutRunner, remembered: RememberedValues) -> PlanBoard? {
             let defaults = UserDefaults.standard
-            switch defaults.string(forKey: "debugRoute") {
-            case "plans"?: remembered.path = []
-            case "describe"?: remembered.path = [.describe]
-            case "settings"?: remembered.path = [.settings]
-            case let name?: if let workoutType = WorkoutType(rawValue: name) { remembered.path = [.plan(workoutType)] }
+            switch defaults.string(forKey: "debugTab") {
+            case "describe"?: remembered.selectedTab = .describe
+            case "settings"?: remembered.selectedTab = .settings
+            case let name?:
+                if let workoutType = WorkoutType(rawValue: name) { remembered.selectedTab = .workoutType(workoutType) }
             case nil: break
             }
             guard let start = defaults.string(forKey: "debugStart") else { return nil }
@@ -23,7 +23,7 @@
                     workoutType.makeWorkout(from: remembered[workoutType]),
                     filedAs: HealthRecord.ActivityType(workoutType), isDipOn: false)
                 return PlanBoard(workoutType: workoutType, settings: remembered[workoutType])
-            } else if start == "complete" {
+            } else if start == "planComplete" {
                 let plan = Plan(
                     activity: .highIntensityIntervalTraining,
                     blocks: [
@@ -45,7 +45,8 @@
                     WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch),
                     filedAs: .traditionalStrengthTraining, isDipOn: false)
                 Task {
-                    try? await Task.sleep(for: .seconds(2))
+                    // Long enough for the first Work to count as a Round, however slowly the launch went.
+                    try? await Task.sleep(for: .seconds(4))
                     runner.done()
                     try? await Task.sleep(for: .seconds(1))
                     runner.stop()
