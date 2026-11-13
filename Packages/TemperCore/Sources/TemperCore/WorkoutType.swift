@@ -7,7 +7,8 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
     case intervals
     /// A Prepare, then a single Work that counts up to a set length.
     case stopwatch
-    /// A Prepare, then Rounds of an open Work and a Rest, repeated until Stop.
+    /// A Prepare, then Rounds of an open Work and a Rest, repeated a set number of times and followed by a
+    /// Cooldown, or repeated until Stop.
     case openRounds
 
     public var id: Self { self }
@@ -45,8 +46,25 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
         switch self {
         case .intervals: [.prepare, .rounds, .work, .rest, .cooldown]
         case .stopwatch: [.prepare, .work]
-        case .openRounds: [.prepare, .rest]
+        case .openRounds: [.prepare, .rounds, .rest, .cooldown]
         }
+    }
+
+    /// The Rounds amount that means Rounds repeat until Stop, which only Open Rounds offers.
+    public static let roundsUntilStop = 0
+
+    /// What its Rounds wheel offers: 1 to 99, and for Open Rounds first until Stop.
+    public var roundChoices: [Int] {
+        let counts = Array(1...Plan.maximumRounds)
+        return self == .openRounds ? [Self.roundsUntilStop] + counts : counts
+    }
+
+    /// The nearest amount a value allows in this Workout Type. Only Open Rounds lets Rounds go to until Stop.
+    public func clamped(_ amount: Int, as value: WorkoutValue) -> Int {
+        if value == .rounds, self == .openRounds, amount <= Self.roundsUntilStop {
+            return Self.roundsUntilStop
+        }
+        return value.clamped(amount)
     }
 
     /// Its values before the owner has changed anything.
@@ -64,9 +82,10 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
             // Only Prepare and Work are read. The rest are placeholders that build a valid Intervals Workout.
             WorkoutSettings(prepare: .seconds(10), rounds: 1, work: .seconds(600), rest: .zero, cooldown: .zero)
         case .openRounds:
-            // Only Prepare and Rest are read. Work is open, so its value is never used. Prepare starts Off, so
-            // Start goes straight into Work until the owner sets one.
-            WorkoutSettings(prepare: .zero, rounds: 1, work: .zero, rest: .seconds(60), cooldown: .zero)
+            // Work is open, so its value is never used. Prepare starts Off, so Start goes straight into Work until
+            // the owner sets one. Rounds start until Stop, so there is no Cooldown until the owner sets a number.
+            WorkoutSettings(
+                prepare: .zero, rounds: Self.roundsUntilStop, work: .zero, rest: .seconds(60), cooldown: .zero)
         }
     }
 
@@ -74,7 +93,8 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
     ///
     /// Intervals is a Prepare, then Rounds of Work and Rest with no Rest after the last Work, then a Cooldown. A
     /// Stopwatch is a Prepare, then one Work with no Round that runs past its set length. Open Rounds is a Prepare,
-    /// then Rounds of an open Work and a Rest until Stop, and its Rest says "10 seconds" before it ends.
+    /// then Rounds of an open Work and a Rest, either a set number of them followed by a Cooldown or until Stop with
+    /// no Cooldown, since nothing comes after Stop. Its Rest says "10 seconds" before it ends.
     public func plan(from settings: WorkoutSettings) -> Plan {
         let prepare = Self.leavingOutOff([PlannedPhase(kind: .prepare, duration: settings.prepare)])
             .map(Plan.Block.phase)
@@ -95,12 +115,18 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
             let work = PlannedPhase(kind: .work, length: .runsPast(settings.work))
             return Plan(activity: activity, blocks: prepare + [.phase(work)])
         case .openRounds:
-            let round = [PlannedPhase(kind: .work, length: .open), PlannedPhase(kind: .rest, duration: settings.rest)]
-            return Plan(
-                activity: activity,
-                blocks: prepare + [.rounds(.untilStop, Self.leavingOutOff(round))],
-                warnsBeforeRestEnds: true
-            )
+            let round = Self.leavingOutOff([
+                PlannedPhase(kind: .work, length: .open), PlannedPhase(kind: .rest, duration: settings.rest),
+            ])
+            let rounds: [Plan.Block]
+            if settings.rounds == Self.roundsUntilStop {
+                rounds = [.rounds(.untilStop, round)]
+            } else {
+                let cooldown = Self.leavingOutOff([PlannedPhase(kind: .cooldown, duration: settings.cooldown)])
+                    .map(Plan.Block.phase)
+                rounds = [.rounds(.times(settings.rounds), round)] + cooldown
+            }
+            return Plan(activity: activity, blocks: prepare + rounds, warnsBeforeRestEnds: true)
         }
     }
 

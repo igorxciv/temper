@@ -235,7 +235,7 @@ extension WorkoutType {
         var settings = firstLaunch
         for value in values {
             if let amount = stored(value) {
-                settings[value] = value.clamped(amount)
+                settings[value] = clamped(amount, as: value)
             }
         }
         return settings

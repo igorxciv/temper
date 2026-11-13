@@ -101,24 +101,35 @@ public nonisolated struct PlanBoard: Equatable, Sendable {
                 .line(Line(kind: .work, length: .runsPast(settings.work), value: .work)),
             ]
         case .openRounds:
-            items = [
-                .line(line(.prepare)),
-                .rounds(.untilStop, [Line(kind: .work, length: .open), line(.rest)], value: nil),
-            ]
+            let round = [Line(kind: .work, length: .open), line(.rest)]
+            // A Cooldown can't follow Rounds until Stop, so its line shows only once Rounds have a number.
+            if settings.rounds == WorkoutType.roundsUntilStop {
+                items = [.line(line(.prepare)), .rounds(.untilStop, round, value: .rounds)]
+            } else {
+                items = [
+                    .line(line(.prepare)),
+                    .rounds(.times(settings.rounds), round, value: .rounds),
+                    .line(line(.cooldown)),
+                ]
+            }
         }
     }
 
     /// What the lines alone don't say, or `nil` if they say it all: that the last of a set number of Rounds skips its
-    /// Rest, that an open Phase waits for Done, and that Rounds until Stop repeat until Stop.
+    /// Rest, that an open Phase waits for Done, that Rounds until Stop repeat until Stop, and, where setup can give
+    /// them a number, that a number is what makes room for a Cooldown.
     public var note: String? {
         var sentences: [String] = []
-        for case .rounds(let count, let lines, _) in items {
+        for case .rounds(let count, let lines, let value) in items {
             let endsOnRest = lines.last(where: { $0.length != .off })?.kind == .rest
             switch count {
             case .times(let times) where times > 1 && endsOnRest:
                 sentences.append("The last Round skips Rest.")
             case .untilStop:
                 sentences.append("Rounds repeat until you Stop.")
+                if value != nil {
+                    sentences.append("Set a number of Rounds to add a Cooldown.")
+                }
             case .times:
                 break
             }

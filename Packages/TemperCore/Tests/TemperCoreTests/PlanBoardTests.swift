@@ -52,7 +52,7 @@ struct PlanBoardTests {
         #expect(board.note == "Work counts on past 10:00 until you tap Done.")
     }
 
-    @Test func `Open Rounds shows its open Work, which no value edits, under Rounds until Stop`() {
+    @Test func `Open Rounds shows its open Work, which no value edits, under Rounds until Stop and no Cooldown`() {
         let board = PlanBoard(workoutType: .openRounds, settings: WorkoutType.openRounds.firstLaunch)
 
         #expect(
@@ -64,13 +64,39 @@ struct PlanBoardTests {
                         .init(kind: .work, length: .open),
                         .init(kind: .rest, length: .set(.seconds(60)), value: .rest),
                     ],
-                    value: nil
+                    value: .rounds
                 ),
             ]
         )
         #expect(board.allLines[1].time == "Open")
         #expect(board.allLines[1].caption == "until Done")
-        #expect(board.note == "Tap Done to end each open Work. Rounds repeat until you Stop.")
+        #expect(
+            board.note
+                == "Tap Done to end each open Work. Rounds repeat until you Stop. "
+                + "Set a number of Rounds to add a Cooldown.")
+    }
+
+    @Test func `Open Rounds with a number of Rounds shows its Cooldown after them`() {
+        var settings = WorkoutType.openRounds.firstLaunch
+        settings[.rounds] = 5
+
+        let board = PlanBoard(workoutType: .openRounds, settings: settings)
+
+        #expect(
+            board.items == [
+                .line(.init(kind: .prepare, length: .off, value: .prepare)),
+                .rounds(
+                    .times(5),
+                    [
+                        .init(kind: .work, length: .open),
+                        .init(kind: .rest, length: .set(.seconds(60)), value: .rest),
+                    ],
+                    value: .rounds
+                ),
+                .line(.init(kind: .cooldown, length: .off, value: .cooldown)),
+            ]
+        )
+        #expect(board.note == "Tap Done to end each open Work. The last Round skips Rest.")
     }
 
     @Test func `A described Plan reads as its Blocks, with nothing to edit`() {

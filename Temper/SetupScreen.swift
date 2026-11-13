@@ -4,7 +4,8 @@ import TemperCore
 /// Where a Workout Type gets its values, and where End Workout and Close return to.
 ///
 /// Every Phase the Workout Type runs has a row, in the order it runs, so the screen shows the Workout as it will run:
-/// Stopwatch's Work counts on past its length, and Open Rounds' open Work is there though it has nothing to set.
+/// Stopwatch's Work counts on past its length, Open Rounds' open Work is there though it has nothing to set, and its
+/// Cooldown shows only once its Rounds have a number, since nothing follows Rounds until Stop.
 ///
 /// Has to fit on the iPhone SE, 375 by 667 pt, with the tab bar, Start and a Preset's subtitle, at every text
 /// size.
@@ -100,7 +101,7 @@ struct SetupScreen: View {
             }
         #endif
         .sheet(item: $editing) { value in
-            ValueSheet(value: value, amount: settings[value]) { draft in
+            ValueSheet(workoutType: workoutType, value: value, amount: settings[value]) { draft in
                 remembered[workoutType][value] = draft
             }
         }
@@ -168,12 +169,15 @@ private struct SetupLine: Identifiable {
             switch item {
             case .line(let line):
                 return [SetupLine(line, settings: settings)]
-            case .rounds(_, let lines, let value):
+            case .rounds(let times, let lines, let value):
                 let count = value.map { value in
                     let text = value.text(for: settings[value])
+                    // "∞" alone doesn't say when the Rounds end, so "until Stop" goes under it, as "until Done" goes
+                    // under an open Work.
+                    let caption = times == .untilStop ? "until Stop" : nil
                     return SetupLine(
-                        title: value.title, kind: nil, text: text, caption: nil, value: value,
-                        spokenText: "\(value.title), \(text)")
+                        title: value.title, kind: nil, text: text, caption: caption, value: value,
+                        spokenText: "\(value.title), \(caption ?? text)")
                 }
                 return (count.map { [$0] } ?? []) + lines.map { SetupLine($0, settings: settings) }
             }

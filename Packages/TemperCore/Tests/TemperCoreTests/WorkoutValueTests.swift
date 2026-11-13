@@ -53,11 +53,12 @@ struct WorkoutValueTests {
         #expect(WorkoutValue.prepare.clamped(9000) == 1800)
     }
 
-    @Test func `A time reads as a clock, zero reads Off, and Rounds read as a number`() {
+    @Test func `A time reads as a clock, zero reads Off, and Rounds read as a number, or ∞ until Stop`() {
         #expect(WorkoutValue.work.text(for: 40) == "00:40")
         #expect(WorkoutValue.cooldown.text(for: 60) == "01:00")
         #expect(WorkoutValue.prepare.text(for: 0) == "Off")
         #expect(WorkoutValue.rounds.text(for: 8) == "8")
+        #expect(WorkoutValue.rounds.text(for: WorkoutType.roundsUntilStop) == "∞")
     }
 
     @Test func `Only a time has wheels for minutes and seconds`() {

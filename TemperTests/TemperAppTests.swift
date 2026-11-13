@@ -261,6 +261,25 @@ struct RememberedValuesTests {
         }
     }
 
+    @Test func `Open Rounds' Rounds and Cooldown save under their own keys, with until Stop kept`() throws {
+        try withThrowawayDefaults { defaults in
+            RememberedValues(defaults: defaults)[.openRounds][.rounds] = 6
+            RememberedValues(defaults: defaults)[.openRounds][.cooldown] = 120
+
+            #expect(defaults.object(forKey: "openRounds.rounds") as? Int == 6)
+            #expect(defaults.object(forKey: "openRounds.cooldown") as? Int == 120)
+            #expect(RememberedValues(defaults: defaults)[.openRounds].rounds == 6)
+            #expect(RememberedValues(defaults: defaults)[.openRounds].cooldown == .seconds(120))
+
+            RememberedValues(defaults: defaults)[.openRounds][.rounds] = WorkoutType.roundsUntilStop
+
+            #expect(RememberedValues(defaults: defaults)[.openRounds].rounds == WorkoutType.roundsUntilStop)
+            // Intervals' own Rounds still can't go below 1.
+            defaults.set(0, forKey: "rounds")
+            #expect(RememberedValues(defaults: defaults)[.intervals].rounds == 1)
+        }
+    }
+
     @Test func `Open Rounds can be the type the next launch opens on`() throws {
         try withThrowawayDefaults { defaults in
             RememberedValues(defaults: defaults).selectedTab = .workoutType(.openRounds)
@@ -621,18 +640,23 @@ struct RememberedPresetsTests {
         }
     }
 
-    @Test func `An Open Rounds Preset saves its Prepare and Rest, under its own keys, and restores`() throws {
+    @Test func `An Open Rounds Preset saves its Prepare, Rounds, Rest and Cooldown, under its own keys, and restores`()
+        throws
+    {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
             remembered[.openRounds][.prepare] = 15
+            remembered[.openRounds][.rounds] = 5
             remembered[.openRounds][.rest] = 90
+            remembered[.openRounds][.cooldown] = 60
             try remembered.saveAsNewPreset(named: "Squats", of: .openRounds)
             let preset = try #require(remembered.presets(of: .openRounds).picked)
 
             let data = try #require(defaults.data(forKey: "presets.openRounds"))
             let stored = try #require(try JSONSerialization.jsonObject(with: data) as? [[String: Any]])
             #expect(stored.first?["name"] as? String == "Squats")
-            #expect(stored.first?["values"] as? [String: Int] == ["prepare": 15, "rest": 90])
+            #expect(
+                stored.first?["values"] as? [String: Int] == ["prepare": 15, "rounds": 5, "rest": 90, "cooldown": 60])
             #expect(defaults.string(forKey: "pickedPreset.openRounds") == preset.id.uuidString)
 
             remembered[.openRounds][.rest] = 0
@@ -641,22 +665,30 @@ struct RememberedPresetsTests {
             restored.pickPreset(preset.id, of: .openRounds)
             #expect(RememberedValues(defaults: defaults)[.openRounds].prepare == .seconds(15))
             #expect(RememberedValues(defaults: defaults)[.openRounds].rest == .seconds(90))
+            #expect(RememberedValues(defaults: defaults)[.openRounds].rounds == 5)
+            #expect(RememberedValues(defaults: defaults)[.openRounds].cooldown == .seconds(60))
         }
     }
 
-    /// Open Rounds had no Prepare row before, so its Presets were saved with only a Rest.
-    @Test func `An Open Rounds Preset saved before Prepare picks with Prepare Off`() throws {
+    /// Open Rounds had no Prepare, Rounds or Cooldown rows before, so its Presets were saved with only a Rest.
+    @Test func `An Open Rounds Preset saved before Prepare picks with Prepare Off, Rounds until Stop, Cooldown Off`()
+        throws
+    {
         try withThrowawayDefaults { defaults in
             let id = UUID()
             let stored = #"[{"id": "\#(id.uuidString)", "name": "Squats", "values": {"rest": 90}}]"#
             defaults.set(Data(stored.utf8), forKey: "presets.openRounds")
             let remembered = RememberedValues(defaults: defaults)
             remembered[.openRounds][.prepare] = 20
+            remembered[.openRounds][.rounds] = 4
+            remembered[.openRounds][.cooldown] = 30
 
             remembered.pickPreset(id, of: .openRounds)
 
             #expect(remembered[.openRounds].prepare == .zero)
+            #expect(remembered[.openRounds].rounds == WorkoutType.roundsUntilStop)
             #expect(remembered[.openRounds].rest == .seconds(90))
+            #expect(remembered[.openRounds].cooldown == .zero)
         }
     }
 
