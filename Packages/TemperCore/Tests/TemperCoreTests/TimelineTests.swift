@@ -139,7 +139,8 @@ nonisolated struct TimelineTests {
         let timeline = openRounds(rest: 60)
 
         #expect(timeline?.position(at: .seconds(41)).nextCue == UpcomingCue(cue: .tenSeconds, due: .seconds(90)))
-        #expect(timeline?.position(at: .milliseconds(90_001)).nextCue == UpcomingCue(cue: .work, due: .seconds(100)))
+        #expect(
+            timeline?.position(at: .milliseconds(90_001)).nextCue == UpcomingCue(cue: .countdown, due: .seconds(95)))
     }
 
     @Test func `An Open Rounds Rest of 00:20 has "10 seconds" halfway through`() {
@@ -149,7 +150,8 @@ nonisolated struct TimelineTests {
     }
 
     @Test func `An Open Rounds Rest under 00:20 has no "10 seconds"`() {
-        #expect(openRounds(rest: 15)?.position(at: .seconds(41)).nextCue == UpcomingCue(cue: .work, due: .seconds(55)))
+        #expect(
+            openRounds(rest: 15)?.position(at: .seconds(41)).nextCue == UpcomingCue(cue: .countdown, due: .seconds(50)))
     }
 
     @Test func `Intervals has no "10 seconds", however long its Rest`() {
@@ -158,7 +160,7 @@ nonisolated struct TimelineTests {
         let timeline = Timeline(workout: WorkoutType.intervals.makeWorkout(from: settings))
 
         // Round 1's Rest runs from 50 to 110 s.
-        #expect(timeline.position(at: .seconds(51)).nextCue == UpcomingCue(cue: .work, due: .seconds(110)))
+        #expect(timeline.position(at: .seconds(51)).nextCue == UpcomingCue(cue: .countdown, due: .seconds(105)))
     }
 
     // MARK: A Phase that runs past its set length
@@ -211,6 +213,71 @@ nonisolated struct TimelineTests {
         #expect(done?.position(at: .seconds(700)).nextCue == nil)
     }
 
+    // MARK: The Countdown
+
+    private func countingDown(_ phases: [Phase], repeatingRound: [Phase] = []) -> Timeline {
+        Timeline(workout: Workout(phases: phases, repeatingRound: repeatingRound, countsDown: true))
+    }
+
+    @Test func `The Countdown is due 5s before each Phase ends, ahead of the Cue at its end`() {
+        let timeline = countingDown([prepare, firstWork, rest, secondWork, cooldown])
+
+        #expect(
+            timeline.position(at: .zero).cues == [
+                UpcomingCue(cue: .countdown, due: .seconds(5)), UpcomingCue(cue: .work, due: .seconds(10)),
+            ])
+        #expect(
+            timeline.position(at: .seconds(100)).cues == [
+                UpcomingCue(cue: .countdown, due: .seconds(140)),
+                UpcomingCue(cue: .workoutComplete, due: .seconds(145)),
+            ])
+    }
+
+    @Test func `A Workout that doesn't count down has no Countdown`() {
+        #expect(timeline.position(at: .zero).cues == [UpcomingCue(cue: .work, due: .seconds(10))])
+    }
+
+    @Test func `A Prepare starts silently, so one of 00:05 counts down from its start`() {
+        let timeline = countingDown([Phase(kind: .prepare, duration: .seconds(5)), firstWork])
+
+        #expect(timeline.position(at: .zero).nextCue == UpcomingCue(cue: .countdown, due: .zero))
+    }
+
+    @Test(arguments: [5, 9])
+    func `A Phase under 00:10 has no room for the Countdown after its own Cue`(seconds: Int) {
+        let work = Phase(kind: .work, duration: .seconds(seconds), round: 1)
+        let timeline = countingDown([work])
+
+        #expect(timeline.position(at: .zero).cues == [UpcomingCue(cue: .workoutComplete, due: .seconds(seconds))])
+    }
+
+    @Test func `A Phase of 00:10 counts down right after its own Cue's room`() {
+        let timeline = countingDown([Phase(kind: .work, duration: .seconds(10), round: 1)])
+
+        #expect(timeline.position(at: .zero).nextCue == UpcomingCue(cue: .work, due: .zero))
+        #expect(timeline.position(at: .seconds(1)).nextCue == UpcomingCue(cue: .countdown, due: .seconds(5)))
+    }
+
+    @Test func `A Phase that runs past its set length counts down to Finish`() {
+        let timeline = countingDown([Phase(kind: .work, length: .runsPast(.seconds(600)))])
+
+        #expect(
+            timeline.position(at: .seconds(1)).cues == [
+                UpcomingCue(cue: .countdown, due: .seconds(595)), UpcomingCue(cue: .finish, due: .seconds(600)),
+            ])
+    }
+
+    @Test func `An open Phase has no Countdown, and the Rest Done places after it counts down`() {
+        let openWork = Phase(kind: .work, length: .open, round: 1)
+        let timeline = countingDown([openWork, rest, secondWork])
+
+        #expect(timeline.position(at: .zero).cues == [])
+        #expect(
+            timeline.markingDone(at: .seconds(40))?.position(at: .seconds(40)).cues == [
+                UpcomingCue(cue: .countdown, due: .seconds(50)), UpcomingCue(cue: .work, due: .seconds(55)),
+            ])
+    }
+
     // MARK: The Cues still to come in a Phase
 
     @Test func `A Phase's Cues to come end with the next Phase's Cue, due at its end`() {
@@ -230,7 +297,8 @@ nonisolated struct TimelineTests {
     @Test func `An Open Rounds Rest has "10 seconds" and then Work to come`() {
         #expect(
             openRounds(rest: 60)?.position(at: .seconds(40)).cues == [
-                UpcomingCue(cue: .tenSeconds, due: .seconds(90)), UpcomingCue(cue: .work, due: .seconds(100)),
+                UpcomingCue(cue: .tenSeconds, due: .seconds(90)), UpcomingCue(cue: .countdown, due: .seconds(95)),
+                UpcomingCue(cue: .work, due: .seconds(100)),
             ])
         #expect(openRounds(rest: 60)?.position(at: .seconds(95)).cues == [UpcomingCue(cue: .work, due: .seconds(100))])
     }

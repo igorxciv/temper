@@ -73,6 +73,10 @@ struct PlanTests {
         #expect(Array(workout.phasesInOrder.prefix(4).map(\.round)) == [1, 2, 3, 3])
     }
 
+    @Test func `Every Plan's Workout counts down`() throws {
+        #expect(try workout([.phase(rest)]).countsDown)
+    }
+
     @Test func `A Plan with no Blocks makes no Workout`() {
         #expect(problem([]) == .noPhases)
     }
