@@ -63,6 +63,12 @@ final class RememberedValues {
         didSet { defaults.set(describedPlanWords, forKey: Self.describedPlanWordsKey) }
     }
 
+    /// Whether Describe opens on the keyboard rather than the microphone. It opens on the microphone until the owner
+    /// switches to typing.
+    var describesByTyping: Bool {
+        didSet { defaults.set(describesByTyping, forKey: Self.describesByTypingKey) }
+    }
+
     var isDipOn: Bool {
         didSet {
             defaults.set(isDipOn, forKey: Self.dipKey)
@@ -76,6 +82,7 @@ final class RememberedValues {
     private static let descriptionKey = "describe.description"
     private static let describedPlanKey = "describe.plan"
     private static let describedPlanWordsKey = "describe.planWords"
+    private static let describesByTypingKey = "describe.typing"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -93,6 +100,7 @@ final class RememberedValues {
             try? JSONDecoder().decode(Plan.self, from: $0)
         }
         describedPlanWords = defaults.string(forKey: Self.describedPlanWordsKey)
+        describesByTyping = defaults.bool(forKey: Self.describesByTypingKey)
     }
 
     /// A Workout Type's values. Only the values on its setup save.

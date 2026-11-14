@@ -3,6 +3,9 @@ import TemperCore
 
 /// Where the owner describes a Workout in words, typed or dictated, and gets a Plan to check and start.
 ///
+/// It opens on a microphone button, and the toolbar switches to the keyboard and back, which is remembered. The
+/// words heard fill the description as they come, and stay there to correct by hand.
+///
 /// The Plan is made on the iPhone by Apple Intelligence, and shown before Start with each Phase in its color, as setup
 /// shows it, so a misheard number is caught before the Workout runs. The description and the last Plan are remembered,
 /// so a Workout can run again after it ends.
@@ -12,6 +15,7 @@ struct DescribeScreen: View {
 
     @State private var isWriting = false
     @State private var problem: String?
+    @State private var dictation = Dictation()
     @FocusState private var isEditing: Bool
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -22,7 +26,9 @@ struct DescribeScreen: View {
         let plan = remembered.describedPlan
         let workout = plan.flatMap { try? $0.makeWorkout() }
         let board = plan.map(PlanBoard.init(plan:))
-        let canWrite = !isWriting && unavailable == nil && !remembered.workoutDescription.trimmed.isEmpty
+        let isDictating = dictation.state != .idle
+        let canWrite =
+            !isWriting && !isDictating && unavailable == nil && !remembered.workoutDescription.trimmed.isEmpty
         // The same words make the same Plan, so a new one waits for the description to change.
         let wordsChanged = remembered.workoutDescription.trimmed != remembered.describedPlanWords
 
@@ -39,6 +45,7 @@ struct DescribeScreen: View {
                 )
                 .lineLimit(3...8)
                 .focused($isEditing)
+                .disabled(isDictating)
                 .foregroundStyle(colors.text)
                 .listRowBackground(colors.raised)
             } header: {
@@ -50,10 +57,17 @@ struct DescribeScreen: View {
                             ?? "Say how many Rounds, and how long each Work and Rest lasts. A Work with no time ends when you tap Done."
                     )
                     .foregroundStyle(colors.secondary)
-                    if let problem {
+                    if let problem = dictation.problem ?? problem {
                         Text(problem)
                             .foregroundStyle(colors.text)
                     }
+                }
+            }
+
+            if !remembered.describesByTyping && unavailable == nil {
+                Section {
+                    DictateButton(dictation: dictation, hasWords: !remembered.workoutDescription.trimmed.isEmpty)
+                        .listRowBackground(Color.clear)
                 }
             }
 
@@ -110,12 +124,40 @@ struct DescribeScreen: View {
         .background(colors.background.ignoresSafeArea())
         .navigationTitle("Describe")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if unavailable == nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        switchInput()
+                    } label: {
+                        if remembered.describesByTyping {
+                            Label("Dictate", systemImage: "mic")
+                        } else {
+                            Label("Type", systemImage: "keyboard")
+                        }
+                    }
+                }
+            }
+        }
+        // Words heard replace the description once there are any, so tapping the microphone and saying nothing keeps
+        // the old words.
+        .onChange(of: dictation.transcript) { _, transcript in
+            if !transcript.text.isEmpty {
+                remembered.workoutDescription = transcript.text
+            }
+        }
+        .onDisappear {
+            dictation.stop()
+        }
         .safeAreaBar(edge: .bottom) {
             Group {
                 if let plan, let workout, let board {
+                    // The Workout's audio can't share the session with the microphone, so Start waits for listening
+                    // to stop.
                     StartButton(workout: workout, board: board) {
                         start(workout, plan.activity)
                     }
+                    .disabled(isDictating)
                 } else {
                     makePlanButton(isEnabled: canWrite, colors: colors)
                 }
@@ -151,6 +193,17 @@ struct DescribeScreen: View {
         .accessibilityShowsLargeContentViewer()
     }
 
+    /// Moves between the microphone and the keyboard. Moving to the keyboard stops listening and opens it.
+    private func switchInput() {
+        remembered.describesByTyping.toggle()
+        if remembered.describesByTyping {
+            dictation.stop()
+            isEditing = true
+        } else {
+            isEditing = false
+        }
+    }
+
     /// Asks for a Plan, and keeps it only if it can run, so Start never offers a Plan that can't.
     private func write() {
         isEditing = false
@@ -175,6 +228,64 @@ struct DescribeScreen: View {
                 remembered.describedPlanWords = nil
                 problem = error.explanation
             }
+        }
+    }
+}
+
+/// The microphone button: tap to start listening and tap again to stop, with a line under it saying what it's doing.
+private struct DictateButton: View {
+    let dictation: Dictation
+    /// Whether the description already has words, which listening again replaces.
+    let hasWords: Bool
+
+    @ScaledMetric(relativeTo: .largeTitle) private var size = 76
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        let colors = InkColors(contrast: contrast)
+        let isListening = dictation.state == .listening
+
+        VStack(spacing: 12) {
+            Button {
+                if dictation.state == .idle {
+                    dictation.start()
+                } else {
+                    dictation.stop()
+                }
+            } label: {
+                Group {
+                    switch dictation.state {
+                    case .idle:
+                        Image(systemName: "mic.fill")
+                    case .listening:
+                        Image(systemName: "stop.fill")
+                    case .preparing, .finishing:
+                        ProgressView()
+                    }
+                }
+                .font(.largeTitle.weight(.semibold))
+                .foregroundStyle(colors.accent)
+                .frame(width: size, height: size)
+            }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .disabled(dictation.state == .finishing)
+            .accessibilityLabel(isListening ? "Stop Dictating" : "Dictate")
+
+            Text(caption)
+                .font(.subheadline)
+                .foregroundStyle(colors.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var caption: String {
+        switch dictation.state {
+        case .idle: hasWords ? "Tap to say it again. Your words replace these." : "Tap and say today's Workout."
+        case .preparing: "Getting ready…"
+        case .listening: "Listening. Tap when you're done."
+        case .finishing: "Writing it down…"
         }
     }
 }
