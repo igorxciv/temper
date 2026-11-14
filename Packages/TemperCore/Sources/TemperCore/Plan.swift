@@ -77,7 +77,12 @@ public nonisolated struct Plan: Equatable, Sendable {
                 }
             }
         }
-        return Workout(phases: phases, repeatingRound: repeatingRound, warnsBeforeRestEnds: warnsBeforeRestEnds)
+        return Workout(
+            phases: phases,
+            repeatingRound: repeatingRound,
+            warnsBeforeRestEnds: warnsBeforeRestEnds,
+            countsDown: true
+        )
     }
 }
 

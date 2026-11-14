@@ -24,7 +24,7 @@ struct WorkoutTests {
             Phase(kind: .cooldown, duration: .seconds(60)),
         ]
 
-        #expect(intervals() == Workout(phases: expected))
+        #expect(intervals() == Workout(phases: expected, countsDown: true))
     }
 
     @Test func `A zero Prepare is dropped, so the Workout opens on Work`() {
@@ -55,7 +55,7 @@ struct WorkoutTests {
     @Test func `A single Round with every optional Phase off is one Work`() {
         let workout = intervals(prepare: .zero, rounds: 1, rest: .zero, cooldown: .zero)
 
-        #expect(workout == Workout(phases: [Phase(kind: .work, duration: .seconds(30), round: 1)]))
+        #expect(workout == Workout(phases: [Phase(kind: .work, duration: .seconds(30), round: 1)], countsDown: true))
     }
 
     @Test func `The first-launch Workout runs for 08:50 over 8 Rounds`() {

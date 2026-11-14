@@ -77,7 +77,8 @@
 
         func recordOnset(wall onset: Double) {
             var fields: [String: any Sendable] = ["onset_wall": onset]
-            if let target = lock.withLock({ cueTargetWall }) {
+            // Only a Cue's first onset is measured. The Countdown has one per number, a second apart.
+            if let target = lock.withLock({ cueTargetWall.take() }) {
                 fields["error_ms"] = (onset - target) * 1000
             }
             write("onset", fields)

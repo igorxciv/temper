@@ -77,8 +77,12 @@ A hold on the current Phase, requested by the owner, that stops its clock until 
 _Avoid_: Rest, break
 
 **Cue**:
-The sound announcing a Phase change, the end of the Workout, that Rest is about to end, or that a Stopwatch's Work has reached its set length. Work starts and ends on a boxing gong. Cooldown and the end of the Workout add their name, spoken over the gong, and the other Cues are spoken. Apple Watch can also mark it with a tap on the wrist.
+The sound announcing a Phase change, the end of the Workout, that Rest is about to end, that a Phase is about to reach its set length, or that a Stopwatch's Work has reached it. Work starts and ends on a boxing gong. Cooldown and the end of the Workout add their name, spoken over the gong, and the other Cues are spoken. Apple Watch can also mark it with a tap on the wrist.
 _Avoid_: Alert, notification, beep
+
+**Countdown**:
+The Cue that counts "5, 4, 3, 2, 1" aloud, one number a second, over the last five seconds before a Phase reaches its set length. A Phase too short to fit it after its own Cue has none, and Apple Watch doesn't tap for it.
+_Avoid_: Beeps, final seconds, Prepare
 
 **Dip**:
 A brief lowering of other audio while a Cue plays.

@@ -92,8 +92,15 @@ public nonisolated struct Workout: Equatable, Sendable {
     public let repeatingRound: [Phase]
     /// Whether a Rest long enough says "10 seconds" before it ends, as in Open Rounds.
     public let warnsBeforeRestEnds: Bool
+    /// Whether a Phase long enough says the Countdown before it reaches its set length. Every Plan's Workout does.
+    public let countsDown: Bool
 
-    public init(phases: [Phase], repeatingRound: [Phase] = [], warnsBeforeRestEnds: Bool = false) {
+    public init(
+        phases: [Phase],
+        repeatingRound: [Phase] = [],
+        warnsBeforeRestEnds: Bool = false,
+        countsDown: Bool = false
+    ) {
         // Without an open Phase to wait on, a repeating Round would place Phases forever.
         precondition(
             repeatingRound.isEmpty || repeatingRound.contains(where: \.isOpen),
@@ -102,6 +109,7 @@ public nonisolated struct Workout: Equatable, Sendable {
         self.phases = phases
         self.repeatingRound = repeatingRound
         self.warnsBeforeRestEnds = warnsBeforeRestEnds
+        self.countsDown = countsDown
     }
 
     /// The length of all its Phases, not counting any Pause, or `nil` if a Phase is open or Rounds repeat, and so

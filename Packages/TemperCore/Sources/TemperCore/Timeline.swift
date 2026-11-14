@@ -1,5 +1,5 @@
-/// The spoken announcement of a Phase change, of the end of the Workout, that Rest is about to end, or that a
-/// Stopwatch's Work has reached its set length.
+/// The announcement of a Phase change, of the end of the Workout, that Rest is about to end, that a Phase is
+/// about to reach its set length, or that a Stopwatch's Work has reached it.
 ///
 /// The raw value is what the Watch is sent, so renaming a case changes the messages' version.
 public nonisolated enum Cue: String, Codable, Equatable, Sendable {
@@ -8,6 +8,8 @@ public nonisolated enum Cue: String, Codable, Equatable, Sendable {
     case tenSeconds
     /// "Finish", as a Phase that runs past its set length reaches it.
     case finish
+    /// "5, 4, 3, 2, 1", one number a second, over the last 5 s before a Phase reaches its set length.
+    case countdown
 
     /// The Cue for entering a Phase. Prepare starts silently.
     init?(entering kind: Phase.Kind) {
@@ -24,6 +26,11 @@ public nonisolated enum Cue: String, Codable, Equatable, Sendable {
 private nonisolated let restWarning = Duration.seconds(10)
 /// A shorter Rest has no room for "10 seconds" after its own Cue.
 private nonisolated let shortestWarnedRest = Duration.seconds(20)
+/// How long before a Phase reaches its set length the Countdown is due.
+private nonisolated let countdownLength = Duration.seconds(5)
+/// How long after a Phase's own Cue the Countdown can start at the earliest. Its Cue and a full Dip cycle, about 3.2 s
+/// with a spoken Cue and 4.3 s with the gong, fit in that time, so a Cue never starts while the one before plays.
+private nonisolated let countdownRoom = Duration.seconds(5)
 /// A Done this soon after the last one is the second tap of a double tap. With a Rest of zero, the next Round's open
 /// Work starts at the first tap, so the second would otherwise end it at once.
 private nonisolated let doubleTapLimit = Duration.seconds(1)
@@ -42,6 +49,10 @@ public nonisolated struct UpcomingCue: Equatable, Sendable {
 ///
 /// A Phase that runs past its set length waits for Done the same way, but first counts its time left down to its set
 /// length, where "Finish" is due, and takes Done only from then on.
+///
+/// In a Workout that counts down, the Countdown is due 5 s before any Phase reaches its set length, whether it ends
+/// there or runs past it, so it comes before that Phase's last Cue: the next Phase's, "Workout complete" or "Finish".
+/// An open Phase has none.
 ///
 /// "Workout complete" is due only when the last Phase ends at its set length. A Workout that ends at Done says
 /// nothing more, since the owner has just ended it.
@@ -109,6 +120,9 @@ public nonisolated struct Timeline: Sendable {
                 cues.append(UpcomingCue(cue: cue, due: start))
             }
             if case .runsPast(let length) = phase.length {
+                if workout.countsDown, let countdown = Self.countdown(for: phase, startingAt: start) {
+                    cues.append(countdown)
+                }
                 cues.append(UpcomingCue(cue: .finish, due: start + length))
             }
             let endAtSetLength = phase.endsAtDone ? nil : phase.duration.map { start + $0 }
@@ -120,6 +134,9 @@ public nonisolated struct Timeline: Sendable {
             if workout.warnsBeforeRestEnds, phase.kind == .rest, end - start >= shortestWarnedRest {
                 cues.append(UpcomingCue(cue: .tenSeconds, due: end - restWarning))
             }
+            if workout.countsDown, !phase.endsAtDone, let countdown = Self.countdown(for: phase, startingAt: start) {
+                cues.append(countdown)
+            }
             start = end
         }
         if spans.last.map({ !$0.phase.endsAtDone }) ?? true {
@@ -129,6 +146,15 @@ public nonisolated struct Timeline: Sendable {
         self.doneTimes = doneTimes
         self.spans = spans
         self.cues = cues
+    }
+
+    /// The Countdown before the Phase reaches its set length, if there's room for it. A Phase with its own Cue needs
+    /// `countdownRoom` after that Cue first. A Prepare starts silently, so one of 00:05 counts down from its start.
+    private static func countdown(for phase: Phase, startingAt start: Duration) -> UpcomingCue? {
+        guard let length = phase.duration else { return nil }
+        let room = Cue(entering: phase.kind) == nil ? .zero : countdownRoom
+        guard length >= room + countdownLength else { return nil }
+        return UpcomingCue(cue: .countdown, due: start + length - countdownLength)
     }
 
     /// Ends the Phase still waiting for Done at `activeTime`, which places every following Phase and its Cue
