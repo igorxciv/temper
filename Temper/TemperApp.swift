@@ -78,9 +78,7 @@ struct RootView: View {
                             NavigationStack {
                                 SetupScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
                                     ranBoard = PlanBoard(workoutType: workoutType, settings: remembered[workoutType])
-                                    runner.start(
-                                        workout, filedAs: HealthRecord.ActivityType(workoutType),
-                                        isDipOn: remembered.isDipOn)
+                                    runner.start(workout, filedAs: HealthRecord.ActivityType(workoutType))
                                 }
                             }
                         }
@@ -89,13 +87,13 @@ struct RootView: View {
                         NavigationStack {
                             DescribeScreen(remembered: remembered) { workout, activityType in
                                 ranBoard = remembered.describedPlan.map(PlanBoard.init(plan:))
-                                runner.start(workout, filedAs: activityType, isDipOn: remembered.isDipOn)
+                                runner.start(workout, filedAs: activityType)
                             }
                         }
                     }
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
                         NavigationStack {
-                            SettingsScreen(remembered: remembered, health: runner.health)
+                            SettingsScreen(health: runner.health)
                         }
                     }
                 }

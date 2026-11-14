@@ -464,7 +464,7 @@ nonisolated struct PhoneFlowTests {
         let clock = ManualClock()
         let engine = WorkoutEngine(
             workout: WorkoutType.intervals.makeWorkout(from: WorkoutType.intervals.firstLaunch), clock: clock,
-            audio: FakeAudioOutput(), isDipOn: false)
+            audio: FakeAudioOutput())
         var snapshots = engine.snapshots.makeAsyncIterator()
         var flow = connected()
         await engine.start()

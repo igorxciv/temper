@@ -49,20 +49,15 @@ final class WorkoutRunner {
     }
 
     /// Starts a Workout, of a Workout Type or from a Plan, whose Health workout is filed under `activityType`.
-    func start(_ workout: Workout, filedAs activityType: HealthRecord.ActivityType, isDipOn: Bool) {
+    func start(_ workout: Workout, filedAs activityType: HealthRecord.ActivityType) {
         guard engine == nil else { return }
         self.workout = workout
         self.activityType = activityType
         let workoutID = UUID()
         healthWorkoutID = workoutID
         startDate = nil
-        let audio = AudioAdapter(cues: cues, application: .shared)
-        let engine = WorkoutEngine(
-            workout: workout,
-            clock: ContinuousClock(),
-            audio: audio,
-            isDipOn: isDipOn
-        )
+        let audio = AudioAdapter(cues: cues)
+        let engine = WorkoutEngine(workout: workout, clock: ContinuousClock(), audio: audio)
         self.engine = engine
         liveActivity = LiveActivityAdapter()
         Task { [cues] in

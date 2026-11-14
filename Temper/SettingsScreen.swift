@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SettingsScreen: View {
-    @Bindable var remembered: RememberedValues
     let health: HealthSaves
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -14,16 +13,6 @@ struct SettingsScreen: View {
         let colors = InkColors(contrast: contrast)
 
         Form {
-            Section {
-                Toggle("Dip", isOn: $remembered.isDipOn)
-                    .tint(colors.accent)
-                    .listRowBackground(colors.raised)
-            } header: {
-                Text("Music").foregroundStyle(colors.secondary)
-            } footer: {
-                Text("Lowers other audio while a Cue plays. Music never pauses.")
-                    .foregroundStyle(colors.secondary)
-            }
             AppleHealthSection(health: health, colors: colors)
             Section {
                 LabeledContent("Version", value: version)

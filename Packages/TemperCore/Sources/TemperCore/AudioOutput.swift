@@ -28,9 +28,10 @@ public nonisolated protocol AudioOutput<Instant>: Sendable {
     /// Has one consumer, the Cue rules.
     var events: AsyncStream<AudioEvent> { get }
 
-    /// Activates the session, or changes whether it lowers other audio if it's already active.
-    func activate(ducking: Bool) async throws
-    /// Releases the session, so other audio returns to full volume.
+    /// Activates the session, mixed with other audio and never lowering it, and starts the engine if it has
+    /// stopped.
+    func activate() async throws
+    /// Releases the session.
     func deactivate() async throws
     /// Arranges for a Cue to start speaking at `deadline`, or at once if that has passed. Throws instead if
     /// the Cue would start after `latest`. Returns when it's arranged, not when it has played.

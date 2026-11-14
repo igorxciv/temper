@@ -30,13 +30,12 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     private var latest: Snapshot?
     private var wake: Task<Void, Never>?
 
-    /// One engine runs one Workout, so `isDipOn` is the Dip setting as it was when that Workout started.
-    public init(workout: Workout, clock: EngineClock, audio: any AudioOutput<Instant>, isDipOn: Bool) {
+    public init(workout: Workout, clock: EngineClock, audio: any AudioOutput<Instant>) {
         (snapshots, continuation) = AsyncStream.makeStream()
         self.clock = clock
         timeline = Timeline(workout: workout)
         rounds = workout.rounds
-        cueRules = CueRules(timeline: timeline, clock: clock, audio: audio, isDipOn: isDipOn)
+        cueRules = CueRules(timeline: timeline, clock: clock, audio: audio)
     }
 
     /// Waits for audio, for at most a second, then sets the fixed start point and returns it. It returns `nil` if the

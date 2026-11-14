@@ -1,7 +1,6 @@
 import AVFAudio
 import CallKit
 import TemperCore
-import UIKit
 
 nonisolated enum AudioAdapterError: Error {
     case noCueFormat
@@ -10,8 +9,8 @@ nonisolated enum AudioAdapterError: Error {
     case tooLate
 }
 
-/// Carries out what the Cue rules ask for, using a `.playback` session and an engine that renders zeros
-/// between Cues. It decides nothing. It reports what iOS does to the session, and makes only the changes
+/// Carries out what the Cue rules ask for, using a `.playback` session that mixes with other audio and never
+/// lowers it, and an engine that renders zeros between Cues. It decides nothing. It reports what iOS does to the session, and makes only the changes
 /// that report describes: an engine stopped for a new route, or a new engine after a media-services reset.
 ///
 /// One adapter serves one Workout. All adapters share one queue and never suspend inside a call, so calls run
@@ -24,7 +23,7 @@ nonisolated enum AudioAdapterError: Error {
 actor AudioAdapter: AudioOutput {
     private static let queue = DispatchSerialQueue(label: "Temper.audio", qos: .userInteractive)
 
-    /// Route changes that can move output to another device. A category change is the adapter's own Dip.
+    /// Route changes that can move output to another device. A category change is the adapter's own.
     private static let newRouteReasons: Set<AVAudioSession.RouteChangeReason> = [
         .newDeviceAvailable, .oldDeviceUnavailable, .override, .wakeFromSleep, .noSuitableRouteForCategory,
         .routeConfigurationChange,
@@ -38,7 +37,6 @@ actor AudioAdapter: AudioOutput {
     private nonisolated let eventSender: AsyncStream<AudioEvent>.Continuation
 
     private let cues: CueBank
-    private let application: UIApplication
     private let clock = ContinuousClock()
     private let session = AVAudioSession.sharedInstance()
     private let calls = CXCallObserver()
@@ -46,13 +44,11 @@ actor AudioAdapter: AudioOutput {
     private var engine = AVAudioEngine()
     private var player = AVAudioPlayerNode()
     private var isGraphBuilt = false
-    /// Whether the active session lowers other audio, or `nil` when the session isn't active.
-    private var activeDucking: Bool?
+    private var isActive = false
     private var sessionObservers: [any NSObjectProtocol] = []
 
-    init(cues: CueBank, application: UIApplication) {
+    init(cues: CueBank) {
         self.cues = cues
-        self.application = application
         (events, eventSender) = AsyncStream.makeStream()
     }
 
@@ -64,24 +60,19 @@ actor AudioAdapter: AudioOutput {
 
     // MARK: AudioOutput
 
-    func activate(ducking: Bool) throws {
+    func activate() throws {
         observeSessionIfNeeded()
-        switch activeDucking {
-        case ducking:
-            try startAudio()
-        case nil:
-            try setCategory(ducking: ducking)
+        if !isActive {
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
-            activeDucking = ducking
-            try startAudio()
-        default:
-            try cycleSession(ducking: ducking)
+            isActive = true
         }
+        try startAudio()
     }
 
     func deactivate() throws {
         stopAudio()
-        activeDucking = nil
+        isActive = false
         try session.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
@@ -180,9 +171,9 @@ actor AudioAdapter: AudioOutput {
 
     /// Only an active session can be taken. iOS has already stopped the engine.
     private func sessionWasTaken() {
-        guard activeDucking != nil else { return }
+        guard isActive else { return }
         stopAudio()
-        activeDucking = nil
+        isActive = false
         send(.interrupted)
     }
 
@@ -190,7 +181,7 @@ actor AudioAdapter: AudioOutput {
     /// for a configuration change isn't reported, because every schedule starts a stopped engine anyway, and
     /// reporting it could loop if a restart caused another change.
     private func routeChanged() {
-        guard activeDucking != nil else { return }
+        guard isActive else { return }
         stopAudio()
         send(.routeChanged)
     }
@@ -201,7 +192,7 @@ actor AudioAdapter: AudioOutput {
         engine = AVAudioEngine()
         player = AVAudioPlayerNode()
         isGraphBuilt = false
-        activeDucking = nil
+        isActive = false
         send(.mediaServicesReset)
     }
 
@@ -210,26 +201,6 @@ actor AudioAdapter: AudioOutput {
     }
 
     // MARK: Session and engine
-
-    private func setCategory(ducking: Bool) throws {
-        try session.setCategory(.playback, mode: .default, options: ducking ? [.duckOthers] : [.mixWithOthers])
-    }
-
-    /// Dip. Changing the option on an active session doesn't reach other audio, so the session goes down and
-    /// comes back. A background task covers the gap, when nothing else is keeping a locked phone's app running.
-    /// Notifying on deactivation is what lets other audio return.
-    private func cycleSession(ducking: Bool) throws {
-        let backgroundTask = application.beginBackgroundTask(withName: "Dip", expirationHandler: nil)
-        defer { application.endBackgroundTask(backgroundTask) }
-
-        stopAudio()
-        activeDucking = nil
-        try session.setActive(false, options: .notifyOthersOnDeactivation)
-        try setCategory(ducking: ducking)
-        try session.setActive(true)
-        activeDucking = ducking
-        try startAudio()
-    }
 
     private func buildGraphIfNeeded() throws {
         guard !isGraphBuilt else { return }

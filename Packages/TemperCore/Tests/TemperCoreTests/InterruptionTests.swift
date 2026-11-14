@@ -25,12 +25,12 @@ nonisolated struct InterruptionTests {
     private let audio = FakeAudioOutput()
 
     /// Cues are due at 10, 40, 55, 85 and 145 s.
-    private func makeEngine(isDipOn: Bool = false) -> WorkoutEngine<ManualClock> {
-        makeEngine([prepare, firstWork, rest, secondWork, cooldown], isDipOn: isDipOn)
+    private func makeEngine() -> WorkoutEngine<ManualClock> {
+        makeEngine([prepare, firstWork, rest, secondWork, cooldown])
     }
 
-    private func makeEngine(_ phases: [Phase], isDipOn: Bool = false) -> WorkoutEngine<ManualClock> {
-        WorkoutEngine(workout: Workout(phases: phases), clock: clock, audio: audio, isDipOn: isDipOn)
+    private func makeEngine(_ phases: [Phase]) -> WorkoutEngine<ManualClock> {
+        WorkoutEngine(workout: Workout(phases: phases), clock: clock, audio: audio)
     }
 
     private func at(_ seconds: Double) -> ManualClock.Instant {
@@ -71,15 +71,9 @@ nonisolated struct InterruptionTests {
     }
 
     /// Starts an engine and hands over the first Cue, "Work" due at 10 s.
-    private func startToFirstCue(
-        _ engine: WorkoutEngine<ManualClock>,
-        isDipOn: Bool = false
-    ) async -> AsyncStream<Call>.Iterator {
+    private func startToFirstCue(_ engine: WorkoutEngine<ManualClock>) async -> AsyncStream<Call>.Iterator {
         var calls = await start(engine)
         advance(to: 8.5)
-        if isDipOn {
-            #expect(await calls.next() == .activate(ducking: true))
-        }
         #expect(await calls.next() == .schedule(.work, at: at(10)))
         return calls
     }
@@ -105,8 +99,8 @@ nonisolated struct InterruptionTests {
         #expect(await snapshots.next()?.progress == running(rest, endsAt: 55))
     }
 
-    @Test func `No Cue plays during a phone call, and Dip stays off`() async {
-        let engine = makeEngine(isDipOn: true)
+    @Test func `No Cue plays during a phone call`() async {
+        let engine = makeEngine()
         _ = await start(engine)
         await audio.setCall(true)
         audio.send(.interrupted)
@@ -117,7 +111,7 @@ nonisolated struct InterruptionTests {
         advance(to: 10)
         await letAudioSettle()
 
-        #expect(await audio.history == [.activate(ducking: false)])
+        #expect(await audio.history == [.activate])
     }
 
     @Test(arguments: Trigger.allCases)
@@ -131,7 +125,7 @@ nonisolated struct InterruptionTests {
         await recover(engine, by: trigger)
         await letAudioSettle()
 
-        #expect(await audio.history == [.activate(ducking: false)])
+        #expect(await audio.history == [.activate])
     }
 
     @Test func `A Cue held back by a call plays if the call ends and recovery comes up to 1s after its deadline`()
@@ -149,7 +143,7 @@ nonisolated struct InterruptionTests {
         advance(to: 11)
         audio.send(.resumeRecommended)
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         #expect(await calls.next() == .schedule(.work, at: at(10)))
     }
 
@@ -165,7 +159,7 @@ nonisolated struct InterruptionTests {
         await engine.refresh()
 
         // iOS never interrupted the session, so the Cue's own session is all that went, and recovery brings it.
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         advance(to: 38.5)
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
     }
@@ -182,7 +176,7 @@ nonisolated struct InterruptionTests {
         await audio.setCall(false)
         advance(to: 38.5)
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
     }
 
@@ -197,7 +191,7 @@ nonisolated struct InterruptionTests {
 
         await engine.refresh()
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
     }
 
     // MARK: Workout finishes during the silence
@@ -237,29 +231,14 @@ nonisolated struct InterruptionTests {
         advance(to: 11)
         await recover(engine, by: trigger)
 
-        #expect(await calls.next() == .activate(ducking: false))
-        #expect(await calls.next() == .schedule(.work, at: at(10)))
-    }
-
-    @Test func `A Cue scheduled again on recovery gets its Dip`() async {
-        let engine = makeEngine(isDipOn: true)
-        var calls = await startToFirstCue(engine, isDipOn: true)
-        advance(to: 9)
-        audio.send(.interrupted)
-        #expect(await calls.next() == .cancel)
-
-        audio.send(.resumeRecommended)
-
-        #expect(await calls.next() == .activate(ducking: true))
+        #expect(await calls.next() == .activate)
         #expect(await calls.next() == .schedule(.work, at: at(10)))
     }
 
     @Test(arguments: Trigger.allCases)
-    func `A Cue interrupted before its deadline is skipped on recovery more than 1s after it, with no Dip`(
-        trigger: Trigger
-    ) async {
-        let engine = makeEngine(isDipOn: true)
-        var calls = await startToFirstCue(engine, isDipOn: true)
+    func `A Cue interrupted before its deadline is skipped on recovery more than 1s after it`(trigger: Trigger) async {
+        let engine = makeEngine()
+        var calls = await startToFirstCue(engine)
         advance(to: 9)
         audio.send(.interrupted)
         #expect(await calls.next() == .cancel)
@@ -267,9 +246,8 @@ nonisolated struct InterruptionTests {
         advance(to: 11.25)
         await recover(engine, by: trigger)
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         advance(to: 38.5)
-        #expect(await calls.next() == .activate(ducking: true))
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
     }
 
@@ -282,7 +260,7 @@ nonisolated struct InterruptionTests {
 
         advance(to: 38.5)
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
     }
 
@@ -297,44 +275,25 @@ nonisolated struct InterruptionTests {
         await letAudioSettle()
         audio.send(.resumeRecommended)
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         #expect(await calls.next() == .schedule(.work, at: at(10)))
     }
 
     // MARK: Cue interrupted after it started speaking
 
-    @Test(arguments: [false, true])
-    func `A Cue interrupted after it started speaking is cut and never restarted`(isDipOn: Bool) async {
-        let engine = makeEngine(isDipOn: isDipOn)
-        var calls = await startToFirstCue(engine, isDipOn: isDipOn)
+    @Test func `A Cue interrupted after it started speaking is cut and never restarted`() async {
+        let engine = makeEngine()
+        var calls = await startToFirstCue(engine)
         advance(to: 10.25)
         audio.send(.interrupted)
         #expect(await calls.next() == .cancel)
 
         audio.send(.resumeRecommended)
 
-        // Recovery restarts audio undipped, with no Cue, so the next call is the next Cue's own.
-        #expect(await calls.next() == .activate(ducking: false))
+        // Recovery restarts audio with no Cue, so the next call is the next Cue's own.
+        #expect(await calls.next() == .activate)
         advance(to: 38.5)
-        if isDipOn {
-            #expect(await calls.next() == .activate(ducking: true))
-        }
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
-    }
-
-    @Test func `A finish reported for a Cue cut by an interruption lifts nothing`() async {
-        let engine = makeEngine(isDipOn: true)
-        var calls = await startToFirstCue(engine, isDipOn: true)
-        advance(to: 10.25)
-        audio.send(.interrupted)
-        #expect(await calls.next() == .cancel)
-
-        await audio.finishSpeaking()
-        await letAudioSettle()
-        await engine.pause(at: clock.now)
-
-        // The session is already gone, so a lift would be the only thing ahead of the release.
-        #expect(await calls.next() == .deactivate)
     }
 
     @Test func `An interruption while "Workout complete" speaks releases the session`() async {
@@ -364,21 +323,20 @@ nonisolated struct InterruptionTests {
 
         audio.send(.routeChanged)
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         advance(to: 8.5)
         #expect(await calls.next() == .schedule(.work, at: at(10)))
     }
 
-    @Test(arguments: [false, true])
-    func `A route change before a Cue's deadline restarts audio and schedules the Cue again`(isDipOn: Bool) async {
-        let engine = makeEngine(isDipOn: isDipOn)
-        var calls = await startToFirstCue(engine, isDipOn: isDipOn)
+    @Test func `A route change before a Cue's deadline restarts audio and schedules the Cue again`() async {
+        let engine = makeEngine()
+        var calls = await startToFirstCue(engine)
         advance(to: 9)
 
         audio.send(.routeChanged)
 
         #expect(await calls.next() == .cancel)
-        #expect(await calls.next() == .activate(ducking: isDipOn))
+        #expect(await calls.next() == .activate)
         #expect(await calls.next() == .schedule(.work, at: at(10)))
     }
 
@@ -390,7 +348,7 @@ nonisolated struct InterruptionTests {
         audio.send(.routeChanged)
 
         #expect(await calls.next() == .cancel)
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         advance(to: 38.5)
         #expect(await calls.next() == .schedule(.rest, at: at(40)))
     }
@@ -404,7 +362,7 @@ nonisolated struct InterruptionTests {
         audio.send(.routeChanged)
         await letAudioSettle()
 
-        #expect(await audio.history == [.activate(ducking: false)])
+        #expect(await audio.history == [.activate])
     }
 
     @Test func `A route change during a Pause touches no audio, and Resume restarts it`() async {
@@ -415,10 +373,10 @@ nonisolated struct InterruptionTests {
 
         audio.send(.routeChanged)
         await letAudioSettle()
-        #expect(await audio.history == [.activate(ducking: false), .deactivate])
+        #expect(await audio.history == [.activate, .deactivate])
 
         await engine.resume(at: clock.now)
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
     }
 
     // MARK: iOS resets its media services
@@ -430,10 +388,10 @@ nonisolated struct InterruptionTests {
 
         audio.send(.mediaServicesReset)
         await letAudioSettle()
-        #expect(await audio.history == [.activate(ducking: false)])
+        #expect(await audio.history == [.activate])
 
         await engine.refresh()
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
     }
 
     @Test func `After a media-services reset, the next Cue rebuilds audio and plays`() async {
@@ -445,7 +403,7 @@ nonisolated struct InterruptionTests {
 
         advance(to: 8.5)
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         #expect(await calls.next() == .schedule(.work, at: at(10)))
     }
 
@@ -460,15 +418,15 @@ nonisolated struct InterruptionTests {
         advance(to: 4)
         audio.send(.interrupted)
         await letAudioSettle()
-        await audio.onNext(.activate(ducking: false), .fail)
+        await audio.onNext(.activate, .fail)
 
         audio.send(.resumeRecommended)
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         await letAudioSettle()
-        #expect(await audio.history == [.activate(ducking: false), .activate(ducking: false)])
+        #expect(await audio.history == [.activate, .activate])
 
         await recover(engine, by: trigger)
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
         if trigger == .returningToTheFront {
             _ = await snapshots.next()
         }
@@ -487,7 +445,7 @@ nonisolated struct InterruptionTests {
         await engine.refresh()
         await letAudioSettle()
 
-        #expect(await audio.history == [.activate(ducking: false), .activate(ducking: false)])
+        #expect(await audio.history == [.activate, .activate])
     }
 
     @Test(arguments: Trigger.allCases)
@@ -499,60 +457,18 @@ nonisolated struct InterruptionTests {
         await recover(engine, by: trigger)
         await letAudioSettle()
 
-        #expect(await audio.history == [.activate(ducking: false)])
-    }
-
-    @Test(arguments: Trigger.allCases)
-    func `A Dip whose lift failed twice lifts on the next recovery trigger`(trigger: Trigger) async {
-        let engine = makeEngine(isDipOn: true)
-        var calls = await startToFirstCue(engine, isDipOn: true)
-        await audio.onNext(.activate(ducking: false), .fail)
-        await audio.onNext(.activate(ducking: false), .fail)
-        advance(to: 11)
-        await audio.finishSpeaking()
-        #expect(await calls.next() == .activate(ducking: false))
-        advance(to: 16)
-        #expect(await calls.next() == .activate(ducking: false))
-        await letAudioSettle()
-
-        advance(to: 20)
-        await recover(engine, by: trigger)
-
-        #expect(await calls.next() == .activate(ducking: false))
-    }
-
-    @Test func `A lift that fails on recovery doesn't loop, and the next trigger tries again`() async {
-        let engine = makeEngine(isDipOn: true)
-        var calls = await startToFirstCue(engine, isDipOn: true)
-        for _ in 0..<3 {
-            await audio.onNext(.activate(ducking: false), .fail)
-        }
-        advance(to: 11)
-        await audio.finishSpeaking()
-        _ = await calls.next()
-        advance(to: 16)
-        _ = await calls.next()
-        await letAudioSettle()
-
-        audio.send(.resumeRecommended)
-        #expect(await calls.next() == .activate(ducking: false))
-        await letAudioSettle()
-        // Start, the Dip, the Cue, two failed lifts and the failed one on recovery, with no retry after it.
-        #expect(await audio.history.count == 6)
-
-        await engine.refresh()
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await audio.history == [.activate])
     }
 
     @Test func `Opening Temper brings back audio that failed at Start, ahead of the next Cue`() async {
-        await audio.onNext(.activate(ducking: false), .fail)
+        await audio.onNext(.activate, .fail)
         let engine = makeEngine()
         var calls = await start(engine)
         advance(to: 4)
 
         await engine.refresh()
 
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
     }
 
     @Test(arguments: [AudioEvent.interrupted, .mediaServicesReset])
@@ -566,10 +482,10 @@ nonisolated struct InterruptionTests {
         audio.send(.resumeRecommended)
         await engine.refresh()
         await letAudioSettle()
-        #expect(await audio.history == [.activate(ducking: false), .deactivate])
+        #expect(await audio.history == [.activate, .deactivate])
 
         await engine.resume(at: clock.now)
-        #expect(await calls.next() == .activate(ducking: false))
+        #expect(await calls.next() == .activate)
     }
 
     @Test func `Stop during an interruption still releases the session`() async {

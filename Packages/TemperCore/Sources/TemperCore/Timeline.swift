@@ -28,8 +28,8 @@ private nonisolated let restWarning = Duration.seconds(10)
 private nonisolated let shortestWarnedRest = Duration.seconds(20)
 /// How long before a Phase reaches its set length the Countdown is due.
 private nonisolated let countdownLength = Duration.seconds(5)
-/// How long after a Phase's own Cue the Countdown can start at the earliest. Its Cue and a full Dip cycle, about 3.2 s
-/// with a spoken Cue and 4.3 s with the gong, fit in that time, so a Cue never starts while the one before plays.
+/// How long after a Phase's own Cue the Countdown can start at the earliest. That Cue, spoken or the 1.6 s gong,
+/// finishes well within this time, so a Cue never starts while the one before plays.
 private nonisolated let countdownRoom = Duration.seconds(5)
 /// A Done this soon after the last one is the second tap of a double tap. With a Rest of zero, the next Round's open
 /// Work starts at the first tap, so the second would otherwise end it at once.

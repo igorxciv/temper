@@ -84,10 +84,6 @@ _Avoid_: Alert, notification, beep
 The Cue that counts "5, 4, 3, 2, 1" aloud, one number a second, over the last five seconds before a Phase reaches its set length. A Phase too short to fit it after its own Cue has none, and Apple Watch doesn't tap for it.
 _Avoid_: Beeps, final seconds, Prepare
 
-**Dip**:
-A brief lowering of other audio while a Cue plays.
-_Avoid_: Interrupt, mute
-
 **Health workout**:
 The record that Temper saves to Apple Health of one Training, or of one Workout run outside a Training. Each makes at most one.
 _Avoid_: Activity, Session, Fitness workout
