@@ -155,6 +155,7 @@
 			buildPhases = (
 				AA0000000000000000000014 /* Sources */,
 				AA0000000000000000000013 /* Frameworks */,
+				AA0000000000000000000086 /* Resources */,
 				AA0000000000000000000061 /* Embed Foundation Extensions */,
 				AA0000000000000000000082 /* Embed Watch Content */,
 			);
@@ -224,6 +225,7 @@
 			buildPhases = (
 				AA0000000000000000000074 /* Sources */,
 				AA0000000000000000000075 /* Frameworks */,
+				AA0000000000000000000087 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -275,6 +277,23 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA0000000000000000000086 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000087 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AA0000000000000000000014 /* Sources */ = {
