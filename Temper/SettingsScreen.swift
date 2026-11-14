@@ -21,7 +21,7 @@ struct SettingsScreen: View {
             } header: {
                 Text("Music").foregroundStyle(colors.secondary)
             } footer: {
-                Text("Lowers other audio while a Cue speaks. Music never pauses.")
+                Text("Lowers other audio while a Cue plays. Music never pauses.")
                     .foregroundStyle(colors.secondary)
             }
             AppleHealthSection(health: health, colors: colors)

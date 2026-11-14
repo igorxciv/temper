@@ -18,7 +18,7 @@ Temper runs a Workout: it moves through its Phases, announces each change aloud,
 
 ## Positioning
 
-A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and Open Rounds are built-in Plans; Describe turns a Workout said in words into a Plan on the device with Apple Intelligence, shown as an outline to check before Start. Cues speak every Phase change and duck other audio rather than pausing it.
+A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and Open Rounds are built-in Plans; Describe turns a Workout said in words into a Plan on the device with Apple Intelligence, shown as an outline to check before Start. Cues announce every Phase change and duck other audio rather than pausing it.
 
 ## Operating Context
 
