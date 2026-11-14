@@ -64,23 +64,52 @@ private nonisolated struct RenderedCues: @unchecked Sendable {
 /// Turns each Cue's words into audio with a fixed system voice.
 @MainActor
 private enum CueSpeech {
-    nonisolated static let all: [Cue: String] = [
-        .work: "Work",
-        .rest: "Rest",
-        .cooldown: "Cooldown",
-        .workoutComplete: "Workout complete",
-        .tenSeconds: "10 seconds",
-        .finish: "Finish",
+    /// What each Cue says, as one or more utterances. Each utterance starts a second after the one before, so the
+    /// Countdown's numbers land on the seconds the running screen shows.
+    nonisolated static let all: [Cue: [String]] = [
+        .work: ["Work"],
+        .rest: ["Rest"],
+        .cooldown: ["Cooldown"],
+        .workoutComplete: ["Workout complete"],
+        .tenSeconds: ["10 seconds"],
+        .finish: ["Finish"],
+        .countdown: ["Five", "Four", "Three", "Two", "One"],
     ]
 
     static func render() async -> [Cue: AVAudioPCMBuffer] {
         var rendered: [Cue: AVAudioPCMBuffer] = [:]
         let synthesizer = AVSpeechSynthesizer()
-        for (cue, words) in all {
-            let chunks = await chunks(of: words, from: synthesizer)
-            rendered[cue] = joined(chunks)
+        for (cue, utterances) in all {
+            var buffers: [AVAudioPCMBuffer] = []
+            for words in utterances {
+                guard let buffer = joined(await chunks(of: words, from: synthesizer)) else { break }
+                buffers.append(buffer)
+            }
+            if buffers.count == utterances.count {
+                rendered[cue] = spacedOneSecondApart(buffers)
+            }
         }
         return rendered
+    }
+
+    /// One buffer that starts each utterance a whole second after the one before and ends with the last. An utterance
+    /// longer than a second is cut there, so the numbers never drift off the seconds.
+    private nonisolated static func spacedOneSecondApart(_ buffers: [AVAudioPCMBuffer]) -> AVAudioPCMBuffer? {
+        guard buffers.count > 1 else { return buffers.first }
+        guard let format = CueBank.format, let last = buffers.last else { return nil }
+        let second = AVAudioFrameCount(format.sampleRate)
+        let length = second * AVAudioFrameCount(buffers.count - 1) + last.frameLength
+        guard let spaced = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: length),
+            let target = spaced.floatChannelData?[0]
+        else { return nil }
+        spaced.frameLength = length
+        target.update(repeating: 0, count: Int(length))
+        for (index, buffer) in buffers.enumerated() {
+            guard let source = buffer.floatChannelData?[0] else { return nil }
+            let frames = index == buffers.count - 1 ? buffer.frameLength : min(buffer.frameLength, second)
+            (target + Int(second) * index).update(from: source, count: Int(frames))
+        }
+        return spaced
     }
 
     private static func chunks(of words: String, from synthesizer: AVSpeechSynthesizer) async -> [AVAudioPCMBuffer] {

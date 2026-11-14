@@ -82,7 +82,8 @@ struct WorkoutTypeTests {
                 Phase(kind: .work, length: .open, round: 3),
                 Phase(kind: .cooldown, duration: .seconds(60)),
             ],
-            warnsBeforeRestEnds: true
+            warnsBeforeRestEnds: true,
+            countsDown: true
         )
 
         #expect(openRounds(prepare: .seconds(10), rounds: 3, rest: .seconds(60)) == expected)
@@ -108,7 +109,8 @@ struct WorkoutTypeTests {
         let expected = Workout(
             phases: [],
             repeatingRound: [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: .seconds(60))],
-            warnsBeforeRestEnds: true
+            warnsBeforeRestEnds: true,
+            countsDown: true
         )
 
         #expect(openRounds(rest: .seconds(60)) == expected)
@@ -118,7 +120,8 @@ struct WorkoutTypeTests {
         let expected = Workout(
             phases: [],
             repeatingRound: [Phase(kind: .work, length: .open)],
-            warnsBeforeRestEnds: true
+            warnsBeforeRestEnds: true,
+            countsDown: true
         )
 
         #expect(openRounds(rest: .zero) == expected)
@@ -128,7 +131,8 @@ struct WorkoutTypeTests {
         let expected = Workout(
             phases: [Phase(kind: .prepare, duration: .seconds(10))],
             repeatingRound: [Phase(kind: .work, length: .open), Phase(kind: .rest, duration: .seconds(60))],
-            warnsBeforeRestEnds: true
+            warnsBeforeRestEnds: true,
+            countsDown: true
         )
 
         #expect(openRounds(prepare: .seconds(10), rest: .seconds(60)) == expected)
@@ -164,11 +168,13 @@ struct WorkoutTypeTests {
             Phase(kind: .work, length: .runsPast(.seconds(600))),
         ]
 
-        #expect(stopwatch() == Workout(phases: expected))
+        #expect(stopwatch() == Workout(phases: expected, countsDown: true))
     }
 
     @Test func `A zero Prepare is dropped, so a Stopwatch opens on Work`() {
-        #expect(stopwatch(prepare: .zero) == Workout(phases: [Phase(kind: .work, length: .runsPast(.seconds(600)))]))
+        #expect(
+            stopwatch(prepare: .zero)
+                == Workout(phases: [Phase(kind: .work, length: .runsPast(.seconds(600)))], countsDown: true))
     }
 
     @Test func `A Stopwatch's set length is its Prepare plus its Work, and it has no Rounds`() {

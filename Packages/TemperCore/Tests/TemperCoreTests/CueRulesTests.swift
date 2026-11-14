@@ -1388,3 +1388,44 @@ nonisolated extension CueRulesTests {
         #expect(await calls.next() == .schedule(.tenSeconds, at: at(90)))
     }
 }
+
+// MARK: The Countdown
+
+/// The Countdown, handed over like every other Cue. `nonisolated` like the suite.
+nonisolated extension CueRulesTests {
+    /// A Prepare and a Work that count down, with the Countdowns due at 5 and 35 s.
+    private func makeCountingDownEngine(isDipOn: Bool) -> WorkoutEngine<ManualClock> {
+        let workout = Workout(phases: [prepare, firstWork], countsDown: true)
+        return WorkoutEngine(workout: workout, clock: clock, audio: audio, isDipOn: isDipOn)
+    }
+
+    @Test func `The Countdown is handed over 1.5s ahead, and the Phase's Cue after it`() async {
+        let engine = makeCountingDownEngine(isDipOn: false)
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate(ducking: false))
+
+        advance(to: 3.5)
+        #expect(await calls.next() == .schedule(.countdown, at: at(5)))
+        advance(to: 8.5)
+        #expect(await calls.next() == .schedule(.work, at: at(10)))
+    }
+
+    /// The Countdown is still saying "one" as the next Cue is armed, so lifting between them would cut both.
+    @Test func `With Dip on, the Cue after the Countdown plays in the same Dip, and only then lifts`() async {
+        let engine = makeCountingDownEngine(isDipOn: true)
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate(ducking: false))
+
+        advance(to: 3.5)
+        #expect(await calls.next() == .activate(ducking: true))
+        #expect(await calls.next() == .schedule(.countdown, at: at(5)))
+
+        advance(to: 8.5)
+        #expect(await calls.next() == .schedule(.work, at: at(10)))
+        advance(to: 11)
+        await audio.finishSpeaking()
+        #expect(await calls.next() == .activate(ducking: false))
+    }
+}

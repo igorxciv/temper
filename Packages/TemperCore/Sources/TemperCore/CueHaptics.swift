@@ -32,13 +32,17 @@ nonisolated extension Cue {
     /// comes in a Rest while the wrist is still. `success` marks the end of what the owner set out to do: Workout
     /// complete, or "Finish" as a Stopwatch reaches its set length, the moment Workout complete marked before a
     /// Stopwatch ran on past it.
-    public var wristHaptic: WristHaptic {
+    ///
+    /// The Countdown has none, and the Watch isn't sent it: the iPhone speaks it, and the wrist already feels the Cue
+    /// it counts down to.
+    public var wristHaptic: WristHaptic? {
         switch self {
         case .work: WristHaptic(tap: .notification, count: 2)
         case .rest: WristHaptic(tap: .notification, count: 1)
         case .cooldown: WristHaptic(tap: .notification, count: 3)
         case .workoutComplete, .finish: WristHaptic(tap: .success, count: 2)
         case .tenSeconds: WristHaptic(tap: .click, count: 3)
+        case .countdown: nil
         }
     }
 }
