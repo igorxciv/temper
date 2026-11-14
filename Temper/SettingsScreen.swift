@@ -35,9 +35,6 @@ struct SettingsScreen: View {
                 Text("Temper keeps everything on this device, and uses Apple Health only if you allow it.")
                     .foregroundStyle(colors.secondary)
             }
-            #if DEBUG
-                TimingLogsSection(colors: colors)
-            #endif
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
