@@ -17,7 +17,7 @@ nonisolated struct WorkoutEngineTests {
     private let clock = ManualClock()
 
     private func makeEngine(_ phases: [Phase]) -> WorkoutEngine<ManualClock> {
-        WorkoutEngine(workout: Workout(phases: phases), clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        WorkoutEngine(workout: Workout(phases: phases), clock: clock, audio: FakeAudioOutput())
     }
 
     /// Phases start at 0, 10, 40, 55 and 85 s, and the Workout finishes at 145 s.
@@ -234,7 +234,7 @@ nonisolated struct WorkoutEngineTests {
     ) async throws {
         let workout = WorkoutType.stopwatch.makeWorkout(from: WorkoutType.stopwatch.firstLaunch)
         let phase = try #require(workout.phases.first { $0.kind == kind })
-        let engine = WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        let engine = WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput())
         var snapshots = engine.snapshots.makeAsyncIterator()
         await engine.start()
         _ = await snapshots.next()
@@ -775,11 +775,11 @@ extension WorkoutEngineTests {
     }
 
     private func makeStopwatchEngine() -> WorkoutEngine<ManualClock> {
-        WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput())
     }
 
     @Test func `A Stopwatch's Work runs on past its set length instead of finishing`() async {
-        let engine = WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        let engine = WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput())
         var snapshots = engine.snapshots.makeAsyncIterator()
         await engine.start()
         _ = await snapshots.next()
@@ -818,7 +818,7 @@ extension WorkoutEngineTests {
     }
 
     @Test func `Done before a Stopwatch's set length does nothing`() async {
-        let engine = WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        let engine = WorkoutEngine(workout: stopwatch, clock: clock, audio: FakeAudioOutput())
         var snapshots = engine.snapshots.makeAsyncIterator()
         await engine.start()
         _ = await snapshots.next()
@@ -929,7 +929,7 @@ extension WorkoutEngineTests {
         var settings = WorkoutType.openRounds.firstLaunch
         settings[.rest] = rest
         let workout = WorkoutType.openRounds.makeWorkout(from: settings)
-        return WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        return WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput())
     }
 
     /// An open Work, carrying the time of the open Work just before it when a Rest of zero left none between them.

@@ -13,8 +13,8 @@ enum RootTab: Hashable {
     static let workoutTypes: [WorkoutType] = [.intervals, .stopwatch, .openRounds]
 }
 
-/// Each Workout Type's last-used values and Presets, the last-used Workout Type, and the Dip setting. Each change
-/// saves at once, and nothing about a running Workout is ever stored here.
+/// Each Workout Type's last-used values and Presets, the last-used Workout Type, and what Describe last made.
+/// Each change saves at once, and nothing about a running Workout is ever stored here.
 @Observable
 final class RememberedValues {
     /// The Intervals values, under the keys Temper used before it had Workout Types, so an upgrade keeps them.
@@ -63,16 +63,9 @@ final class RememberedValues {
         didSet { defaults.set(describedPlanWords, forKey: Self.describedPlanWordsKey) }
     }
 
-    var isDipOn: Bool {
-        didSet {
-            defaults.set(isDipOn, forKey: Self.dipKey)
-        }
-    }
-
     @ObservationIgnored private let defaults: UserDefaults
 
     private static let workoutTypeKey = "workoutType"
-    private static let dipKey = "dip"
     private static let descriptionKey = "describe.description"
     private static let describedPlanKey = "describe.plan"
     private static let describedPlanWordsKey = "describe.planWords"
@@ -87,7 +80,6 @@ final class RememberedValues {
         // A type with no tab can't be selected, so it opens on Intervals instead.
         let stored = defaults.string(forKey: Self.workoutTypeKey).flatMap(WorkoutType.init)
         lastUsed = stored.flatMap { RootTab.workoutTypes.contains($0) ? $0 : nil } ?? .intervals
-        isDipOn = defaults.object(forKey: Self.dipKey) as? Bool ?? true
         workoutDescription = defaults.string(forKey: Self.descriptionKey) ?? ""
         describedPlan = defaults.data(forKey: Self.describedPlanKey).flatMap {
             try? JSONDecoder().decode(Plan.self, from: $0)

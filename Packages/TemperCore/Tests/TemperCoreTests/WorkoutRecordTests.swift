@@ -26,7 +26,7 @@ nonisolated struct WorkoutRecordTests {
     }
 
     private func makeEngine(_ workout: Workout) -> WorkoutEngine<ManualClock> {
-        WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput())
     }
 
     /// Reads the rest of the snapshots and returns the ended one's record.

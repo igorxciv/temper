@@ -22,7 +22,7 @@
             if let workoutType = WorkoutType(rawValue: start) {
                 runner.start(
                     workoutType.makeWorkout(from: remembered[workoutType]),
-                    filedAs: HealthRecord.ActivityType(workoutType), isDipOn: false)
+                    filedAs: HealthRecord.ActivityType(workoutType))
                 return PlanBoard(workoutType: workoutType, settings: remembered[workoutType])
             } else if start == "planComplete" {
                 let plan = Plan(
@@ -38,13 +38,13 @@
                         .phase(PlannedPhase(kind: .cooldown, duration: .seconds(3))),
                     ])
                 if let workout = try? plan.makeWorkout() {
-                    runner.start(workout, filedAs: .highIntensityIntervalTraining, isDipOn: false)
+                    runner.start(workout, filedAs: .highIntensityIntervalTraining)
                 }
                 return PlanBoard(plan: plan)
             } else if start == "openRoundsRest" {
                 runner.start(
                     WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch),
-                    filedAs: .traditionalStrengthTraining, isDipOn: false)
+                    filedAs: .traditionalStrengthTraining)
                 Task {
                     try? await Task.sleep(for: .seconds(4))
                     runner.done()
@@ -53,7 +53,7 @@
             } else if start == "roundsComplete" {
                 runner.start(
                     WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch),
-                    filedAs: .traditionalStrengthTraining, isDipOn: false)
+                    filedAs: .traditionalStrengthTraining)
                 Task {
                     // Long enough for the first Work to count as a Round, however slowly the launch went.
                     try? await Task.sleep(for: .seconds(4))

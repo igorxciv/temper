@@ -80,10 +80,6 @@ _Avoid_: Rest, break
 The spoken announcement of a Phase change, of the end of the Workout, that Rest is about to end, or that a Stopwatch's Work has reached its set length. Apple Watch can also mark it with a tap on the wrist.
 _Avoid_: Alert, notification, beep
 
-**Dip**:
-A brief lowering of other audio while a Cue speaks.
-_Avoid_: Interrupt, mute
-
 **Health workout**:
 The record that Temper saves to Apple Health of one Training, or of one Workout run outside a Training. Each makes at most one.
 _Avoid_: Activity, Session, Fitness workout

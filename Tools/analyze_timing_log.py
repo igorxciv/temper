@@ -52,8 +52,7 @@ def report(path):
         print("Empty log: the Workout never reached audio.")
         return
     start = next((e for e in events if e["e"] == "run_start"), {})
-    dip = next((e["dip"] for e in events if e["e"] == "dip"), None)
-    print(f"dip: {dip} | {start.get('os')} | Cue render {start.get('cue_render_s', 0):.1f} s")
+    print(f"{start.get('os')} | Cue render {start.get('cue_render_s', 0):.1f} s")
 
     late = [e["late_ms"] for e in events if e["e"] == "phase_end"]
     for e in events:
@@ -66,10 +65,6 @@ def report(path):
           "(leaves the player, not heard)")
     print(f"Cues: scheduled {sum(e['e'] == 'schedule' for e in events)}, onsets {len(onsets)}, "
           f"phase ends {len(late)}, skipped {sum(e['e'] == 'cue_skipped' for e in events)}")
-
-    cycles = [e["ms"] for e in events if e["e"] == "dip_cycle"]
-    if cycles:
-        print(f"Dip cycle:        {stats(cycles)}")
 
     pair_ms, asleep = clock_checks([e for e in events if e["e"] == "clock"])
     print(f"Audio clock across a Cue's lead: {stats(pair_ms)}")
