@@ -42,9 +42,10 @@ final class WristHaptics {
     }
 
     private func start(_ cue: Cue, at date: Date) {
+        guard let haptic = cue.wristHaptic else { return }
         let id = UUID()
         let task = Task { [weak self] in
-            await self?.play(cue.wristHaptic, at: date)
+            await self?.play(haptic, at: date)
             self?.haptics[id] = nil
         }
         haptics[id] = (date, task)

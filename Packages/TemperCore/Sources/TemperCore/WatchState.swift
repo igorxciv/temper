@@ -140,7 +140,7 @@ extension RunningDisplay {
                 countsUp: countsUp,
                 line: line,
                 capsule: capsule,
-                cues: snapshot.cues.map { cue in
+                cues: snapshot.cues.filter { $0.cue.wristHaptic != nil }.map { cue in
                     WatchCue(cue: cue.cue, date: date.addingTimeInterval(now.duration(to: cue.due) / .seconds(1)))
                 }
             )

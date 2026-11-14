@@ -163,6 +163,10 @@ nonisolated struct CueHapticsTests {
         #expect(cue.wristHaptic == WristHaptic(tap: tap, count: count))
     }
 
+    @Test func `The Countdown has no haptic`() {
+        #expect(Cue.countdown.wristHaptic == nil)
+    }
+
     @Test func `The taps start 0.7 s apart`() {
         #expect(WristHaptic(tap: .click, count: 3).offsets == [.zero, .milliseconds(700), .milliseconds(1_400)])
     }
