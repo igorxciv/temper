@@ -74,7 +74,7 @@ private struct TimeRing: View {
                         .minimumScaleFactor(display.doneButton == nil ? 0.4 : 0.3)
                         .padding(.horizontal, 24)
                         // Read only when focus lands on it. The `updatesFrequently` trait would announce it as it
-                        // changes, and the Cues already speak every Phase change.
+                        // changes, and the Cues already announce every Phase change.
                         .accessibilityLabel(ring.spokenTime)
                 }
             }
