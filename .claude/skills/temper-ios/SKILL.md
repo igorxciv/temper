@@ -37,7 +37,7 @@ When sources disagree, trust them in this order:
 
 ## Performance
 
-Keep timer ticks out of the environment, and narrow what the running screen observes. Measure before optimizing, on a real device, against the targets in `Tools/analyze_timing_log.py`. Apple's `xctrace` skill ships with Xcode.
+Keep timer ticks out of the environment, and narrow what the running screen observes. Measure before optimizing, on a real device. The targets: a Phase ends within 100 ms of its time, and a Cue is heard within 250 ms of its time. Apple's `xctrace` skill ships with Xcode.
 
 ## Apple's skills
 

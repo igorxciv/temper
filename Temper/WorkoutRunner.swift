@@ -38,10 +38,6 @@ final class WorkoutRunner {
     /// session that starts at or after it belongs to the running Workout.
     @ObservationIgnored private(set) var startDate: Date?
 
-    #if DEBUG
-        @ObservationIgnored private var timingLog: TimingLog?
-    #endif
-
     /// Rendering begins here, at launch, so the Cues are usually ready before the first Start. The Watch link is made
     /// here too, because HealthKit may launch the app in the background to hand over the Watch's session.
     init(health: HealthSaves = HealthSaves(), watch: WatchLink = WatchLink()) {
@@ -69,11 +65,6 @@ final class WorkoutRunner {
         )
         self.engine = engine
         liveActivity = LiveActivityAdapter()
-        #if DEBUG
-            timingLog = audio.timingLog
-            health.timingLog = audio.timingLog
-            timingLog?.write("dip", ["dip": isDipOn])
-        #endif
         Task { [cues] in
             await cues.waitForRendering(atMost: renderingWaitLimit)
             if let start = await engine.start() {
@@ -133,9 +124,6 @@ final class WorkoutRunner {
     }
 
     private func show(_ snapshot: Snapshot) {
-        #if DEBUG
-            logTiming(of: snapshot)
-        #endif
         saveToHealth(snapshot)
         let display = Display(workout: workout, snapshot: snapshot)
         // Before an ended Workout returns to setup, so the Watch hears that it ended.
@@ -148,29 +136,6 @@ final class WorkoutRunner {
         self.snapshot = snapshot
         liveActivity?.show(display.liveActivityState(at: .now, date: .now))
     }
-
-    #if DEBUG
-        /// A Phase's end is timed where the screen learns of it, so the figure covers everything before the screen.
-        private func logTiming(of next: Snapshot) {
-            switch next.progress {
-            case .paused, .pausedOpen:
-                return
-            case .stopped:
-                timingLog?.write("run_end", ["completed": false])
-                return
-            case .running, .runningOpen, .finished:
-                break
-            }
-            if case .running(let phase, let endsAt) = snapshot?.progress, phase != next.phase {
-                let late = endsAt.duration(to: .now) / .milliseconds(1)
-                let nextPhase = next.phase.map { "\($0.kind)" } ?? "finished"
-                timingLog?.write("phase_end", ["late_ms": late, "next": nextPhase])
-            }
-            if case .finished = next.progress {
-                timingLog?.write("run_end", ["completed": true])
-            }
-        }
-    #endif
 }
 
 // MARK: - Health

@@ -15,12 +15,6 @@ nonisolated final class CueBank: @unchecked Sendable {
     private let lock = NSLock()
     private var buffers: [Cue: AVAudioPCMBuffer] = [:]
     private var isRendering = false
-    private var seconds: Double?
-
-    /// How long the last rendering took, for the timing log.
-    var renderSeconds: Double? {
-        lock.withLock { seconds }
-    }
 
     /// Renders any Cue not rendered yet, unless that's already under way.
     func render() {
@@ -31,11 +25,7 @@ nonisolated final class CueBank: @unchecked Sendable {
         }
         guard started else { return }
         Task { @MainActor in
-            let clock = ContinuousClock()
-            let begin = clock.now
-            let rendered = await CueSpeech.render()
-            let took = begin.duration(to: clock.now) / .seconds(1)
-            store(RenderedCues(buffers: rendered), took: took)
+            store(RenderedCues(buffers: await CueSpeech.render()))
         }
     }
 
@@ -58,10 +48,9 @@ nonisolated final class CueBank: @unchecked Sendable {
         }
     }
 
-    private func store(_ rendered: RenderedCues, took: Double) {
+    private func store(_ rendered: RenderedCues) {
         lock.withLock {
             buffers.merge(rendered.buffers) { _, new in new }
-            seconds = took
             isRendering = false
         }
     }
