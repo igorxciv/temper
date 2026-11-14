@@ -1167,3 +1167,26 @@ nonisolated extension CueRulesTests {
         #expect(await calls.next() == .schedule(.tenSeconds, at: at(90)))
     }
 }
+
+// MARK: The Countdown
+
+/// The Countdown, handed over like every other Cue. `nonisolated` like the suite.
+nonisolated extension CueRulesTests {
+    /// A Prepare and a Work that count down, with the Countdowns due at 5 and 35 s.
+    private func makeCountingDownEngine() -> WorkoutEngine<ManualClock> {
+        let workout = Workout(phases: [prepare, firstWork], countsDown: true)
+        return WorkoutEngine(workout: workout, clock: clock, audio: audio)
+    }
+
+    @Test func `The Countdown is handed over 1.5s ahead, and the Phase's Cue after it`() async {
+        let engine = makeCountingDownEngine()
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate)
+
+        advance(to: 3.5)
+        #expect(await calls.next() == .schedule(.countdown, at: at(5)))
+        advance(to: 8.5)
+        #expect(await calls.next() == .schedule(.work, at: at(10)))
+    }
+}

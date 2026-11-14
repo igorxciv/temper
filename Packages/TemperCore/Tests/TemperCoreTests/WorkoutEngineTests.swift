@@ -789,7 +789,9 @@ extension WorkoutEngineTests {
             await snapshots.next()
                 == Snapshot(
                     progress: .running(phase: stopwatchWork, endsAt: at(610)), rounds: 0,
-                    cues: [Snapshot.TimedCue(cue: .finish, due: at(610))]))
+                    cues: [
+                        Snapshot.TimedCue(cue: .countdown, due: at(605)), Snapshot.TimedCue(cue: .finish, due: at(610)),
+                    ]))
 
         clock.advance(by: .seconds(600))
         #expect(
@@ -946,6 +948,7 @@ extension WorkoutEngineTests {
             progress: .running(phase: phase, endsAt: end), rounds: nil, previousOpenPhaseTime: workTime,
             cues: [
                 Snapshot.TimedCue(cue: .tenSeconds, due: end.advanced(by: .seconds(-10))),
+                Snapshot.TimedCue(cue: .countdown, due: end.advanced(by: .seconds(-5))),
                 Snapshot.TimedCue(cue: .work, due: end),
             ])
     }
@@ -961,7 +964,8 @@ extension WorkoutEngineTests {
 
         #expect(
             await snapshots.next()?.cues == [
-                Snapshot.TimedCue(cue: .tenSeconds, due: at(60)), Snapshot.TimedCue(cue: .work, due: at(70)),
+                Snapshot.TimedCue(cue: .tenSeconds, due: at(60)), Snapshot.TimedCue(cue: .countdown, due: at(65)),
+                Snapshot.TimedCue(cue: .work, due: at(70)),
             ])
     }
 
