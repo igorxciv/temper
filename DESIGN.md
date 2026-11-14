@@ -168,7 +168,7 @@ Scope: this records the iPhone app. The Apple Watch app and the Live Activity dr
 A blue-black ink with a warm white, one amber, and four Phase sets that each run from a deep field to a light ring.
 
 ### Primary
-- **Amber** (amber): the action to take on this screen. The fill of Start, Close, Confirm and Make Plan; the Dip toggle; the selected tab; text buttons that ask for something (Save Workouts to Health, Allow Heart Rate, Make New Plan).
+- **Amber** (amber): the action to take on this screen. The fill of Start, Close, Confirm and Make Plan; the Dip toggle; the selected tab; text buttons that ask for something (Save Workouts to Health, Allow Heart Rate); the label and symbol of Make New Plan.
 - **On Amber** (on-amber): the label on an amber fill.
 
 ### Secondary (the Phase sets)
@@ -260,6 +260,7 @@ Round, everywhere. Buttons are capsules, as Liquid Glass draws them; Stop is a 7
 - **Primary (amber):** `.glassProminent` tinted amber, Title 2 bold label in on-amber, 52 pt minimum height: Start, Confirm, Make Plan. Close on the complete screens is the same at 56 pt. One per screen, in the bottom bar.
 - **Start's label:** "Start · 08:50" with the Workout's total only when the Workout ends by itself. If any Phase is open or runs past its length until Done, it says only "Start".
 - **Close:** the complete screens' action is Close, never Done. Done ends an open Phase.
+- **Make New Plan:** `.glass` capsule, full width, 48 pt minimum, Title 3 semibold in amber with a two-arrow refresh symbol. It appears on Describe once a Plan exists and the words differ from it, right under the microphone (or the field when typing), so it's the next tap after saying the Workout; it waits for listening to stop. While the Plan is made the arrows turn and it reads "Making New Plan…". Glass, not amber fill, because Start keeps the bottom bar's one amber capsule.
 - **Running controls:** `.glass`, Title bold. Pause/Resume is 72 pt tall and fills the width with an SF Symbol and label; Stop is a 72 pt circle with a stop symbol, and asks before it ends the Workout.
 - **Done:** `.glassProminent` tinted Work's ring with Work's field as its label, 88 pt tall, above Pause and Stop in Open Rounds and Stopwatch. Until the engine would take it (Prepare, Rest, Paused, a Stopwatch's Work before its set length) its 88 pt place is held empty, so Pause, Stop and the ring never move; it fades in over 0.25 s when it can be tapped. A light impact haptic on tap.
 - **Disabled amber:** Make Plan keeps its place and drops its label to the system's secondary style.

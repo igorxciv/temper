@@ -31,6 +31,12 @@ struct DescribeScreen: View {
             !isWriting && !isDictating && unavailable == nil && !remembered.workoutDescription.trimmed.isEmpty
         // The same words make the same Plan, so a new one waits for the description to change.
         let wordsChanged = remembered.workoutDescription.trimmed != remembered.describedPlanWords
+        let showsDictate = !remembered.describesByTyping && unavailable == nil
+        // Making a new Plan sits right under the microphone, or the field when typing, so it's the next tap after
+        // saying it. It waits for listening to stop, and stays while the Plan is made to show it's working.
+        let showsRemake =
+            board != nil && wordsChanged && !isDictating && unavailable == nil
+            && !remembered.workoutDescription.trimmed.isEmpty
 
         Form {
             Section {
@@ -64,10 +70,19 @@ struct DescribeScreen: View {
                 }
             }
 
-            if !remembered.describesByTyping && unavailable == nil {
+            if showsDictate || showsRemake {
                 Section {
-                    DictateButton(dictation: dictation, hasWords: !remembered.workoutDescription.trimmed.isEmpty)
-                        .listRowBackground(Color.clear)
+                    if showsDictate {
+                        DictateButton(dictation: dictation, hasWords: !remembered.workoutDescription.trimmed.isEmpty)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                    if showsRemake {
+                        remakeButton(colors: colors)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                    }
                 }
             }
 
@@ -95,33 +110,11 @@ struct DescribeScreen: View {
                         Text(note).foregroundStyle(colors.secondary)
                     }
                 }
-
-                // Start is the action once there's a Plan, so making another is a quieter row.
-                Section {
-                    Button {
-                        write()
-                    } label: {
-                        HStack {
-                            Text("Make New Plan")
-                            Spacer()
-                            if isWriting {
-                                ProgressView()
-                            }
-                        }
-                    }
-                    .foregroundStyle(canWrite && wordsChanged ? colors.accent : colors.secondary)
-                    .disabled(!canWrite || !wordsChanged)
-                    .listRowBackground(colors.raised)
-                } footer: {
-                    if !wordsChanged && !isWriting {
-                        Text("This is the Plan for these words. Change the description to make a new one.")
-                            .foregroundStyle(colors.secondary)
-                    }
-                }
             }
         }
         .scrollContentBackground(.hidden)
         .background(colors.background.ignoresSafeArea())
+        .animation(.snappy, value: showsRemake)
         .navigationTitle("Describe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -189,6 +182,32 @@ struct DescribeScreen: View {
         .buttonStyle(.glassProminent)
         .tint(colors.accent)
         .disabled(!isEnabled)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .accessibilityShowsLargeContentViewer()
+    }
+
+    /// Once there's a Plan and the words change, making a new one. Start keeps the amber fill, so this is glass with an
+    /// amber label, and its arrows turn while the Plan is made.
+    private func remakeButton(colors: InkColors) -> some View {
+        Button {
+            if !isWriting {
+                write()
+            }
+        } label: {
+            Label {
+                Text(isWriting ? "Making New Plan…" : "Make New Plan")
+            } icon: {
+                Image(systemName: "arrow.trianglehead.2.clockwise")
+                    .symbolEffect(.rotate, isActive: isWriting)
+            }
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(colors.accent)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .frame(maxWidth: .infinity, minHeight: 48)
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.capsule)
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityShowsLargeContentViewer()
     }
