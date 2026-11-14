@@ -1,13 +1,13 @@
 import AVFAudio
 import TemperCore
 
-/// The spoken Cues, rendered once and kept in memory only. It outlives any one Workout.
+/// The Cues, rendered once and kept in memory only. It outlives any one Workout.
 ///
 /// A class with a lock, because the audio adapter has to read it without suspending. Buffers are never written
 /// to after rendering.
 nonisolated final class CueBank: @unchecked Sendable {
-    /// The format every Cue is converted to, and the one the audio adapter's player is connected with. 22,050 Hz
-    /// mono is what the speech synthesizer produced on a device, so converting only joins its chunks.
+    /// The format every Cue is made in, and the one the audio adapter's player is connected with. 22,050 Hz mono
+    /// is what the speech synthesizer produced on a device, so converting only joins its chunks.
     static var format: AVAudioFormat? {
         AVAudioFormat(standardFormatWithSampleRate: 22_050, channels: 1)
     }
@@ -25,7 +25,7 @@ nonisolated final class CueBank: @unchecked Sendable {
     /// Renders any Cue not rendered yet, unless that's already under way.
     func render() {
         let started = lock.withLock {
-            guard !isRendering, buffers.count < CueSpeech.all.count else { return false }
+            guard !isRendering, buffers.count < CueSounds.sounds.count else { return false }
             isRendering = true
             return true
         }
@@ -33,7 +33,7 @@ nonisolated final class CueBank: @unchecked Sendable {
         Task { @MainActor in
             let clock = ContinuousClock()
             let begin = clock.now
-            let rendered = await CueSpeech.render()
+            let rendered = await CueSounds.render()
             let took = begin.duration(to: clock.now) / .seconds(1)
             store(RenderedCues(buffers: rendered), took: took)
         }
@@ -72,32 +72,48 @@ private nonisolated struct RenderedCues: @unchecked Sendable {
     let buffers: [Cue: AVAudioPCMBuffer]
 }
 
-/// Turns each Cue's words into audio with a fixed system voice.
+/// Makes each Cue's audio: the gong, or words in a fixed system voice.
 @MainActor
-private enum CueSpeech {
-    /// What each Cue says, as one or more utterances. Each utterance starts a second after the one before, so the
-    /// Countdown's numbers land on the seconds the running screen shows.
-    nonisolated static let all: [Cue: [String]] = [
-        .work: ["Work"],
-        .rest: ["Rest"],
-        .cooldown: ["Cooldown"],
-        .workoutComplete: ["Workout complete"],
-        .tenSeconds: ["10 seconds"],
-        .finish: ["Finish"],
-        .countdown: ["Five", "Four", "Three", "Two", "One"],
+private enum CueSounds {
+    enum Sound {
+        case gong
+        /// One or more utterances. Each starts a second after the one before, so the Countdown's numbers land on
+        /// the seconds the running screen shows.
+        case words([String])
+        case gongThenWords(String)
+    }
+
+    /// A Round's Work starts and ends on the gong, as in a boxing ring. Cooldown and "Workout complete" also end
+    /// the last Round's Work, so their words come in over the gong.
+    nonisolated static let sounds: [Cue: Sound] = [
+        .work: .gong,
+        .rest: .gong,
+        .cooldown: .gongThenWords("Cooldown"),
+        .workoutComplete: .gongThenWords("Workout complete"),
+        .tenSeconds: .words(["10 seconds"]),
+        .finish: .words(["Finish"]),
+        .countdown: .words(["Five", "Four", "Three", "Two", "One"]),
     ]
 
     static func render() async -> [Cue: AVAudioPCMBuffer] {
         var rendered: [Cue: AVAudioPCMBuffer] = [:]
         let synthesizer = AVSpeechSynthesizer()
-        for (cue, utterances) in all {
-            var buffers: [AVAudioPCMBuffer] = []
-            for words in utterances {
-                guard let buffer = joined(await chunks(of: words, from: synthesizer)) else { break }
-                buffers.append(buffer)
-            }
-            if buffers.count == utterances.count {
-                rendered[cue] = spacedOneSecondApart(buffers)
+        let gong = CueBank.format.flatMap(Gong.strike(in:))
+        for (cue, sound) in sounds {
+            switch sound {
+            case .gong:
+                rendered[cue] = gong
+            case .words(let utterances):
+                var buffers: [AVAudioPCMBuffer] = []
+                for words in utterances {
+                    guard let buffer = joined(await chunks(of: words, from: synthesizer)) else { break }
+                    buffers.append(buffer)
+                }
+                if buffers.count == utterances.count {
+                    rendered[cue] = spacedOneSecondApart(buffers)
+                }
+            case .gongThenWords(let words):
+                rendered[cue] = joined(await chunks(of: words, from: synthesizer)).flatMap(Gong.strike(under:))
             }
         }
         return rendered
