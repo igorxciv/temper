@@ -18,7 +18,7 @@ Temper runs a Workout: it moves through its Phases, announces each change aloud,
 
 ## Positioning
 
-A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and Open Rounds are built-in Plans; Describe turns a Workout said in words into a Plan on the device with Apple Intelligence, shown as an outline to check before Start. Cues speak every Phase change and duck other audio rather than pausing it.
+A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and Open Rounds are built-in Plans; Describe turns a Workout said in words into a Plan on the device with Apple Intelligence, shown as an outline to check before Start. Cues announce every Phase change over other audio, never pausing or lowering it.
 
 ## Operating Context
 
@@ -28,7 +28,7 @@ A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and 
 
 ## Capabilities and Constraints
 
-- Vocabulary is fixed by `GLOSSARY.md`: Workout, Workout Type, Plan, Block, Preset, Phase (Prepare, Work, Rest, Cooldown), Open, Done, Round, Pause, Cue, Dip, Health workout, Zone.
+- Vocabulary is fixed by `GLOSSARY.md`: Workout, Workout Type, Plan, Block, Preset, Phase (Prepare, Work, Rest, Cooldown), Open, Done, Round, Pause, Cue, Health workout, Zone.
 - iOS 27, SwiftUI, Liquid Glass. No network access and no third-party packages; everything stays on the device.
 - Times run 0:00 to 30:00 in 5-second steps; Rounds 1 to 99.
 - Timing and Phase logic lives in `Packages/TemperCore`; screens adapt to it rather than the other way round.

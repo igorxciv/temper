@@ -4,7 +4,7 @@
 /// the real adapter is, so the Cue rules meet the same suspensions here.
 actor FakeAudioOutput: AudioOutput {
     enum Call: Equatable, Sendable {
-        case activate(ducking: Bool)
+        case activate
         case deactivate
         case schedule(Cue, at: ManualClock.Instant)
         case cancel
@@ -69,8 +69,8 @@ actor FakeAudioOutput: AudioOutput {
         }
     }
 
-    func activate(ducking: Bool) async throws {
-        try await perform(.activate(ducking: ducking))
+    func activate() async throws {
+        try await perform(.activate)
     }
 
     func deactivate() async throws {

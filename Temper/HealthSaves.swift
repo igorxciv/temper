@@ -20,13 +20,6 @@ final class HealthSaves {
     /// Settings' Apple Health row, from the statuses as last read, or `nil` before the first read.
     private(set) var row: AppleHealthRow?
 
-    #if DEBUG
-        /// Where each attempt's result is logged: the Workout's own log, or a new one for a retry with none.
-        @ObservationIgnored var timingLog: TimingLog?
-        /// Called with each result written to the timing log, so tests can read them.
-        @ObservationIgnored var didLog: (HealthAttemptResult) -> Void = { _ in }
-    #endif
-
     @ObservationIgnored private let store: any HealthWorkoutStore
     @ObservationIgnored private let pending: PendingHealthSaves
     @ObservationIgnored private let isProtectedDataAvailable: () -> Bool
@@ -79,7 +72,7 @@ final class HealthSaves {
         defer { backgroundTask.end() }
         guard store.writeStatus == .allowed else {
             for pendingSave in pending.all {
-                drop(pendingSave.record)
+                pending.remove(pendingSave.record.workoutID)
             }
             return
         }
@@ -115,33 +108,12 @@ final class HealthSaves {
         )
         pending.put(next)
         switch await store.save(current.record) {
-        case .saved:
+        case .saved, .notAllowed:
             pending.remove(workoutID)
-            log(.saved, current.record)
-        case .notAllowed:
-            drop(current.record)
-        case .unverified where next.countedAttempts >= Self.attemptLimit,
-            .failed where next.countedAttempts >= Self.attemptLimit:
-            drop(current.record)
-        case .unverified:
-            log(.unverified, current.record)
-        case .failed:
-            log(.failed, current.record)
-        }
-    }
-
-    private func drop(_ record: HealthRecord) {
-        pending.remove(record.workoutID)
-        log(.dropped, record)
-    }
-
-    private func log(_ result: HealthAttemptResult, _ record: HealthRecord) {
-        #if DEBUG
-            if timingLog == nil {
-                timingLog = TimingLog()
+        case .unverified, .failed:
+            if next.countedAttempts >= Self.attemptLimit {
+                pending.remove(workoutID)
             }
-            timingLog?.write("health", ["outcome": result.rawValue, "version": record.syncVersion])
-            didLog(result)
-        #endif
+        }
     }
 }

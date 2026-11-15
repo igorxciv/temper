@@ -168,7 +168,7 @@ Scope: this records the iPhone app. The Apple Watch app and the Live Activity dr
 A blue-black ink with a warm white, one amber, and four Phase sets that each run from a deep field to a light ring.
 
 ### Primary
-- **Amber** (amber): the action to take on this screen. The fill of Start, Close, Confirm and Make Plan; the Dip toggle; the selected tab; text buttons that ask for something (Save Workouts to Health, Allow Heart Rate); the label and symbol of Make New Plan.
+- **Amber** (amber): the action to take on this screen. The fill of Start, Close, Confirm and Make Plan; the selected tab; text buttons that ask for something (Save Workouts to Health, Allow Heart Rate); the label and symbol of Make New Plan.
 - **On Amber** (on-amber): the label on an amber fill.
 
 ### Secondary (the Phase sets)

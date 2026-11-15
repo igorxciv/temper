@@ -204,7 +204,7 @@ nonisolated struct RunningLinkTests {
     private let clock = ManualClock()
 
     private func makeEngine(_ workout: Workout) -> WorkoutEngine<ManualClock> {
-        WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput(), isDipOn: false)
+        WorkoutEngine(workout: workout, clock: clock, audio: FakeAudioOutput())
     }
 
     /// The owner taps the Watch now, and the tap takes `trip` to reach the iPhone, which gives the engine what it

@@ -1,13 +1,12 @@
-/// Each Cue goes to audio this far ahead, even with Dip off. On a device the audio clock drifted about 530 ms
-/// from `ContinuousClock` over 51 minutes, but at most 3.1 ms across one lead. A full Dip cycle took about 3.2s,
-/// so it fits inside the shortest Phase, 00:05, and short Phases need no special case.
+/// Each Cue goes to audio this far ahead. On a device the audio clock drifted about 530 ms from `ContinuousClock`
+/// over 51 minutes, but at most 3.1 ms across one lead.
 private nonisolated let cueLead = Duration.milliseconds(1_500)
 private nonisolated let startLimit = Duration.seconds(1)
 /// How late a Cue can still play: spoken on the iPhone, or tapped on the wrist for a Phase whose update arrives late.
 nonisolated let lateLimit = Duration.seconds(1)
-private nonisolated let liftRetryDelay = Duration.seconds(5)
 
-/// Decides which Cues play and what the audio session does around them. It has its own actor and never waits
+/// Decides which Cues play and when the audio session is active. The session always mixes with other audio and
+/// never lowers it. It has its own actor and never waits
 /// on audio while the engine waits on it, so a slow audio call can't move a Phase's end.
 ///
 /// Audio calls are made as soon as they're decided, without waiting for the one before, because the audio side
@@ -18,7 +17,7 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
 
     private enum Session: Equatable {
         case released
-        case active(ducked: Bool)
+        case active
     }
 
     private struct ArmedCue {
@@ -30,7 +29,6 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
     private var timeline: Timeline
     private let clock: EngineClock
     private let audio: any AudioOutput<Instant>
-    private let isDipOn: Bool
 
     private var session = Session.released
     /// Whether any activate has been made since the session was last released, even one that failed or never
@@ -46,31 +44,28 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
     /// A Cue that an interruption cut before its deadline, waiting for recovery to schedule it again.
     private var interruptedCue: ArmedCue?
     private var lead: Task<Void, Never>?
-    private var liftRetry: Task<Void, Never>?
     private var listening: Task<Void, Never>?
     private var pendingStart: CheckedContinuation<Void, Never>?
     private var startTimeout: Task<Void, Never>?
 
-    init(timeline: Timeline, clock: EngineClock, audio: any AudioOutput<Instant>, isDipOn: Bool) {
+    init(timeline: Timeline, clock: EngineClock, audio: any AudioOutput<Instant>) {
         self.timeline = timeline
         self.clock = clock
         self.audio = audio
-        self.isDipOn = isDipOn
     }
 
     // MARK: Start
 
     /// Returns once audio is ready, or has failed, or `startLimit` has passed.
     func prepareToStart() async {
-        let ducking = isDipOn && timeline.position(at: .zero).nextCue?.due == .zero
         let limit = clock.now.advanced(by: startLimit)
-        session = .active(ducked: ducking)
+        session = .active
         holdsAudio = true
         listenForEvents()
         await withCheckedContinuation { continuation in
             pendingStart = continuation
             Task {
-                let isActive = (try? await audio.activate(ducking: ducking)) != nil
+                let isActive = (try? await audio.activate()) != nil
                 settleStart(isActive: isActive)
             }
             startTimeout = Task { [clock] in
@@ -107,16 +102,15 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         releaseSession()
     }
 
-    /// Restarts audio undipped, unless the next Cue's lead has already begun, in which case arming it
-    /// restarts audio the way that Cue needs.
+    /// Restarts audio, unless the next Cue's lead has already begun, in which case arming it restarts audio.
     func resume(from origin: Instant) {
         self.origin = origin
         holdsAudio = true
         if nextCue(from: origin).map({ $0.leadStart > clock.now }) ?? true {
             let resumeToken = token
-            session = .active(ducked: false)
+            session = .active
             Task {
-                guard (try? await audio.activate(ducking: false)) == nil, resumeToken == token else { return }
+                guard (try? await audio.activate()) == nil, resumeToken == token else { return }
                 session = .released
             }
         }
@@ -157,7 +151,6 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         interruptedCue = nil
         origin = nil
         lead?.cancel()
-        liftRetry?.cancel()
         session = .released
         holdsAudio = false
         Task {
@@ -199,7 +192,6 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
     }
 
     private func arm(_ cue: Cue, at deadline: Instant) {
-        liftRetry?.cancel()
         token = CueToken(value: token.value + 1)
         let armed = ArmedCue(cue: cue, deadline: deadline, token: token)
         self.armed = armed
@@ -232,24 +224,19 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
             try await audio.schedule(armed.cue, at: armed.deadline, startingBy: latest, token: armed.token)
         } catch {
             guard armed.token == token else { return }
-            if session == .active(ducked: false) {
-                session = .released
-            }
+            session = .released
             cueEnded()
         }
     }
 
-    /// Returns whether the Cue is still current and has a session to play in. A failed Dip falls back to an
-    /// undipped session, because Cues win over Dip.
+    /// Returns whether the Cue is still current and has a session to play in.
     private func prepareSession(for armed: ArmedCue) async -> Bool {
-        guard session != .active(ducked: isDipOn) else { return true }
-        for ducking in isDipOn ? [true, false] : [false] {
-            session = .active(ducked: ducking)
-            if (try? await audio.activate(ducking: ducking)) != nil {
-                return armed.token == token
-            }
-            guard armed.token == token else { return false }
+        guard session != .active else { return true }
+        session = .active
+        if (try? await audio.activate()) != nil {
+            return armed.token == token
         }
+        guard armed.token == token else { return false }
         session = .released
         cueEnded()
         return false
@@ -260,24 +247,6 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         armed = nil
         if isFinished {
             stop()
-        } else if session == .active(ducked: true) {
-            lift(retryingAfterFailure: true)
-        }
-    }
-
-    private func lift(retryingAfterFailure: Bool) {
-        let liftToken = token
-        let retryAt = clock.now.advanced(by: liftRetryDelay)
-        session = .active(ducked: false)
-        Task {
-            guard (try? await audio.activate(ducking: false)) == nil, liftToken == token else { return }
-            session = .active(ducked: true)
-            guard retryingAfterFailure else { return }
-            liftRetry = Task { [clock] in
-                try? await clock.sleep(until: retryAt, tolerance: sleepTolerance)
-                guard !Task.isCancelled else { return }
-                lift(retryingAfterFailure: false)
-            }
         }
     }
 
@@ -314,7 +283,6 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
     private func interrupt() {
         guard holdsAudio else { return }
         token = CueToken(value: token.value + 1)
-        liftRetry?.cancel()
         session = .released
         guard let cut = armed else { return }
         armed = nil
@@ -327,27 +295,21 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
 
     /// Runs when iOS recommends resuming, on returning to the front, and through `handOver` before each Cue. It
     /// does nothing while audio is in use or a call is on. A Cue cut before its deadline is scheduled again if
-    /// this is no more than `lateLimit` after that deadline. A Dip still down after its lift failed is lifted.
-    /// A failure waits for the next trigger, so recovery never loops. Triggers can overlap, but only the first
+    /// this is no more than `lateLimit` after that deadline. A failure waits for the next trigger, so recovery never loops. Triggers can overlap, but only the first
     /// to pass the call check finds audio still to recover.
     func recover() {
-        guard isAwaitingRecovery || isDipLeftDown else { return }
+        guard isAwaitingRecovery else { return }
         let recoveryToken = token
         Task {
             let isOnCall = await audio.isOnCall()
             guard !isOnCall, recoveryToken == token else { return }
-            if isDipLeftDown {
-                liftRetry?.cancel()
-                lift(retryingAfterFailure: false)
-                return
-            }
             guard isAwaitingRecovery else { return }
             if let cut = interruptedCue.take(), clock.now <= cut.deadline.advanced(by: lateLimit) {
                 arm(cut.cue, at: cut.deadline)
                 return
             }
-            session = .active(ducked: false)
-            guard (try? await audio.activate(ducking: false)) == nil, recoveryToken == token else { return }
+            session = .active
+            guard (try? await audio.activate()) == nil, recoveryToken == token else { return }
             session = .released
         }
     }
@@ -355,11 +317,6 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
     /// A running Workout with no session and no Cue under way. A Cue under way gets its own session.
     private var isAwaitingRecovery: Bool {
         origin != nil && session == .released && armed == nil
-    }
-
-    /// A running Workout whose music is still dipped with no Cue under way, because lifting the Dip failed.
-    private var isDipLeftDown: Bool {
-        origin != nil && session == .active(ducked: true) && armed == nil
     }
 
     /// The adapter has stopped the engine for the new route. Restarting it is an interruption and an immediate

@@ -162,14 +162,13 @@ private func withThrowawayDefaults(_ body: (UserDefaults) throws -> Void) throws
 }
 
 struct RememberedValuesTests {
-    @Test func `A first launch opens on Intervals, with every type's first-launch values and Dip on`() throws {
+    @Test func `A first launch opens on Intervals, with every type's first-launch values`() throws {
         try withThrowawayDefaults { defaults in
             let remembered = RememberedValues(defaults: defaults)
 
             #expect(remembered.selectedTab == .workoutType(.intervals))
             #expect(remembered[.intervals] == WorkoutType.intervals.firstLaunch)
             #expect(remembered[.stopwatch] == WorkoutType.stopwatch.firstLaunch)
-            #expect(remembered.isDipOn)
         }
     }
 
@@ -181,7 +180,6 @@ struct RememberedValuesTests {
             defaults.set(1800, forKey: "work")
             defaults.set(5, forKey: "rest")
             defaults.set(95, forKey: "cooldown")
-            defaults.set(false, forKey: "dip")
 
             let remembered = RememberedValues(defaults: defaults)
 
@@ -197,7 +195,6 @@ struct RememberedValuesTests {
             )
             #expect(remembered[.stopwatch] == WorkoutType.stopwatch.firstLaunch)
             #expect(remembered.selectedTab == .workoutType(.intervals))
-            #expect(!remembered.isDipOn)
         }
     }
 
@@ -307,7 +304,6 @@ struct RememberedValuesTests {
             #expect(remembered[.intervals].rounds == 12)
             #expect(remembered[.stopwatch].work == .seconds(300))
             #expect(remembered.presets(of: .intervals).presets.map(\.name) == ["Long"])
-            #expect(!remembered.isDipOn)
             #expect(remembered[.openRounds] == WorkoutType.openRounds.firstLaunch)
             #expect(remembered.presets(of: .openRounds).presets.isEmpty)
             for (key, value) in stored {
@@ -403,25 +399,6 @@ struct RememberedValuesTests {
             defaults.set("emom", forKey: "workoutType")
 
             #expect(RememberedValues(defaults: defaults).selectedTab == .workoutType(.intervals))
-        }
-    }
-
-    @Test func `Dip turned off restores as off`() throws {
-        try withThrowawayDefaults { defaults in
-            RememberedValues(defaults: defaults).isDipOn = false
-
-            #expect(!RememberedValues(defaults: defaults).isDipOn)
-        }
-    }
-
-    @Test func `Changing Dip leaves every type's values at their defaults`() throws {
-        try withThrowawayDefaults { defaults in
-            RememberedValues(defaults: defaults).isDipOn = false
-
-            let restored = RememberedValues(defaults: defaults)
-            for workoutType in WorkoutType.allCases {
-                #expect(restored[workoutType] == workoutType.firstLaunch)
-            }
         }
     }
 
