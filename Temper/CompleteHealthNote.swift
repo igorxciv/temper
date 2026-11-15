@@ -34,7 +34,7 @@ enum CompleteHealthNote: Equatable {
 
     var text: String {
         switch self {
-        case .tooShort: "Under 1 minute, so not saved to Health."
+        case .tooShort: "Under 10 minutes, so not saved to Health."
         case .saving: "Saving to Apple Health."
         case .savingWithoutHeartRate: "Saving to Apple Health, without heart rate."
         case .notTurnedOn: "Not saved to Health. Turn it on in Settings."

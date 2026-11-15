@@ -25,9 +25,9 @@ nonisolated struct WatchFlowTests {
     private var record: HealthRecord {
         HealthRecord(
             WorkoutRecord(
-                start: ManualClock.Instant(offset: .zero), end: ManualClock.Instant(offset: .seconds(90)),
+                start: ManualClock.Instant(offset: .zero), end: ManualClock.Instant(offset: .seconds(700)),
                 pauses: [ManualClock.Instant(offset: .seconds(20))..<ManualClock.Instant(offset: .seconds(30))],
-                phases: [.init(kind: .work, round: 1, start: .init(offset: .zero), end: .init(offset: .seconds(90)))]),
+                phases: [.init(kind: .work, round: 1, start: .init(offset: .zero), end: .init(offset: .seconds(700)))]),
             filedAs: .highIntensityIntervalTraining, workoutID: workoutID, attempt: 1,
             anchor: ClockAnchor(instant: ManualClock.Instant(offset: .zero), date: start))!
     }
@@ -160,7 +160,7 @@ nonisolated struct WatchFlowTests {
         #expect(flow.handle(.received(.end(record), at: now)) == [])
     }
 
-    /// The iPhone's own Health workout covers a Workout under 1 minute, which it doesn't save either.
+    /// The iPhone's own Health workout covers a Workout under 10 minutes, which it doesn't save either.
     @Test func `The iPhone's end with no record makes the Watch end its session without saving, and keep its screen`() {
         var flow = running()
         _ = flow.handle(.received(.update(.ended(.total(.seconds(530)))), at: now))
@@ -291,8 +291,8 @@ nonisolated struct WatchFlowTests {
 
     // MARK: Dropout
 
-    /// 200 s after the Start, well past the minute a Health workout needs.
-    private var later: Date { start.addingTimeInterval(200) }
+    /// 700 s after the Start, past the 10 minutes a Health workout needs.
+    private var later: Date { start.addingTimeInterval(700) }
 
     /// A running Watch whose link dropped at `date`.
     private func droppedOut(at date: Date) -> WatchFlow {
@@ -393,7 +393,7 @@ nonisolated struct WatchFlowTests {
 
     // MARK: The fallback save
 
-    /// Work 1 was heard from 10 s to 50 s, and the link dropped 200 s after the Start.
+    /// Work 1 was heard from 10 s to 50 s, and the link dropped 700 s after the Start.
     @Test func `After 10 minutes out of contact, the Watch saves what it heard, ending at the last contact`() throws {
         var flow = droppedOut(at: later)
 
@@ -412,7 +412,7 @@ nonisolated struct WatchFlowTests {
         #expect(flow.screen == .idle)
     }
 
-    @Test func `After 10 minutes out of contact under 1 minute into the Workout, the Watch ends without saving`() {
+    @Test func `After 10 minutes out of contact under 10 minutes into the Workout, the Watch ends without saving`() {
         var flow = droppedOut(at: start.addingTimeInterval(40))
 
         let effects = flow.handle(.outOfContactTimerFired)
@@ -440,16 +440,16 @@ nonisolated struct WatchFlowTests {
         #expect(flow.screen == .running(work, isConnected: true))
     }
 
-    /// The ended state arrived 90 s after the Start, and the link dropped before `end` could follow.
+    /// The ended state arrived 650 s after the Start, and the link dropped before `end` could follow.
     @Test func `What the Watch saves alone ends no later than the Workout's end, if it heard it`() throws {
         var flow = running()
-        _ = flow.handle(.received(.update(.ended(.total(.seconds(90)))), at: start.addingTimeInterval(90)))
+        _ = flow.handle(.received(.update(.ended(.total(.seconds(650)))), at: start.addingTimeInterval(650)))
         _ = flow.handle(.disconnected(at: later))
 
         let record = try #require(saved(by: flow.handle(.outOfContactTimerFired)))
 
-        #expect(record.end == start.addingTimeInterval(90))
-        #expect(flow.screen == .complete(.total(.seconds(90))))
+        #expect(record.end == start.addingTimeInterval(650))
+        #expect(flow.screen == .complete(.total(.seconds(650))))
     }
 
     /// The system ends the Watch's session when another workout app starts one.
@@ -463,7 +463,7 @@ nonisolated struct WatchFlowTests {
         #expect(flow.screen == .idle)
     }
 
-    @Test func `Taken over under 1 minute into the Workout, the Watch discards what it collected`() {
+    @Test func `Taken over under 10 minutes into the Workout, the Watch discards what it collected`() {
         var flow = running()
 
         let effects = flow.handle(.sessionEnded(at: start.addingTimeInterval(40)))

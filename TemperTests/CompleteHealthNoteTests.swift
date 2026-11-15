@@ -16,7 +16,7 @@ struct CompleteHealthNoteTests {
         let note = CompleteHealthNote(row: row, activeTime: longEnough - .milliseconds(1))
 
         #expect(note == .tooShort)
-        #expect(note?.text == "Under 1 minute, so not saved to Health.")
+        #expect(note?.text == "Under 10 minutes, so not saved to Health.")
     }
 
     @Test func `A Workout of the minimum or more is saving once Health allows workouts`() {
