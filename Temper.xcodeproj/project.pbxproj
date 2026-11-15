@@ -64,13 +64,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AA0000000000000000000002 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = "<group>"; };
+		AA0000000000000000000002 /* Config/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = "<group>"; };
 		AA0000000000000000000011 /* Temper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Temper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000021 /* TemperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TemperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000050 /* TemperWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TemperWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		AA0000000000000000000053 /* TemperWidgets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/TemperWidgets.xcconfig; sourceTree = "<group>"; };
+		AA0000000000000000000053 /* Config/TemperWidgets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/TemperWidgets.xcconfig; sourceTree = "<group>"; };
 		AA0000000000000000000071 /* TemperWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TemperWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AA0000000000000000000073 /* TemperWatch.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/TemperWatch.xcconfig; sourceTree = "<group>"; };
+		AA0000000000000000000073 /* Config/TemperWatch.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/TemperWatch.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -85,11 +85,34 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		AA0000000000000000000012 /* Temper */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Temper; sourceTree = "<group>"; };
-		AA0000000000000000000022 /* TemperTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = TemperTests; sourceTree = "<group>"; };
-		AA0000000000000000000051 /* TemperWidgets */ = {isa = PBXFileSystemSynchronizedRootGroup; path = TemperWidgets; sourceTree = "<group>"; };
-		AA0000000000000000000052 /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AA0000000000000000000079 /* Exceptions for "Shared" folder in "TemperWatch" target */, ); path = Shared; sourceTree = "<group>"; };
-		AA0000000000000000000072 /* TemperWatch */ = {isa = PBXFileSystemSynchronizedRootGroup; path = TemperWatch; sourceTree = "<group>"; };
+		AA0000000000000000000012 /* Temper */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Temper;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000022 /* TemperTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TemperTests;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000051 /* TemperWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TemperWidgets;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000052 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA0000000000000000000079 /* Exceptions for "Shared" folder in "TemperWatch" target */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000072 /* TemperWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TemperWatch;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -123,9 +146,9 @@
 		AA0000000000000000000003 = {
 			isa = PBXGroup;
 			children = (
-				AA0000000000000000000002 /* Base.xcconfig */,
-				AA0000000000000000000053 /* TemperWidgets.xcconfig */,
-				AA0000000000000000000073 /* TemperWatch.xcconfig */,
+				AA0000000000000000000002 /* Config/Base.xcconfig */,
+				AA0000000000000000000053 /* Config/TemperWidgets.xcconfig */,
+				AA0000000000000000000073 /* Config/TemperWatch.xcconfig */,
 				AA0000000000000000000012 /* Temper */,
 				AA0000000000000000000052 /* Shared */,
 				AA0000000000000000000051 /* TemperWidgets */,
@@ -232,8 +255,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AA0000000000000000000072 /* TemperWatch */,
 				AA0000000000000000000052 /* Shared */,
+				AA0000000000000000000072 /* TemperWatch */,
 			);
 			name = TemperWatch;
 			packageProductDependencies = (
@@ -347,34 +370,34 @@
 /* Begin XCBuildConfiguration section */
 		AA0000000000000000000006 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = AA0000000000000000000002 /* Base.xcconfig */;
+			baseConfigurationReference = AA0000000000000000000002 /* Config/Base.xcconfig */;
 			buildSettings = {
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				ONLY_ACTIVE_ARCH = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				ENABLE_TESTABILITY = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				GCC_OPTIMIZATION_LEVEL = 0;
 			};
 			name = Debug;
 		};
 		AA0000000000000000000007 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = AA0000000000000000000002 /* Base.xcconfig */;
+			baseConfigurationReference = AA0000000000000000000002 /* Config/Base.xcconfig */;
 			buildSettings = {
-				SWIFT_COMPILATION_MODE = wholemodule;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
 		};
 		AA0000000000000000000016 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				GENERATE_INFOPLIST_FILE = YES;
 				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/Temper-Info.plist";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
@@ -386,11 +409,11 @@
 		AA0000000000000000000017 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				GENERATE_INFOPLIST_FILE = YES;
 				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/Temper-Info.plist";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
@@ -402,28 +425,28 @@
 		AA0000000000000000000026 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Temper.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Temper";
 				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Temper.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Temper";
 			};
 			name = Debug;
 		};
 		AA0000000000000000000027 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Temper.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Temper";
 				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Temper.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Temper";
 			};
 			name = Release;
 		};
 		AA0000000000000000000057 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = AA0000000000000000000053 /* TemperWidgets.xcconfig */;
+			baseConfigurationReference = AA0000000000000000000053 /* Config/TemperWidgets.xcconfig */;
 			buildSettings = {
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/TemperWidgets-Info.plist";
@@ -441,7 +464,7 @@
 		};
 		AA0000000000000000000058 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = AA0000000000000000000053 /* TemperWidgets.xcconfig */;
+			baseConfigurationReference = AA0000000000000000000053 /* Config/TemperWidgets.xcconfig */;
 			buildSettings = {
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/TemperWidgets-Info.plist";
@@ -459,7 +482,7 @@
 		};
 		AA0000000000000000000076 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = AA0000000000000000000073 /* TemperWatch.xcconfig */;
+			baseConfigurationReference = AA0000000000000000000073 /* Config/TemperWatch.xcconfig */;
 			buildSettings = {
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -475,7 +498,7 @@
 		};
 		AA0000000000000000000077 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = AA0000000000000000000073 /* TemperWatch.xcconfig */;
+			baseConfigurationReference = AA0000000000000000000073 /* Config/TemperWatch.xcconfig */;
 			buildSettings = {
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
