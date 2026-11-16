@@ -276,7 +276,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
     }
 
     /// Ends the session with no record from the iPhone: it saves the one built from what the Watch heard up to
-    /// `end`, or nothing if that's under a minute of active time.
+    /// `end`, or nothing if that's under 10 minutes of active time.
     private mutating func endSavingHeard(until end: Date) -> [Effect] {
         guard let begin else { return [] }
         let record = HealthRecord(heard: heard, begin: begin, lastContact: min(end, endHeard ?? end))

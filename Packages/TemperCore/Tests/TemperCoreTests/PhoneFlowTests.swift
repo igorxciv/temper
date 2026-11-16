@@ -27,8 +27,8 @@ nonisolated struct PhoneFlowTests {
     private var record: HealthRecord {
         HealthRecord(
             WorkoutRecord(
-                start: ManualClock.Instant(offset: .zero), end: ManualClock.Instant(offset: .seconds(90)), pauses: [],
-                phases: [.init(kind: .work, round: 1, start: .init(offset: .zero), end: .init(offset: .seconds(90)))]),
+                start: ManualClock.Instant(offset: .zero), end: ManualClock.Instant(offset: .seconds(600)), pauses: [],
+                phases: [.init(kind: .work, round: 1, start: .init(offset: .zero), end: .init(offset: .seconds(600)))]),
             filedAs: .traditionalStrengthTraining, workoutID: workoutID, attempt: 1,
             anchor: ClockAnchor(instant: ManualClock.Instant(offset: .zero), date: start))!
     }
@@ -203,7 +203,7 @@ nonisolated struct PhoneFlowTests {
         #expect(effects == [.send(.update(.ended(nil)), to: 1), .send(.end(record), to: 1), .stopActivity(1)])
     }
 
-    /// A Workout under 1 minute has no record, so the Watch ends without saving too.
+    /// A Workout under 10 minutes has no record, so the Watch ends without saving too.
     @Test func `With no record, the iPhone's end carries none`() {
         var flow = started()
         _ = flow.handle(.instanceArrived(1, start: start, at: start.addingTimeInterval(2)))
@@ -233,10 +233,10 @@ nonisolated struct PhoneFlowTests {
     @Test func `A session that started at or after the Workout's end is told to end without saving`() {
         var flow = started()
         _ = flow.handle(.recordReady(record))
-        _ = flow.handle(.published(.ended(.total(.seconds(90)))))
+        _ = flow.handle(.published(.ended(.total(.seconds(600)))))
 
         let effects = flow.handle(
-            .instanceArrived(1, start: start.addingTimeInterval(90), at: start.addingTimeInterval(91)))
+            .instanceArrived(1, start: start.addingTimeInterval(600), at: start.addingTimeInterval(601)))
 
         #expect(effects == [.send(.discard, to: 1)])
     }

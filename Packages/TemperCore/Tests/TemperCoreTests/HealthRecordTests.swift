@@ -46,16 +46,16 @@ nonisolated struct HealthRecordTests {
 
     // MARK: Whether to save
 
-    @Test func `Under 1 minute of active time saves nothing`() {
-        #expect(healthRecord(stopwatch(from: 100, to: 159.999)) == nil)
+    @Test func `Under 10 minutes of active time saves nothing`() {
+        #expect(healthRecord(stopwatch(from: 100, to: 699.999)) == nil)
     }
 
-    @Test func `Exactly 1 minute of active time saves`() {
-        #expect(healthRecord(stopwatch(from: 100, to: 160)) != nil)
+    @Test func `Exactly 10 minutes of active time saves`() {
+        #expect(healthRecord(stopwatch(from: 100, to: 700)) != nil)
     }
 
-    @Test func `A Pause doesn't count towards the minute`() {
-        let record = stopwatch(from: 100, to: 170, pauses: [at(120)..<at(130.001)])
+    @Test func `A Pause doesn't count towards the 10 minutes`() {
+        let record = stopwatch(from: 100, to: 710, pauses: [at(120)..<at(130.001)])
 
         #expect(healthRecord(record) == nil)
     }
@@ -70,20 +70,20 @@ nonisolated struct HealthRecordTests {
     func `Each Workout Type saves as its activity type`(
         workoutType: WorkoutType, activityType: HealthRecord.ActivityType
     ) {
-        #expect(healthRecord(stopwatch(from: 0, to: 90), of: workoutType)?.activityType == activityType)
+        #expect(healthRecord(stopwatch(from: 0, to: 600), of: workoutType)?.activityType == activityType)
     }
 
     // MARK: Dates
 
     @Test func `The start and end dates come from the anchor pair`() throws {
-        let health = try #require(healthRecord(stopwatch(from: 100, to: 250.5)))
+        let health = try #require(healthRecord(stopwatch(from: 100, to: 750.5)))
 
         #expect(health.start == Date(timeIntervalSinceReferenceDate: 799_999_100))
-        #expect(health.end == Date(timeIntervalSinceReferenceDate: 799_999_250.5))
+        #expect(health.end == Date(timeIntervalSinceReferenceDate: 799_999_750.5))
     }
 
     @Test func `An anchor read later than the end places the dates the same`() throws {
-        let record = stopwatch(from: 100, to: 250)
+        let record = stopwatch(from: 100, to: 750)
         let later = try #require(
             HealthRecord(
                 record, filedAs: .highIntensityIntervalTraining, workoutID: workoutID, attempt: 1,
@@ -91,13 +91,13 @@ nonisolated struct HealthRecordTests {
         )
 
         #expect(later.start == date(100))
-        #expect(later.end == date(250))
+        #expect(later.end == date(750))
     }
 
     // MARK: Pauses
 
     @Test func `Each Pause saves as a pause and resume pair`() throws {
-        let record = stopwatch(from: 0, to: 200, pauses: [at(30)..<at(45), at(100)..<at(130.25)])
+        let record = stopwatch(from: 0, to: 700, pauses: [at(30)..<at(45), at(100)..<at(130.25)])
 
         let health = try #require(healthRecord(record))
 
@@ -111,12 +111,12 @@ nonisolated struct HealthRecordTests {
 
     @Test func `A Pause still on at Stop resumes at the Stop`() throws {
         // The engine records a Pause still on at Stop as ending at the Stop.
-        let record = stopwatch(from: 0, to: 200, pauses: [at(120)..<at(200)])
+        let record = stopwatch(from: 0, to: 800, pauses: [at(720)..<at(800)])
 
         let health = try #require(healthRecord(record))
 
-        #expect(health.pauses == [HealthRecord.Pause(start: date(120), end: date(200))])
-        #expect(health.end == date(200))
+        #expect(health.pauses == [HealthRecord.Pause(start: date(720), end: date(800))])
+        #expect(health.end == date(800))
     }
 
     // MARK: Activities
@@ -130,14 +130,14 @@ nonisolated struct HealthRecordTests {
     @Test func `Each Phase that ran saves as an activity with its Phase and Round`() throws {
         let record = Record(
             start: at(0),
-            end: at(145),
+            end: at(645),
             pauses: [],
             phases: [
                 phase(.prepare, from: 0, to: 10),
                 phase(.work, round: 1, from: 10, to: 40),
                 phase(.rest, round: 1, from: 40, to: 55),
                 phase(.work, round: 2, from: 55, to: 85),
-                phase(.cooldown, from: 85, to: 145),
+                phase(.cooldown, from: 85, to: 645),
             ]
         )
 
@@ -149,7 +149,7 @@ nonisolated struct HealthRecordTests {
                 activity(.work, round: 1, from: 10, to: 40),
                 activity(.rest, round: 1, from: 40, to: 55),
                 activity(.work, round: 2, from: 55, to: 85),
-                activity(.cooldown, from: 85, to: 145),
+                activity(.cooldown, from: 85, to: 645),
             ]
         )
     }
@@ -166,31 +166,31 @@ nonisolated struct HealthRecordTests {
     @Test func `A Phase cut short by Stop ends at the Stop`() throws {
         let record = Record(
             start: at(0),
-            end: at(100),
+            end: at(700),
             pauses: [],
-            phases: [phase(.work, round: 1, from: 0, to: 70), phase(.rest, round: 1, from: 70, to: 100)]
+            phases: [phase(.work, round: 1, from: 0, to: 670), phase(.rest, round: 1, from: 670, to: 700)]
         )
 
         let health = try #require(healthRecord(record, of: .openRounds))
 
-        #expect(health.activities.last == activity(.rest, round: 1, from: 70, to: 100))
-        #expect(health.end == date(100))
+        #expect(health.activities.last == activity(.rest, round: 1, from: 670, to: 700))
+        #expect(health.end == date(700))
     }
 
     @Test func `An activity spans a Pause inside its Phase`() throws {
         let record = Record(
             start: at(0),
-            end: at(130),
+            end: at(730),
             pauses: [at(20)..<at(50)],
-            phases: [phase(.work, round: 1, from: 0, to: 90), phase(.rest, round: 1, from: 90, to: 130)]
+            phases: [phase(.work, round: 1, from: 0, to: 690), phase(.rest, round: 1, from: 690, to: 730)]
         )
 
         let health = try #require(healthRecord(record, of: .openRounds))
 
         #expect(
             health.activities == [
-                activity(.work, round: 1, from: 0, to: 90),
-                activity(.rest, round: 1, from: 90, to: 130),
+                activity(.work, round: 1, from: 0, to: 690),
+                activity(.rest, round: 1, from: 690, to: 730),
             ]
         )
         #expect(health.pauses == [HealthRecord.Pause(start: date(20), end: date(50))])
@@ -199,20 +199,20 @@ nonisolated struct HealthRecordTests {
     @Test func `A Phase that would start at the very Stop isn't saved`() throws {
         let record = Record(
             start: at(0),
-            end: at(90),
+            end: at(600),
             pauses: [],
-            phases: [phase(.work, round: 1, from: 0, to: 90), phase(.rest, round: 1, from: 90, to: 90)]
+            phases: [phase(.work, round: 1, from: 0, to: 600), phase(.rest, round: 1, from: 600, to: 600)]
         )
 
         let health = try #require(healthRecord(record, of: .openRounds))
 
-        #expect(health.activities == [activity(.work, round: 1, from: 0, to: 90)])
+        #expect(health.activities == [activity(.work, round: 1, from: 0, to: 600)])
     }
 
     // MARK: Saving once
 
     @Test func `The sync identifier is the Workout's UUID and the version is the attempt number`() throws {
-        let health = try #require(healthRecord(stopwatch(from: 0, to: 90), attempt: 2))
+        let health = try #require(healthRecord(stopwatch(from: 0, to: 600), attempt: 2))
 
         #expect(health.workoutID == workoutID)
         #expect(health.syncIdentifier == "6F9619FF-8B86-D011-B42D-00C04FC964FF")
@@ -220,7 +220,7 @@ nonisolated struct HealthRecordTests {
     }
 
     @Test func `A later attempt raises only the version`() throws {
-        let record = stopwatch(from: 0, to: 90, pauses: [at(10)..<at(20)])
+        let record = stopwatch(from: 0, to: 700, pauses: [at(10)..<at(20)])
         let first = try #require(healthRecord(record, attempt: 1))
 
         #expect(first.withSyncVersion(3) == healthRecord(record, attempt: 3))
@@ -229,9 +229,9 @@ nonisolated struct HealthRecordTests {
     @Test func `A pending save decodes to the same record`() throws {
         let record = Record(
             start: at(0),
-            end: at(130),
+            end: at(730),
             pauses: [at(20)..<at(50.125)],
-            phases: [phase(.work, round: 1, from: 0, to: 90), phase(.rest, round: 1, from: 90, to: 130)]
+            phases: [phase(.work, round: 1, from: 0, to: 690), phase(.rest, round: 1, from: 690, to: 730)]
         )
         let health = try #require(healthRecord(record, of: .openRounds, attempt: 2))
 
