@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import TemperCore
@@ -524,5 +525,79 @@ nonisolated struct PlannedWorkoutDisplayTests {
         let display = display(finished ? .finished(record) : .stopped(record))
 
         #expect(display.completion == .rounds(RoundsSummary(record: record)))
+    }
+}
+
+/// A named circuit: the title and the next Exercise on every screen that runs it.
+nonisolated struct ExerciseDisplayTests {
+    private typealias Snapshot = WorkoutSnapshot<ManualClock.Instant>
+    private typealias Display = RunningDisplay<ManualClock.Instant>
+
+    private let intervals = WorkoutType.intervals.makeWorkout(from: WorkoutType.intervals.firstLaunch)
+    private let work = Phase(kind: .work, duration: .seconds(40), round: 3)
+    private let rest = Phase(kind: .rest, duration: .seconds(20), round: 3)
+
+    private func at(_ seconds: Double) -> ManualClock.Instant {
+        ManualClock.Instant(offset: .seconds(seconds))
+    }
+
+    private func running(_ phase: Phase, endsAt end: Double) -> Snapshot.Progress {
+        .running(phase: phase, endsAt: at(end))
+    }
+
+    private let squats = Phase(kind: .work, duration: .seconds(40), round: 3, exercise: Exercise("Squats"))
+    private let date = Date(timeIntervalSinceReferenceDate: 1_000_000)
+
+    private func shown(_ progress: Snapshot.Progress, next: Exercise? = nil) -> Display {
+        Display(workout: intervals, snapshot: Snapshot(progress: progress, rounds: 8, nextExercise: next))
+    }
+
+    @Test func `A named Work's title is its Exercise, and any other Phase's is its kind`() {
+        #expect(shown(running(squats, endsAt: 100)).title == "Squats")
+        #expect(shown(running(work, endsAt: 100)).title == "Work")
+        #expect(shown(running(rest, endsAt: 100)).title == "Rest")
+        #expect(shown(.paused(phase: squats, timeLeft: .seconds(5))).title == "Squats")
+    }
+
+    @Test func `The Phase before a named Work shows its Exercise as next, running or Paused`() {
+        #expect(shown(running(rest, endsAt: 100), next: Exercise("Squats")).nextExercise == Exercise("Squats"))
+        #expect(
+            shown(.paused(phase: rest, timeLeft: .seconds(5)), next: Exercise("Squats")).nextExercise
+                == Exercise("Squats"))
+        #expect(shown(running(rest, endsAt: 100)).nextExercise == nil)
+    }
+
+    @Test func `The Live Activity and the Watch show the same title and next Exercise`() throws {
+        let duringWork = shown(running(squats, endsAt: 100))
+        let duringRest = shown(running(rest, endsAt: 100), next: Exercise("Push-ups"))
+
+        guard case .phase(let liveWork) = try #require(duringWork.liveActivityState(at: at(90), date: date)),
+            case .phase(let liveRest) = try #require(duringRest.liveActivityState(at: at(90), date: date)),
+            case .phase(let watchWork) = duringWork.watchState(at: at(90), date: date),
+            case .phase(let watchRest) = duringRest.watchState(at: at(90), date: date)
+        else {
+            Issue.record("Expected running Phases")
+            return
+        }
+        #expect(liveWork.title == "Squats")
+        #expect(liveWork.nextExercise == nil)
+        #expect(liveRest.title == "Rest")
+        #expect(liveRest.nextExercise == "Push-ups")
+        #expect(watchWork.title == "Squats")
+        #expect(watchRest.nextExercise == "Push-ups")
+    }
+
+    @Test func `A Live Activity stored before Exercises still reads, showing its kind`() throws {
+        let stored =
+            #"{"phase":{"_0":{"kind":"work","start":0,"countsUp":false,"line":"3 of 8","spokenLine":"Round 3 of 8"}}}"#
+
+        let state = try JSONDecoder().decode(LiveActivityState.self, from: Data(stored.utf8))
+
+        guard case .phase(let phase) = state else {
+            Issue.record("Expected a Phase")
+            return
+        }
+        #expect(phase.title == nil)
+        #expect(phase.nextExercise == nil)
     }
 }

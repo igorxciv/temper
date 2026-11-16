@@ -44,6 +44,16 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
     /// True for a Stopwatch's Work, whose time keeps counting past `end` until Done while its bar stays full. It's
     /// optional only so a state stored by an earlier build still decodes.
     public var countsPastEnd: Bool? = nil
+    /// The name over the time: a named Work's Exercise, or the kind of Phase. It's optional only so a state stored by
+    /// an earlier build still decodes, and then the kind's name is shown.
+    public var title: String? = nil
+    /// The Exercise of the named Work that follows, shown as next, or `nil`.
+    public var nextExercise: String? = nil
+
+    /// What shows over the time.
+    public var shownTitle: String {
+        title ?? kind.name
+    }
 
     public var isPaused: Bool {
         pausedAt != nil
@@ -98,7 +108,9 @@ extension RunningDisplay {
                     line: text,
                     spokenLine: spoken,
                     button: liveButton,
-                    countsPastEnd: phase.runsPastSetLength
+                    countsPastEnd: phase.runsPastSetLength,
+                    title: title,
+                    nextExercise: nextExercise?.name
                 )
             )
         case .finished(let record), .stopped(let record):

@@ -22,6 +22,7 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
 
     private struct ArmedCue {
         let cue: Cue
+        let exercise: Exercise?
         let deadline: Instant
         let token: CueToken
     }
@@ -180,7 +181,7 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         guard let origin, let (upcoming, deadline, leadStart) = nextCue(from: origin) else { return }
         if leadStart <= clock.now {
             earliestDue = upcoming.due + .nanoseconds(1)
-            arm(upcoming.cue, at: deadline)
+            arm(upcoming.cue, saying: upcoming.exercise, at: deadline)
             handOverNextCue()
         } else {
             lead = Task { [clock] in
@@ -191,9 +192,9 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         }
     }
 
-    private func arm(_ cue: Cue, at deadline: Instant) {
+    private func arm(_ cue: Cue, saying exercise: Exercise?, at deadline: Instant) {
         token = CueToken(value: token.value + 1)
-        let armed = ArmedCue(cue: cue, deadline: deadline, token: token)
+        let armed = ArmedCue(cue: cue, exercise: exercise, deadline: deadline, token: token)
         self.armed = armed
         interruptedCue = nil
         Task { await handOver(armed) }
@@ -221,7 +222,8 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         }
         do {
             // Audio can take a while to start after this check, so it's told the latest start as well.
-            try await audio.schedule(armed.cue, at: armed.deadline, startingBy: latest, token: armed.token)
+            try await audio.schedule(
+                armed.cue, saying: armed.exercise, at: armed.deadline, startingBy: latest, token: armed.token)
         } catch {
             guard armed.token == token else { return }
             session = .released
@@ -305,7 +307,7 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
             guard !isOnCall, recoveryToken == token else { return }
             guard isAwaitingRecovery else { return }
             if let cut = interruptedCue.take(), clock.now <= cut.deadline.advanced(by: lateLimit) {
-                arm(cut.cue, at: cut.deadline)
+                arm(cut.cue, saying: cut.exercise, at: cut.deadline)
                 return
             }
             session = .active

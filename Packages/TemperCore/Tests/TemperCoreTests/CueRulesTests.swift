@@ -77,6 +77,40 @@ nonisolated struct CueRulesTests {
         #expect(await audio.latestStarts == [at(11)])
     }
 
+    // MARK: Exercises
+
+    @Test func `The Rest before a named Work says it's next, and a Workout opening on a named Work says it at once`()
+        async
+    {
+        let squats = Phase(kind: .work, duration: .seconds(30), round: 1, exercise: Exercise("Squats"))
+        let pushUps = Phase(kind: .work, duration: .seconds(30), round: 2, exercise: Exercise("Push-ups"))
+        let engine = makeEngine([squats, rest, pushUps])
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate)
+        #expect(await calls.next() == .schedule(.work, at: at(0)))
+
+        advance(to: 28.5)
+        #expect(await calls.next() == .schedule(.rest, at: at(30)))
+        advance(to: 43.5)
+        #expect(await calls.next() == .schedule(.work, at: at(45)))
+
+        #expect(await audio.exercises == [Exercise("Squats"), Exercise("Push-ups"), nil])
+    }
+
+    @Test func `A Prepare before a named Work says it's next at Start, and the Work then says only Work`() async {
+        let squats = Phase(kind: .work, duration: .seconds(30), round: 1, exercise: Exercise("Squats"))
+        let engine = makeEngine([prepare, squats])
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate)
+        #expect(await calls.next() == .schedule(.prepare, at: at(0)))
+
+        advance(to: 8.5)
+        #expect(await calls.next() == .schedule(.work, at: at(10)))
+        #expect(await audio.exercises == [Exercise("Squats"), nil])
+    }
+
     @Test func `Every Work says Work, even directly after another Work`() async {
         let engine = makeEngine([firstWork, secondWork])
         var calls = audio.calls.makeAsyncIterator()

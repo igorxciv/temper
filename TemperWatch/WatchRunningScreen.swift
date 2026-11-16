@@ -1,8 +1,9 @@
 import SwiftUI
 import TemperCore
 
-/// The iPhone's running screen shrunk, for every Workout Type and Phase: the Phase name in its color with the
-/// heart-rate slot on the same row, the time, a thin bar, the iPhone's line, then the 56 pt capsule.
+/// The iPhone's running screen shrunk, for every Workout Type and Phase: the Phase name, or a named Work's Exercise, in
+/// its color with the heart-rate slot on the same row, the time, a thin bar, the iPhone's line and any next Exercise,
+/// then the 56 pt capsule.
 ///
 /// The time and bar are drawn from the Phase's dates, so nothing has to arrive from the iPhone between its events.
 /// Always On keeps the same layout on black, so nothing moves on wrist-down.
@@ -30,7 +31,7 @@ struct WatchRunningScreen: View {
 
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(phase.kind.name)
+                Text(phase.title)
                     .font(.system(size: 19, weight: .semibold))
                     .foregroundStyle(colors.ring.opacity(dim ? 0.55 : 1))
                     .lineLimit(1)
@@ -56,6 +57,14 @@ struct WatchRunningScreen: View {
             }
             if isConnected {
                 LineText(line: phase.line, colors: colors, dim: dim)
+                if let next = phase.nextExercise {
+                    Text("Next: \(next)")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(colors.text.opacity(dim ? 0.7 : 1))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .accessibilityLabel("Next, \(next)")
+                }
             } else {
                 NotConnectedMark(size: 14, dim: dim)
             }

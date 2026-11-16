@@ -35,7 +35,12 @@ public nonisolated protocol AudioOutput<Instant>: Sendable {
     func deactivate() async throws
     /// Arranges for a Cue to start speaking at `deadline`, or at once if that has passed. Throws instead if
     /// the Cue would start after `latest`. Returns when it's arranged, not when it has played.
-    func schedule(_ cue: Cue, at deadline: Instant, startingBy latest: Instant, token: CueToken) async throws
+    ///
+    /// A Cue with an `exercise` says it too: a Work's Cue says it over the gong, and any other Cue says it's next,
+    /// after its own sound.
+    func schedule(
+        _ cue: Cue, saying exercise: Exercise?, at deadline: Instant, startingBy latest: Instant, token: CueToken)
+        async throws
     /// Cuts any Cue that's speaking or waiting to speak.
     func cancel() async throws
     /// Whether a phone call is ringing, connected or on hold. It isn't an audio call, so it never fails.

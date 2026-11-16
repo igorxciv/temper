@@ -28,11 +28,20 @@ public nonisolated struct PlanBoard: Equatable, Sendable {
         public let length: Length
         /// The setup value that edits it, or `nil` if it can't be edited, as an open Work or a described Plan's line.
         public let value: WorkoutValue?
+        /// What the owner calls a Work's activity, if anything.
+        public let exercise: Exercise?
+        /// Where a described Plan's Work sits, to rename its Exercise, or `nil` for any other line.
+        public let exercisePlace: Plan.PhasePlace?
 
-        public init(kind: Phase.Kind, length: Length, value: WorkoutValue? = nil) {
+        public init(
+            kind: Phase.Kind, length: Length, value: WorkoutValue? = nil, exercise: Exercise? = nil,
+            exercisePlace: Plan.PhasePlace? = nil
+        ) {
             self.kind = kind
             self.length = length
             self.value = value
+            self.exercise = exercise
+            self.exercisePlace = exercisePlace
         }
 
         /// The line's time, as "0:40", "Off", "Open" or, for a length it runs past, "10:00".
@@ -53,8 +62,13 @@ public nonisolated struct PlanBoard: Equatable, Sendable {
             }
         }
 
-        /// What VoiceOver reads for the line.
+        /// What VoiceOver reads for the line, starting with its Exercise if it has one.
         public var spokenText: String {
+            guard let exercise else { return phaseText }
+            return "\(exercise.name), \(phaseText)"
+        }
+
+        private var phaseText: String {
             switch length {
             case .set(let duration): "\(kind.name), \(duration.spokenText(rounding: .up))"
             case .off: "\(kind.name), Off"
@@ -72,10 +86,15 @@ public nonisolated struct PlanBoard: Equatable, Sendable {
 
     /// A Plan's board, for reading only.
     public init(plan: Plan) {
-        items = plan.blocks.map { block in
+        items = plan.blocks.enumerated().map { index, block in
             switch block {
-            case .phase(let planned): .line(Line(planned))
-            case .rounds(let count, let phases): .rounds(count, phases.map(Line.init), value: nil)
+            case .phase(let planned):
+                .line(Line(planned, at: Plan.PhasePlace(block: index, phase: 0)))
+            case .rounds(let count, let phases):
+                .rounds(
+                    count,
+                    phases.enumerated().map { Line($1, at: Plan.PhasePlace(block: index, phase: $0)) },
+                    value: nil)
             }
         }
     }
@@ -155,13 +174,17 @@ public nonisolated struct PlanBoard: Equatable, Sendable {
 }
 
 extension PlanBoard.Line {
-    fileprivate nonisolated init(_ planned: PlannedPhase) {
+    /// Only a Work can be renamed, so only its line has a place.
+    fileprivate nonisolated init(_ planned: PlannedPhase, at place: Plan.PhasePlace) {
         let length: Length =
             switch planned.length {
             case .set(let duration): .set(duration)
             case .open: .open
             case .runsPast(let duration): .runsPast(duration)
             }
-        self.init(kind: planned.kind, length: length)
+        let isWork = planned.kind == .work
+        self.init(
+            kind: planned.kind, length: length, exercise: isWork ? planned.exercise : nil,
+            exercisePlace: isWork ? place : nil)
     }
 }

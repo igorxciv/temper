@@ -36,6 +36,30 @@ public nonisolated struct Plan: Equatable, Sendable {
         self.warnsBeforeRestEnds = warnsBeforeRestEnds
     }
 
+    /// Where a Phase sits in a Plan: its Block, and its place among that Block's Phases, 0 for a single Phase.
+    public struct PhasePlace: Hashable, Sendable {
+        public let block: Int
+        public let phase: Int
+    }
+
+    /// The Plan with the Work at `place` named `name`, trimmed and cut as any Exercise is, or with no Exercise if
+    /// `name` is blank. Nothing else changes, and a place that holds no Phase changes nothing.
+    public func renamingExercise(at place: PhasePlace, to name: String) -> Plan {
+        guard blocks.indices.contains(place.block) else { return self }
+        var plan = self
+        switch blocks[place.block] {
+        case .phase(var planned) where place.phase == 0:
+            planned.exercise = Exercise(name)
+            plan.blocks[place.block] = .phase(planned)
+        case .rounds(let count, var phases) where phases.indices.contains(place.phase):
+            phases[place.phase].exercise = Exercise(name)
+            plan.blocks[place.block] = .rounds(count, phases)
+        case .phase, .rounds:
+            break
+        }
+        return plan
+    }
+
     /// The most Rounds a Rounds Block can set, as setup's wheel allows.
     public static let maximumRounds = 99
     /// The longest set length a Phase can have. A locked iPhone has been seen to stay alive through 30 minutes of
@@ -90,15 +114,18 @@ public nonisolated struct Plan: Equatable, Sendable {
 public nonisolated struct PlannedPhase: Equatable, Sendable {
     public var kind: Phase.Kind
     public var length: Phase.Length
+    /// What the owner calls a Work's activity, if anything. The Workout drops one on any other kind of Phase.
+    public var exercise: Exercise?
 
-    public init(kind: Phase.Kind, length: Phase.Length) {
+    public init(kind: Phase.Kind, length: Phase.Length, exercise: Exercise? = nil) {
         self.kind = kind
         self.length = length
+        self.exercise = exercise
     }
 
     /// A Phase with a set length.
-    public init(kind: Phase.Kind, duration: Duration) {
-        self.init(kind: kind, length: .set(duration))
+    public init(kind: Phase.Kind, duration: Duration, exercise: Exercise? = nil) {
+        self.init(kind: kind, length: .set(duration), exercise: exercise)
     }
 
     fileprivate func check(inBlock block: Int) throws(PlanProblem) {
@@ -107,7 +134,7 @@ public nonisolated struct PlannedPhase: Equatable, Sendable {
     }
 
     fileprivate func phase(round: Int?) -> Phase {
-        Phase(kind: kind, length: length, round: round)
+        Phase(kind: kind, length: length, round: round, exercise: exercise)
     }
 }
 

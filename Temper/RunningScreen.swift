@@ -17,12 +17,20 @@ struct RunningScreen: View {
         let snapshot = display.snapshot
 
         VStack(spacing: 8) {
-            Text(phase.kind.name)
+            Text(display.title)
                 .font(.system(size: 56, weight: .semibold))
                 .foregroundStyle(colors.ring)
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.4)
                 .padding(.top, 8)
+            if let next = display.nextExercise {
+                Text("Next: \(next.name)")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(colors.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .accessibilityLabel("Next, \(next.name)")
+            }
             Spacer(minLength: 0)
             TimeRing(display: display, colors: colors)
                 // A stroke straddles its path, so half the line's width keeps the ring inside its frame.

@@ -54,6 +54,18 @@ where Instant.Duration == Duration {
         self.snapshot = snapshot
     }
 
+    /// The big name over the ring: a named Work's Exercise, or the kind of Phase. Empty once the Workout has ended.
+    public var title: String {
+        guard let phase = snapshot.phase else { return "" }
+        return phase.exercise?.name ?? phase.kind.name
+    }
+
+    /// The Exercise of the named Work that follows the current Phase, shown as next, running or Paused. `nil` once
+    /// the Workout has ended.
+    public var nextExercise: Exercise? {
+        snapshot.phase == nil ? nil : snapshot.nextExercise
+    }
+
     /// True during a Phase that ends at Done, an open Phase or a Stopwatch's Work, including while it's Paused.
     public var countsUp: Bool {
         snapshot.phase?.endsAtDone ?? false

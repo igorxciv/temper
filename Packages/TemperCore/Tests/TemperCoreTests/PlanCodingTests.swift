@@ -91,4 +91,40 @@ nonisolated struct PlanCodingTests {
             try decode(#"{"version":1,"activity":"other","blocks":[\#(block)]}"#)
         }
     }
+
+    @Test func `A Work's Exercise is stored by name and read back`() throws {
+        let plan = Plan(
+            activity: .highIntensityIntervalTraining,
+            blocks: [
+                .rounds(
+                    .times(3),
+                    [
+                        PlannedPhase(kind: .work, duration: .seconds(30), exercise: Exercise("Squats")),
+                        PlannedPhase(kind: .rest, duration: .seconds(15)),
+                    ]
+                )
+            ]
+        )
+
+        let stored = try json(plan)
+
+        #expect(stored.contains(#"{"exercise":"Squats","kind":"work","length":"set","seconds":30}"#))
+        #expect(stored.contains(#"{"kind":"rest","length":"set","seconds":15}"#))
+        #expect(try decode(stored) == plan)
+    }
+
+    @Test func `A stored Exercise is trimmed as it's read, and a blank one is none`() throws {
+        let stored =
+            #"{"version":1,"activity":"other","blocks":[{"rounds":{"times":1,"phases":["#
+            + #"{"kind":"work","length":"open","exercise":"  Lunges "},"#
+            + #"{"kind":"work","length":"open","exercise":" "}]}}]}"#
+
+        let plan = try decode(stored)
+
+        guard case .rounds(_, let phases) = try #require(plan.blocks.first) else {
+            Issue.record("Expected Rounds")
+            return
+        }
+        #expect(phases.map(\.exercise?.name) == ["Lunges", nil])
+    }
 }

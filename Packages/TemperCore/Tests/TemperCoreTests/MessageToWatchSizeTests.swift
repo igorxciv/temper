@@ -35,8 +35,8 @@ nonisolated struct MessageToWatchSizeTests {
     }
 
     /// The iPhone sends an update on every event, so each one has to stay a tiny share of the limit. The longest is an
-    /// Open Rounds Rest deep into a long Workout, with its full line and both Cues to come, on a real wall clock, built
-    /// the way the iPhone builds it.
+    /// Open Rounds Rest deep into a long Workout, with its full line, both Cues to come and the longest next Exercise, on
+    /// a real wall clock, built the way the iPhone builds it.
     @Test func `A running Phase's update stays under 1 KB`() throws {
         let rest = Phase(kind: .rest, duration: .seconds(60), round: 200)
         let cues = [
@@ -45,7 +45,8 @@ nonisolated struct MessageToWatchSizeTests {
         ]
         let snapshot = WorkoutSnapshot(
             progress: .running(phase: rest, endsAt: Instant(offset: .seconds(36_060))), rounds: nil,
-            previousOpenPhaseTime: .seconds(5_999.987_654), cues: cues)
+            previousOpenPhaseTime: .seconds(5_999.987_654), cues: cues,
+            nextExercise: Exercise(String(repeating: "W", count: Exercise.maximumLength)))
         let display = RunningDisplay(
             workout: WorkoutType.openRounds.makeWorkout(from: WorkoutType.openRounds.firstLaunch), snapshot: snapshot)
         let state = display.watchState(

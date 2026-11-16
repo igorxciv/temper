@@ -60,6 +60,10 @@ _Avoid_: Set, rep, cycle
 The Phase in which the exercise is performed: one per Round in Intervals and Open Rounds, and the only one after Prepare in a Stopwatch.
 _Avoid_: Work round, active time
 
+**Exercise**:
+What the owner calls the activity of a Work in a Plan, such as Squats. A Work may have none. The Phase before a named Work shows it as next and says it after its own Cue, and the Work shows it in place of "Work".
+_Avoid_: Name, label, move, title
+
 **Rest**:
 The Phase between one Work and the next. A Plan can also put one between Blocks, on its own or one after another.
 _Avoid_: Break, pause
@@ -73,7 +77,7 @@ A hold on the current Phase, requested by the owner, that stops its clock until 
 _Avoid_: Rest, break
 
 **Cue**:
-The sound announcing a Phase change, the end of the Workout, that Rest is about to end, that a Phase is about to reach its set length, or that a Stopwatch's Work has reached it. Work starts and ends on a boxing gong. Cooldown and the end of the Workout add their name, spoken over the gong, and the other Cues are spoken. Apple Watch can also mark it with a tap on the wrist.
+The sound announcing a Phase change, the end of the Workout, that Rest is about to end, that a Phase is about to reach its set length, that a Stopwatch's Work has reached it, or the next Exercise. Work starts and ends on a boxing gong. Cooldown and the end of the Workout add their name, spoken over the gong, and the other Cues are spoken. Apple Watch can also mark it with a tap on the wrist.
 _Avoid_: Alert, notification, beep
 
 **Countdown**:

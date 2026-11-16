@@ -10,8 +10,11 @@ public nonisolated enum Cue: String, Codable, Equatable, Sendable {
     case finish
     /// "5, 4, 3, 2, 1", one number a second, over the last 5 s before a Phase reaches its set length.
     case countdown
+    /// The start of a Prepare before a named Work, which says only that its Exercise is next. Any other Prepare
+    /// starts silently.
+    case prepare
 
-    /// The Cue for entering a Phase. Prepare starts silently.
+    /// The Cue for entering a Phase. Prepare starts silently, unless it says the next Exercise.
     init?(entering kind: Phase.Kind) {
         switch kind {
         case .prepare: return nil
@@ -39,6 +42,15 @@ private nonisolated let doubleTapLimit = Duration.seconds(1)
 public nonisolated struct UpcomingCue: Equatable, Sendable {
     public let cue: Cue
     public let due: Duration
+    /// The Exercise said with it, if any: a named Work's own, said over its gong, or the next Work's, said after
+    /// the Cue of the Phase before it.
+    public let exercise: Exercise?
+
+    init(cue: Cue, due: Duration, exercise: Exercise? = nil) {
+        self.cue = cue
+        self.due = due
+        self.exercise = exercise
+    }
 }
 
 /// Where a Workout is at any active time, the time spent running and not Paused.
@@ -56,6 +68,10 @@ public nonisolated struct UpcomingCue: Equatable, Sendable {
 ///
 /// "Workout complete" is due only when the last Phase ends at its set length. A Workout that ends at Done says
 /// nothing more, since the owner has just ended it.
+///
+/// A timed Phase before a named Work says that Work's Exercise is next, after its own Cue, if it has
+/// `countdownRoom` for it before its Countdown, or before its end if it has none. Otherwise the Work says its
+/// Exercise over its own gong, as it does after another Work, after an open Phase, or at the start.
 public nonisolated struct Timeline: Sendable {
     /// Where the Workout is at one active time.
     public struct Position: Equatable, Sendable {
@@ -76,6 +92,9 @@ public nonisolated struct Timeline: Sendable {
         public let cues: [UpcomingCue]
         /// The active time of the Phase just before the current one, if that Phase was open and so ended at Done.
         public let previousOpenPhaseTime: Duration?
+        /// The Exercise of the Work that follows a timed Phase other than Work, whether or not that Phase has room to
+        /// say it, or `nil`.
+        public let nextExercise: Exercise?
 
         public var isFinished: Bool { phase == nil }
 
@@ -115,10 +134,20 @@ public nonisolated struct Timeline: Sendable {
         var spans: [Span] = []
         var cues: [UpcomingCue] = []
         var dones = doneTimes[...]
-        for phase in workout.phasesInOrder {
-            if let cue = Cue(entering: phase.kind) {
-                cues.append(UpcomingCue(cue: cue, due: start))
+        var phases = workout.phasesInOrder.makeIterator()
+        var upcoming = phases.next()
+        // Whether the Phase before has already said the current Work's Exercise.
+        var exerciseSaid = false
+        while let phase = upcoming {
+            upcoming = phases.next()
+            let nextExercise = upcoming?.exercise.flatMap { exercise in
+                Self.hasRoomToSayNext(in: phase, countsDown: workout.countsDown) ? exercise : nil
             }
+            if let cue = Cue(entering: phase.kind) ?? (nextExercise == nil ? nil : .prepare) {
+                let exercise = exerciseSaid ? nil : phase.exercise
+                cues.append(UpcomingCue(cue: cue, due: start, exercise: exercise ?? nextExercise))
+            }
+            exerciseSaid = nextExercise != nil
             if case .runsPast(let length) = phase.length {
                 if workout.countsDown, let countdown = Self.countdown(for: phase, startingAt: start) {
                     cues.append(countdown)
@@ -155,6 +184,14 @@ public nonisolated struct Timeline: Sendable {
         let room = Cue(entering: phase.kind) == nil ? .zero : countdownRoom
         guard length >= room + countdownLength else { return nil }
         return UpcomingCue(cue: .countdown, due: start + length - countdownLength)
+    }
+
+    /// Whether `phase` can say the next Exercise after its own Cue: it's timed, isn't a Work, and leaves
+    /// `countdownRoom` before its Countdown, or before its end if it has no Countdown.
+    private static func hasRoomToSayNext(in phase: Phase, countsDown: Bool) -> Bool {
+        guard phase.kind != .work, !phase.endsAtDone, let length = phase.duration else { return false }
+        let countdownStart = countsDown ? countdown(for: phase, startingAt: .zero)?.due : nil
+        return (countdownStart ?? length) >= countdownRoom
     }
 
     /// Ends the Phase still waiting for Done at `activeTime`, which places every following Phase and its Cue
@@ -194,7 +231,8 @@ public nonisolated struct Timeline: Sendable {
         let nextCue = cues.first { $0.due >= activeTime }
         guard let index = spans.firstIndex(where: { $0.contains(activeTime) }) else {
             return Position(
-                phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue, cues: [], previousOpenPhaseTime: nil)
+                phase: nil, timeLeft: .zero, elapsed: .zero, nextCue: nextCue, cues: [], previousOpenPhaseTime: nil,
+                nextExercise: nil)
         }
         let span = spans[index]
         let cuesToCome = (span.end ?? span.setEnd).map { end in
@@ -204,13 +242,16 @@ public nonisolated struct Timeline: Sendable {
         let previousOpenPhaseTime = previous.flatMap { previous in
             previous.phase.isOpen ? previous.end.map { $0 - previous.start } : nil
         }
+        let next = spans.indices.contains(index + 1) ? spans[index + 1].phase : nil
+        let nextExercise = span.phase.kind == .work || span.phase.endsAtDone ? nil : next?.exercise
         return Position(
             phase: span.phase,
             timeLeft: (span.end ?? span.setEnd).map { max(.zero, $0 - activeTime) } ?? .zero,
             elapsed: activeTime - span.start,
             nextCue: nextCue,
             cues: cuesToCome ?? [],
-            previousOpenPhaseTime: previousOpenPhaseTime
+            previousOpenPhaseTime: previousOpenPhaseTime,
+            nextExercise: nextExercise
         )
     }
 }

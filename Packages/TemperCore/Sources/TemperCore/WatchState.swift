@@ -54,11 +54,17 @@ public nonisolated struct WatchPhase: Codable, Hashable, Sendable {
     /// The Cues due before the next update, which the Watch marks with wrist haptics: those still to come in a
     /// running Phase, up to its end. A Paused Phase has none.
     public let cues: [WatchCue]
+    /// The name over the time: a named Work's Exercise, or the kind of Phase.
+    public let title: String
+    /// The Exercise of the named Work that follows, shown as next, or `nil`.
+    public let nextExercise: String?
 
     public init(
         kind: Phase.Kind, round: Int?, start: Date, end: Date?, pausedAt: Date?, countsUp: Bool, line: RingLine?,
-        capsule: Capsule, cues: [WatchCue] = []
+        capsule: Capsule, cues: [WatchCue] = [], title: String? = nil, nextExercise: String? = nil
     ) {
+        self.title = title ?? kind.name
+        self.nextExercise = nextExercise
         self.kind = kind
         self.round = round
         self.start = start
@@ -142,7 +148,9 @@ extension RunningDisplay {
                 capsule: capsule,
                 cues: snapshot.cues.filter { $0.cue.wristHaptic != nil }.map { cue in
                     WatchCue(cue: cue.cue, date: date.addingTimeInterval(now.duration(to: cue.due) / .seconds(1)))
-                }
+                },
+                title: title,
+                nextExercise: nextExercise?.name
             )
         )
     }

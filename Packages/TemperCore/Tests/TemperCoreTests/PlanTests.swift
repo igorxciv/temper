@@ -135,4 +135,28 @@ struct PlanTests {
                 .phase(PlannedPhase(kind: .cooldown, duration: .seconds(60))),
             ])
     }
+
+    @Test func `Every Round of a named circuit carries its Works' Exercises in order`() throws {
+        let squats = PlannedPhase(kind: .work, duration: .seconds(30), exercise: Exercise("Squats"))
+        let pushUps = PlannedPhase(kind: .work, duration: .seconds(30), exercise: Exercise("Push-ups"))
+        let workout = try workout([.rounds(.times(2), [squats, rest, pushUps, rest])])
+
+        #expect(workout.phases.map(\.exercise?.name) == ["Squats", nil, "Push-ups", nil, "Squats", nil, "Push-ups"])
+    }
+
+    @Test func `Rounds repeated until Stop keep their Work's Exercise every time`() throws {
+        let squats = PlannedPhase(kind: .work, length: .open, exercise: Exercise("Squats"))
+        let workout = try workout([.rounds(.untilStop, [squats, rest])])
+
+        let phases = Array(workout.phasesInOrder.prefix(6))
+        #expect(phases.map(\.exercise?.name) == ["Squats", nil, "Squats", nil, "Squats", nil])
+        #expect(phases.map(\.round) == [1, 1, 2, 2, 3, 3])
+    }
+
+    @Test func `Only a Work keeps an Exercise`() throws {
+        let namedRest = PlannedPhase(kind: .rest, duration: .seconds(60), exercise: Exercise("Squats"))
+        let workout = try workout([.phase(namedRest), .rounds(.times(1), [openWork])])
+
+        #expect(workout.phases.first?.exercise == nil)
+    }
 }

@@ -167,4 +167,45 @@ nonisolated struct PlanDraftTests {
             ]
         )
     }
+
+    @Test func `Exercises named in the description reach the Plan's Works, trimmed`() {
+        let circuit = PlanDraft(blocks: [
+            .init(
+                rounds: 3,
+                phases: [
+                    .init(.work, seconds: 30, exercise: "  Squats "), .init(.rest, seconds: 15),
+                    .init(.work, seconds: 30, exercise: "Push-ups"), .init(.rest, seconds: 15),
+                ])
+        ])
+
+        #expect(
+            circuit.plan.blocks == [
+                .rounds(
+                    .times(3),
+                    [
+                        PlannedPhase(kind: .work, duration: .seconds(30), exercise: Exercise("Squats")),
+                        PlannedPhase(kind: .rest, duration: .seconds(15)),
+                        PlannedPhase(kind: .work, duration: .seconds(30), exercise: Exercise("Push-ups")),
+                        PlannedPhase(kind: .rest, duration: .seconds(15)),
+                    ]
+                )
+            ])
+    }
+
+    @Test func `A blank Exercise is none, and a long one keeps its first 24 characters`() throws {
+        let draft = PlanDraft(blocks: [
+            .init(
+                rounds: 1,
+                phases: [
+                    .init(.work, seconds: 30, exercise: "   "),
+                    .init(.work, seconds: 30, exercise: "Single-arm kettlebell swings"),
+                ])
+        ])
+
+        guard case .rounds(_, let phases) = try #require(draft.plan.blocks.first) else {
+            Issue.record("Expected Rounds")
+            return
+        }
+        #expect(phases.map(\.exercise?.name) == [nil, "Single-arm kettlebell sw"])
+    }
 }

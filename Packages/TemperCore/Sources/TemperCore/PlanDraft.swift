@@ -12,10 +12,14 @@ public nonisolated struct PlanDraft: Equatable, Sendable {
         /// Its length in whole seconds. Zero makes a Work open, so it ends when the owner marks it Done, as for a set
         /// with no time given, and leaves out any other Phase.
         public var seconds: Int
+        /// The exercise the owner named for a Work, as written. Making the Plan trims it, and drops one that's blank
+        /// or on any other kind of Phase.
+        public var exercise: String?
 
-        public init(_ kind: TemperCore.Phase.Kind, seconds: Int) {
+        public init(_ kind: TemperCore.Phase.Kind, seconds: Int, exercise: String? = nil) {
             self.kind = kind
             self.seconds = seconds
+            self.exercise = exercise
         }
     }
 
@@ -72,10 +76,11 @@ public nonisolated struct PlanDraft: Equatable, Sendable {
 extension PlannedPhase {
     /// The drafted Phase, or `nil` for a Phase other than Work with no length, which is left out.
     fileprivate nonisolated init?(drafted: PlanDraft.Phase) {
+        let exercise = drafted.kind == .work ? drafted.exercise.flatMap(Exercise.init) : nil
         if drafted.seconds > 0 {
-            self.init(kind: drafted.kind, duration: .seconds(drafted.seconds))
+            self.init(kind: drafted.kind, duration: .seconds(drafted.seconds), exercise: exercise)
         } else if drafted.kind == .work {
-            self.init(kind: .work, length: .open)
+            self.init(kind: .work, length: .open, exercise: exercise)
         } else {
             return nil
         }

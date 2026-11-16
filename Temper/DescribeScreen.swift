@@ -16,6 +16,7 @@ struct DescribeScreen: View {
     @State private var isWriting = false
     @State private var problem: String?
     @State private var dictation = Dictation()
+    @State private var renaming: ExerciseSheet.Renaming?
     @FocusState private var isEditing: Bool
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -91,13 +92,13 @@ struct DescribeScreen: View {
                     ForEach(board.items.indices, id: \.self) { index in
                         switch board.items[index] {
                         case .line(let line):
-                            PlanLineRow(line: line)
+                            PlanLineRow(line: line, rename: rename)
                                 .listRowBackground(colors.raised)
                         case .rounds(let count, let lines, _):
                             RoundsHeaderRow(count: count)
                                 .listRowBackground(colors.raised)
                             ForEach(lines.indices, id: \.self) { lineIndex in
-                                PlanLineRow(line: lines[lineIndex])
+                                PlanLineRow(line: lines[lineIndex], rename: rename)
                                     .padding(.leading, 20)
                                     .listRowBackground(colors.raised)
                             }
@@ -115,6 +116,11 @@ struct DescribeScreen: View {
         .scrollContentBackground(.hidden)
         .background(colors.background.ignoresSafeArea())
         .animation(.snappy, value: showsRemake)
+        .sheet(item: $renaming) { renaming in
+            ExerciseSheet(renaming: renaming) { name in
+                remembered.describedPlan = remembered.describedPlan?.renamingExercise(at: renaming.place, to: name)
+            }
+        }
         .navigationTitle("Describe")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -159,6 +165,11 @@ struct DescribeScreen: View {
             .padding(.bottom, 6)
             .padding(.horizontal)
         }
+    }
+
+    private func rename(_ line: PlanBoard.Line) {
+        guard let place = line.exercisePlace else { return }
+        renaming = ExerciseSheet.Renaming(place: place, name: line.exercise?.name ?? "")
     }
 
     /// Before there's a Plan, making one is the screen's action, in Start's place.
@@ -309,17 +320,32 @@ private struct DictateButton: View {
     }
 }
 
-/// One Phase of the Plan: its name in its color, as setup's words are, and its time at the right.
+/// One Phase of the Plan: its name in its color, as setup's words are, and its time at the right. A named Work shows
+/// its Exercise in place of "Work". A Work's line opens the sheet that renames its Exercise.
 private struct PlanLineRow: View {
     let line: PlanBoard.Line
+    let rename: (PlanBoard.Line) -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
+        if line.exercisePlace != nil {
+            Button {
+                rename(line)
+            } label: {
+                row
+            }
+            .accessibilityHint("Renames the Exercise")
+        } else {
+            row
+        }
+    }
+
+    private var row: some View {
         let colors = InkColors(contrast: contrast)
 
-        HStack(alignment: .firstTextBaseline) {
-            Text(line.kind.name)
+        return HStack(alignment: .firstTextBaseline) {
+            Text(line.exercise?.name ?? line.kind.name)
                 .font(.title3.bold())
                 .foregroundStyle(PhaseColors(kind: line.kind, contrast: contrast).ring)
             Spacer(minLength: 8)

@@ -76,13 +76,15 @@ actor AudioAdapter: AudioOutput {
         try session.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
+    /// A Cue whose Exercise isn't rendered yet plays plain, so the Phase change is still heard.
     func schedule(
         _ cue: Cue,
+        saying exercise: Exercise?,
         at deadline: ContinuousClock.Instant,
         startingBy latest: ContinuousClock.Instant,
         token: CueToken
     ) throws {
-        guard let buffer = cues.buffer(for: cue) else {
+        guard let buffer = cues.buffer(for: cue, saying: exercise) ?? cues.buffer(for: cue) else {
             throw AudioAdapterError.cueNotRendered
         }
         try startAudio()
