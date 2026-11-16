@@ -4,8 +4,8 @@ import Testing
 @testable import TemperCore
 
 /// The mirrored session carries at most 100 KB per 10 s, and nothing throttles what the iPhone sends. A running Phase's
-/// update stays small however long the Workout runs. Only Open Rounds' ended update, with a row per Round, and `end`
-/// grow with the Workout.
+/// update stays small however long the Workout runs. Only Open Rounds' ended update, with a row per Round, grows with
+/// the Workout.
 nonisolated struct MessageToWatchSizeTests {
     private typealias Instant = ManualClock.Instant
 
@@ -24,21 +24,6 @@ nonisolated struct MessageToWatchSizeTests {
             time = Instant(offset: .zero).duration(to: next)
         }
         return WorkoutRecord(start: Instant(offset: .zero), end: Instant(offset: time), pauses: pauses, phases: phases)
-    }
-
-    /// The Health record of ``longOpenRounds``, on a real wall clock, so each date encodes at full length.
-    private var longOpenRoundsHealthRecord: HealthRecord {
-        HealthRecord(
-            longOpenRounds, filedAs: .traditionalStrengthTraining, workoutID: UUID(), attempt: 1,
-            anchor: ClockAnchor(
-                instant: Instant(offset: .zero), date: Date(timeIntervalSince1970: 1_794_321_987.654_321))
-        )!
-    }
-
-    @Test func `The end of a 200-Round Open Rounds encodes well under the session's 100 KB`() throws {
-        let size = try MessageToWatch.end(longOpenRoundsHealthRecord).json().count
-
-        #expect(size < 50_000)
     }
 
     @Test func `The Rounds complete screen of a 200-Round Open Rounds encodes well under the session's 100 KB`()

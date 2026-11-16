@@ -5,8 +5,7 @@ import Foundation
 /// At Start the iPhone opens the Watch, whose workout session arrives back as a mirrored instance. Every instance
 /// that started at or after the running Workout's Start belongs to it, and gets `begin`, then the latest update, then
 /// `end` once the Workout has ended, after which the iPhone stops the session. So a Watch that reconnects catches up
-/// the same way as one arriving for the first time. `end` carries the same Health record the iPhone saves itself, so
-/// the Watch's copy, which Health keeps in place of the iPhone's, has identical times.
+/// the same way as one arriving for the first time.
 ///
 /// An instance that started before the running Workout's Start, or that arrives with no Workout running, is a
 /// leftover and gets `discard`. So does one that started only once the Workout had ended, which collected nothing
@@ -19,7 +18,7 @@ import Foundation
 ///
 /// The iPhone shows nothing during a dropout. An instance that disconnects gets nothing more, the Workout runs on,
 /// and the Watch's session reconnects by itself as a new instance. A Stop during the dropout reaches the Watch then,
-/// because the record is held until the session `end` went to has ended.
+/// because every instance that arrives after the end gets the ended state and `end`.
 ///
 /// Each tap from the Watch goes to the engine placed back by its age on arrival, or is refused when it's more than
 /// 2 s old. The engine then clamps it, so a Watch tap placed before a Live Activity press the engine already applied
@@ -30,14 +29,11 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable, Instant: Inst
 where Instant.Duration == Duration {
     public enum Event: Equatable, Sendable {
         /// The engine set the Workout's fixed start point, at `start` on the wall clock. `workoutsAllowed` is the
-        /// iPhone's workout write status, which is also the Watch's. `savesToHealth` is the owner's choice in Settings,
-        /// read at Start, which `begin` passes on so the Watch saves only when the iPhone does.
-        case started(
-            workoutID: UUID, activityType: HealthRecord.ActivityType, start: Date, workoutsAllowed: Bool,
-            savesToHealth: Bool)
-        /// The Health record the iPhone saves for the Workout that just ended, or `nil` when there's none, as for a
-        /// Workout under 10 minutes. It comes before the ended state, which sends it in `end`.
-        case recordReady(HealthRecord?)
+        /// iPhone's workout write status, which is also the Watch's.
+        case started(workoutID: UUID, activityType: ActivityType, start: Date, workoutsAllowed: Bool)
+        /// The Workout ended at `at` on the wall clock. It comes before the ended state, so a session that started
+        /// only after it is matched as a leftover.
+        case ended(at: Date)
         /// The iPhone asked the Watch to open, `at` on the wall clock, which starts the window.
         case watchAppRequested(at: Date)
         /// The Watch's state after an engine event.
@@ -55,9 +51,9 @@ where Instant.Duration == Duration {
     }
 
     public enum Effect: Equatable, Sendable {
-        /// Ask the Watch to open and start its session for a Workout filed under this activity type. Start never waits
+        /// Ask the Watch to open and start its session, running as this activity type. Start never waits
         /// for it.
-        case startWatchApp(HealthRecord.ActivityType)
+        case startWatchApp(ActivityType)
         /// Send a message, in order after the effects before it.
         case send(MessageToWatch, to: Instance)
         /// Stop the Watch's session from this side, once the messages before it have been sent.
@@ -68,9 +64,8 @@ where Instant.Duration == Duration {
 
     private struct Running: Sendable {
         let workoutID: UUID
-        let activityType: HealthRecord.ActivityType
+        let activityType: ActivityType
         let start: Date
-        let savesToHealth: Bool
     }
 
     /// How long after the request to open the Watch its session can arrive and still be in time for the Watch's
@@ -86,26 +81,20 @@ where Instant.Duration == Duration {
     private var current: Instance?
     /// Whether the Watch's first session arrived within ``window``, fixed then for the rest of the Workout.
     private var inTime: Bool?
-    /// The record `end` carries. It's held only in memory, until the session it went to has ended: a Watch that
-    /// connects after a Stop gets it, and if the app dies first, the Watch's own fallback covers the Workout.
-    private var record: HealthRecord?
-    /// When the Workout ended, kept from its record after the record is let go, or `nil` while it runs or when it
-    /// has no record.
+    /// When the Workout ended, or `nil` while it runs.
     private var end: Date?
 
     public init() {}
 
     public mutating func handle(_ event: Event) -> [Effect] {
         switch event {
-        case .started(let workoutID, let activityType, let start, let workoutsAllowed, let savesToHealth):
+        case .started(let workoutID, let activityType, let start, let workoutsAllowed):
             self = Self()
-            running = Running(
-                workoutID: workoutID, activityType: activityType, start: start, savesToHealth: savesToHealth)
+            running = Running(workoutID: workoutID, activityType: activityType, start: start)
             return workoutsAllowed ? [.startWatchApp(activityType)] : []
-        case .recordReady(let record):
+        case .ended(let date):
             guard running != nil else { return [] }
-            self.record = record
-            end = record?.end
+            end = date
             return []
         case .watchAppRequested(let date):
             guard running != nil else { return [] }
@@ -128,12 +117,11 @@ where Instant.Duration == Duration {
             self.inTime = inTime
             let begin = MessageToWatch.begin(
                 workoutID: running.workoutID, start: running.start,
-                workoutType: WorkoutType(filedAs: running.activityType),
-                inTime: inTime, savesToHealth: running.savesToHealth, version: MessageToWatch.version)
+                workoutType: WorkoutType(runningAs: running.activityType),
+                inTime: inTime, savesToHealth: false, version: MessageToWatch.version)
             return [.send(begin, to: instance)] + (latest.map { [.send(.update($0), to: instance)] } ?? [])
                 + ending(instance)
         case .instanceDisconnected(let instance):
-            // The record is kept: the Watch's session hasn't ended, and the instance it reconnects as needs `end`.
             if current == instance {
                 current = nil
             }
@@ -141,10 +129,6 @@ where Instant.Duration == Duration {
         case .instanceEnded(let instance):
             if current == instance {
                 current = nil
-                // Its `end` has gone out with the record, so the Watch has what it needs.
-                if hasEnded {
-                    record = nil
-                }
             }
             return []
         case .received(.tap(let command, let tap), let instance, let arrival):
@@ -167,8 +151,8 @@ where Instant.Duration == Duration {
         if case .ended = latest { true } else { false }
     }
 
-    /// Once the Workout has ended, `end` with the record and a stop for `instance`, which by then has the ended state.
+    /// Once the Workout has ended, `end` and a stop for `instance`, which by then has the ended state.
     private func ending(_ instance: Instance) -> [Effect] {
-        hasEnded ? [.send(.end(record), to: instance), .stopActivity(instance)] : []
+        hasEnded ? [.send(.end, to: instance), .stopActivity(instance)] : []
     }
 }

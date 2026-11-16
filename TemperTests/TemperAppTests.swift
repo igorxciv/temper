@@ -66,11 +66,13 @@ struct TemperAppTests {
         try #require(Bundle(url: Bundle.main.bundleURL.appending(path: "Watch/TemperWatch.app")))
     }
 
-    @Test func `The app needs HealthKit and explains why it writes to Health and what it reads`() {
+    @Test func `The app needs HealthKit and explains why it asks to share workouts and what it reads`() {
         let info = Bundle.main.infoDictionary ?? [:]
 
         #expect(
-            info["NSHealthUpdateUsageDescription"] as? String == "Temper saves each Workout to Health when it ends.")
+            info["NSHealthUpdateUsageDescription"] as? String
+                == "Apple Watch needs this to run a workout session, which shows your heart rate during a Workout. "
+                + "Temper saves no workouts.")
         #expect(
             info["NSHealthShareUsageDescription"] as? String
                 == "Temper reads your heart rate during a Workout on Apple Watch, and your date of birth and resting "
@@ -80,9 +82,9 @@ struct TemperAppTests {
 
     /// The set is fixed, whether or not a Watch is paired, so the Watch never has to ask.
     @Test func `Settings asks to share workouts and read heart rate, resting heart rate and date of birth`() {
-        #expect(HealthKitWorkouts.shareTypes == [.workoutType()])
+        #expect(HealthKitPermissions.shareTypes == [.workoutType()])
         #expect(
-            HealthKitWorkouts.readTypes == [
+            HealthKitPermissions.readTypes == [
                 HKQuantityType(.heartRate), HKQuantityType(.restingHeartRate), HKCharacteristicType(.dateOfBirth),
             ])
     }

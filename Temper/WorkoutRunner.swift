@@ -14,8 +14,6 @@ final class WorkoutRunner {
 
     /// The Workout last started.
     private(set) var workout = Workout(phases: [])
-    /// The activity type Health files the Workout last started under.
-    @ObservationIgnored private var activityType = HealthRecord.ActivityType.highIntensityIntervalTraining
 
     /// The latest snapshot, or `nil` when no Workout is running or complete.
     private(set) var snapshot: Snapshot? {
@@ -30,31 +28,27 @@ final class WorkoutRunner {
     /// Opens the Watch at each Start and keeps it in step with the Workout.
     @ObservationIgnored private let watch: WatchLink
 
-    /// Saves each ended Workout to Health, and asks for permission from Settings.
-    let health: HealthSaves
-    /// The UUID of the Workout last started, made at Start, until its Health save begins.
-    @ObservationIgnored private var healthWorkoutID: UUID?
+    /// The UUID of the Workout last started, made at Start, until it ends.
+    @ObservationIgnored private var workoutID: UUID?
     /// The running Workout's fixed start point as a wall-clock date, or `nil` until the engine sets it. A Watch
     /// session that starts at or after it belongs to the running Workout.
     @ObservationIgnored private(set) var startDate: Date?
 
     /// Rendering begins here, at launch, so the Cues are usually ready before the first Start. The Watch link is made
     /// here too, because HealthKit may launch the app in the background to hand over the Watch's session.
-    init(health: HealthSaves = HealthSaves(), watch: WatchLink = WatchLink()) {
-        self.health = health
+    init(watch: WatchLink = WatchLink()) {
         self.watch = watch
         cues.render()
         watch.tapped = { [weak self] command, tap in self?.apply(command, at: tap) }
         Task { await LiveActivityAdapter.endLeftovers() }
     }
 
-    /// Starts a Workout, of a Workout Type or from a Plan, whose Health workout is filed under `activityType`.
-    func start(_ workout: Workout, filedAs activityType: HealthRecord.ActivityType) {
+    /// Starts a Workout, of a Workout Type or from a Plan, whose Watch session runs as `activityType`.
+    func start(_ workout: Workout, runningAs activityType: ActivityType) {
         guard engine == nil else { return }
         self.workout = workout
-        self.activityType = activityType
         let workoutID = UUID()
-        healthWorkoutID = workoutID
+        self.workoutID = workoutID
         startDate = nil
         let audio = AudioAdapter(cues: cues)
         let engine = WorkoutEngine(workout: workout, clock: ContinuousClock(), audio: audio)
@@ -67,8 +61,7 @@ final class WorkoutRunner {
                 self.startDate = startDate
                 // Opened only once the start point is set, so the Watch's session always starts after it and is
                 // matched to this Workout.
-                watch.start(
-                    workoutID: workoutID, activityType: activityType, start: startDate, savesToHealth: health.isOn)
+                watch.start(workoutID: workoutID, activityType: activityType, start: startDate)
             }
             for await snapshot in engine.snapshots {
                 show(snapshot)
@@ -120,7 +113,7 @@ final class WorkoutRunner {
     }
 
     private func show(_ snapshot: Snapshot) {
-        saveToHealth(snapshot)
+        noteEnd(of: snapshot)
         let display = Display(workout: workout, snapshot: snapshot)
         // Before an ended Workout returns to setup, so the Watch hears that it ended.
         watch.show(display.watchState(at: .now, date: .now))
@@ -134,20 +127,14 @@ final class WorkoutRunner {
     }
 }
 
-// MARK: - Health
+// MARK: - End
 
 extension WorkoutRunner {
-    /// Builds the Workout's Health record and hands it to Health the first time an ended snapshot arrives, before the
-    /// screens let go of anything, so the save's background task begins while the app is surely running. The record
-    /// is `nil` for a Workout too short to save.
-    ///
-    /// The Watch gets the same record in `end`, before it hears the Workout ended, and saves it with heart rate. Both
-    /// copies carry identical times, and Health keeps the Watch's in place of this one.
-    fileprivate func saveToHealth(_ snapshot: Snapshot) {
-        guard let record = snapshot.record, let workoutID = healthWorkoutID.take() else { return }
-        let healthRecord = HealthRecord(record, filedAs: activityType, workoutID: workoutID, attempt: 1, anchor: .now)
-        watch.hold(healthRecord)
-        health.save(healthRecord)
+    /// Tells the Watch link when the Workout ended, the first time an ended snapshot arrives, before the Watch hears
+    /// that it ended.
+    fileprivate func noteEnd(of snapshot: Snapshot) {
+        guard let record = snapshot.record, workoutID.take() != nil else { return }
+        watch.ended(at: ClockAnchor.now.date(of: record.end))
     }
 }
 

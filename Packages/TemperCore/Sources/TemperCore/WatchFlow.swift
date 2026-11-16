@@ -6,18 +6,17 @@ import Foundation
 /// The iPhone opens the Watch at Start. The Watch starts its own workout session and follows what the iPhone sends.
 /// It keeps no Workout logic of its own and persists nothing. Its capsule and secondary page are a remote: each tap
 /// goes to the iPhone dated when it was made, and the update it causes shows it worked. Its session pauses and resumes
-/// with each update, so active time and energy follow the Workout, and while it runs the Watch taps the wrist at each
-/// Cue. At the end it saves the Health record the iPhone sends, at ``HealthRecord/watchSyncVersion``, so Health keeps
-/// the Watch's copy, with heart rate, in place of the iPhone's. When `begin` says the owner turned saving off, the
-/// Watch saves nothing, from the iPhone's record or by itself, and only discards what its session collected.
+/// with each update, and while it runs the Watch taps the wrist at each Cue. The session is there for the heart rate,
+/// and to keep the Watch app awake and reachable with the wrist down. It saves nothing: at the end the Watch discards
+/// what it collected, because Temper makes no Health workouts.
 ///
-/// The link dropping starts a dropout. The Watch says so, refuses taps and plays no haptics, while its session keeps
-/// recording. Any message from the iPhone ends the dropout, and the update that follows `begin` on every reconnect
-/// puts the screen right. If nothing comes for ``outOfContactLimit``, the Watch saves by itself, from the updates it
-/// heard. It does the same when another workout app takes its session over.
+/// The link dropping starts a dropout. The Watch says so, refuses taps and plays no haptics, while its session runs
+/// on. Any message from the iPhone ends the dropout, and the update that follows `begin` on every reconnect puts the
+/// screen right. If nothing comes for ``outOfContactLimit``, the Watch ends its session and goes back to idle. It does
+/// the same when another workout app takes its session over.
 ///
-/// A Watch whose session reached the iPhone after the 10 s window is late. Its session records and saves like any
-/// other, but it shows "Running on iPhone" until the Workout ends, with no time, controls, heart rate or haptics.
+/// A Watch whose session reached the iPhone after the 10 s window is late. It doesn't join the Workout under way: it
+/// ends its session and goes back to idle.
 public nonisolated struct WatchFlow: Equatable, Sendable {
     public enum Screen: Equatable, Sendable {
         /// "Start on iPhone", or the Health hint when workouts aren't allowed.
@@ -27,8 +26,6 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         /// A Phase, with whether the iPhone is in contact. During a dropout the Watch keeps drawing the Phase it last
         /// heard, with "iPhone not connected" and its controls dimmed.
         case running(WatchPhase, isConnected: Bool)
-        /// "Running on iPhone": a late Watch's only screen while the Workout runs, as its session records.
-        case runningOnIPhone
         /// The iPhone's complete screen, shrunk, until the owner taps Done.
         case complete(Completion)
         /// The iPhone sends a version of the messages this Watch can't follow.
@@ -48,9 +45,9 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case outOfContactTimerFired
         /// The session stopped, from the iPhone's side or the Watch's.
         case sessionStopped
-        /// The session ended at `at`, and the link with it. If the Watch didn't end it, the system did, as it does
-        /// when another workout app starts a session of its own.
-        case sessionEnded(at: Date)
+        /// The session ended, and the link with it. If the Watch didn't end it, the system did, as it does when
+        /// another workout app starts a session of its own.
+        case sessionEnded
         /// The owner tapped Done on the complete screen.
         case doneTapped
         /// The time `awaitFirstMessage` gave the iPhone's first message ran out.
@@ -64,16 +61,13 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case startSession
         /// Report `firstMessageTimedOut` once this long has passed, in place of any earlier wait.
         case awaitFirstMessage(for: Duration)
-        /// Begin the session's collection at the Workout's Start, so the Watch's copy spans what the iPhone's does.
+        /// Begin the session's collection at the Workout's Start, so the heart rate it reports spans the Workout.
         case beginCollection(at: Date)
-        /// Pause the session, so it stops counting active time and energy. It adds no event: the record's Pauses do.
+        /// Pause the session, so it stops counting active time and energy.
         case pauseSession
         case resumeSession
-        /// Add the record's Phases as activities and its Pauses as events, end collection at its end, save under its
-        /// sync identifier and version, and end the session. The session may have ended already, taken over by
-        /// another workout app.
-        case endAndSave(HealthRecord)
-        /// Discard what the session collected and end it.
+        /// Discard what the session collected and end it. The session may have ended already, taken over by another
+        /// workout app.
         case endWithoutSaving
         /// Send a message to the iPhone over the session.
         case send(MessageFromWatch)
@@ -96,26 +90,19 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
     /// How long a session waits for the iPhone's first message before it ends without saving.
     public static var firstMessageTimeout: Duration { .seconds(600) }
 
-    /// How long a dropout lasts before the Watch saves by itself. It's time out of contact, not time since the last
+    /// How long a dropout lasts before the Watch ends its session. It's time out of contact, not time since the last
     /// update, so a long open Work can't set it off.
     public static var outOfContactLimit: Duration { .seconds(600) }
 
     public private(set) var screen = Screen.idle
-    /// What the iPhone's `begin` said of the Workout it tied the session to, or `nil` before it.
-    private var begin: MessageToWatch.Begin?
-    /// Whether the iPhone's `begin` said the session arrived after the window.
-    private var isLate = false
+    /// The Workout the iPhone's `begin` tied the session to, or `nil` before it.
+    private var workoutID: UUID?
     /// True from starting a session until it's told to end, or ends by itself, so it's ended only once.
     private var hasSession = false
     /// Whether the session was last told to pause rather than resume.
     private var isSessionPaused = false
     /// The haptics the updates have scheduled and played, which only a running session can play with the wrist down.
     private var haptics = CueHaptics()
-    /// Each Phase update heard, in order, for the Health record the Watch builds if it has to save by itself. It's
-    /// kept only in memory, so a Watch app that crashed starts it again.
-    private var heard: [WatchPhase] = []
-    /// When the iPhone's ended state arrived, which the Workout can't have outlasted.
-    private var endHeard: Date?
     /// When the link dropped, or `nil` while the iPhone is in contact.
     private var lostContact: Date?
 
@@ -135,30 +122,32 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case .received(let message, let arrival):
             return receive(message, at: arrival)
         case .disconnected(let date):
-            guard hasSession, begin != nil, lostContact == nil else { return [] }
+            guard hasSession, workoutID != nil, lostContact == nil else { return [] }
             lostContact = date
             if case .running(let phase, _) = screen {
                 screen = .running(phase, isConnected: false)
             }
             return cancelHaptics() + [.startOutOfContactTimer]
         case .outOfContactTimerFired:
-            guard let lostContact else { return [] }
+            guard lostContact != nil else { return [] }
             // The timer has run out, so there's none to stop.
-            self.lostContact = nil
-            return endSavingHeard(until: lostContact)
+            lostContact = nil
+            leaveRunning()
+            return endSession()
         case .sessionStopped:
             // The iPhone stops a session tied to a Workout only after sending `end`, which can arrive just after the
-            // stop. So that session waits for it, which saves or not, and only a session tied to nothing ends here.
-            guard begin == nil else { return [] }
+            // stop. So that session waits for it, and only a session tied to nothing ends here.
+            guard workoutID == nil else { return [] }
             return endSession()
-        case .sessionEnded(let date):
-            // A session tied to a Workout that the Watch didn't end still has what it collected to save or discard.
-            guard hasSession, begin != nil else {
+        case .sessionEnded:
+            // A session tied to a Workout that the Watch didn't end still has what it collected to discard.
+            guard hasSession, workoutID != nil else {
                 hasSession = false
                 leaveRunning()
                 return []
             }
-            return endSavingHeard(until: date)
+            leaveRunning()
+            return endSession()
         case .doneTapped:
             if case .complete = screen {
                 screen = .idle
@@ -167,7 +156,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case .firstMessageTimedOut:
             // A session tied to a Workout has had its first message. One still tied to nothing never began
             // collection, so it has nothing to save.
-            guard hasSession, begin == nil else { return [] }
+            guard hasSession, workoutID == nil else { return [] }
             leaveRunning()
             return endSession()
         case .tapped(let command, let date):
@@ -192,39 +181,35 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
 
     private mutating func act(on message: MessageToWatch, at arrival: Date) -> [Effect] {
         switch message {
-        case .begin(let workoutID, let start, let workoutType, let inTime, let savesToHealth, let version):
+        case .begin(let workoutID, let start, _, let inTime, _, let version):
             guard version == MessageToWatch.version else {
                 screen = .updateNeeded
                 return endSession()
             }
-            guard workoutID != begin?.workoutID else { return [] }
-            begin = MessageToWatch.Begin(
-                workoutID: workoutID, start: start, workoutType: workoutType, savesToHealth: savesToHealth)
-            isLate = !inTime
-            // An in-time Watch waits on for the update with its first Phase. A late one has nothing more to show.
-            if isLate {
-                screen = .runningOnIPhone
+            guard workoutID != self.workoutID else { return [] }
+            guard inTime else {
+                // A late Watch doesn't join the Workout under way. Starting afresh, it ignores what follows.
+                let ending = endSession()
+                self = Self()
+                return ending
             }
+            self.workoutID = workoutID
+            // The Watch waits on for the update with its first Phase.
             return [.beginCollection(at: start)]
         case .update(let state):
-            guard begin != nil else { return [] }
+            guard workoutID != nil else { return [] }
             show(state)
             guard hasSession else { return [] }
-            switch state {
-            case .phase(let phase): heard.append(phase)
-            case .ended: endHeard = endHeard ?? arrival
-            }
-            return followPause(of: state) + (isLate ? [] : hapticEffects(for: state, at: arrival))
+            return followPause(of: state) + hapticEffects(for: state, at: arrival)
         case .refused(let command):
-            guard begin != nil else { return [] }
+            guard workoutID != nil else { return [] }
             return [.signalRefused(command)]
-        case .end(let record):
-            guard begin != nil else { return [] }
+        case .end:
+            guard workoutID != nil else { return [] }
             leaveRunning()
-            guard let record else { return endSession() }
-            return endSession(saving: record.withSyncVersion(HealthRecord.watchSyncVersion))
+            return endSession()
         case .discard:
-            // The iPhone's own copy covers whichever Workout the session was started for.
+            // The session belongs to no running Workout.
             leaveRunning()
             return endSession()
         }
@@ -232,17 +217,17 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
 
     private mutating func show(_ state: WatchState) {
         switch state {
-        case .phase(let phase): screen = isLate ? .runningOnIPhone : .running(phase, isConnected: true)
+        case .phase(let phase): screen = .running(phase, isConnected: true)
         case .ended(let completion?): screen = .complete(completion)
         case .ended(nil): screen = .idle
         }
     }
 
-    /// Nothing is left to follow, so a Watch still waiting or running, late or not, goes back to idle. A complete
-    /// screen waits for Done, and "Update Temper" stays.
+    /// Nothing is left to follow, so a Watch still waiting or running goes back to idle. A complete screen waits for
+    /// Done, and "Update Temper" stays.
     private mutating func leaveRunning() {
         switch screen {
-        case .waiting, .running, .runningOnIPhone: screen = .idle
+        case .waiting, .running: screen = .idle
         case .idle, .complete, .updateNeeded: break
         }
     }
@@ -267,21 +252,11 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         return [isPaused ? .pauseSession : .resumeSession]
     }
 
-    /// Ends the session once, and any dropout with it, saving `record` if there is one and the owner has saving on.
-    private mutating func endSession(saving record: HealthRecord? = nil) -> [Effect] {
+    /// Ends the session once, and any dropout with it, discarding what it collected.
+    private mutating func endSession() -> [Effect] {
         guard hasSession else { return [] }
         hasSession = false
-        let saved = begin?.savesToHealth == false ? nil : record
-        return regainContact() + cancelHaptics() + [saved.map(Effect.endAndSave) ?? .endWithoutSaving]
-    }
-
-    /// Ends the session with no record from the iPhone: it saves the one built from what the Watch heard up to
-    /// `end`, or nothing if that's under 10 minutes of active time.
-    private mutating func endSavingHeard(until end: Date) -> [Effect] {
-        guard let begin else { return [] }
-        let record = HealthRecord(heard: heard, begin: begin, lastContact: min(end, endHeard ?? end))
-        leaveRunning()
-        return endSession(saving: record)
+        return regainContact() + cancelHaptics() + [.endWithoutSaving]
     }
 
     private mutating func hapticEffects(for state: WatchState, at arrival: Date) -> [Effect] {

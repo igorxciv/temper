@@ -37,7 +37,7 @@ nonisolated extension Plan: Codable {
                 forKey: .version, in: container, debugDescription: "A later Plan format, \(version)")
         }
         self.init(
-            activity: try container.decode(HealthRecord.ActivityType.self, forKey: .activity),
+            activity: try container.decode(ActivityType.self, forKey: .activity),
             blocks: try container.decode([Block].self, forKey: .blocks),
             warnsBeforeRestEnds: try container.decodeIfPresent(Bool.self, forKey: .warnsBeforeRestEnds) ?? false
         )

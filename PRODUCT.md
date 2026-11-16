@@ -14,7 +14,7 @@ During a Workout the phone sits on a bench, floor or rack, often metres away, an
 
 ## Product Purpose
 
-Temper runs a Workout: it moves through its Phases, announces each change aloud, and saves the Workout to Apple Health. Success is starting the Workout you mean within seconds and never having to look at the phone mid-set to know where you are.
+Temper runs a Workout: it moves through its Phases and announces each change aloud. It isn't a workout app, and saves nothing to Apple Health. Success is starting the Workout you mean within seconds and never having to look at the phone mid-set to know where you are.
 
 ## Positioning
 
@@ -24,11 +24,11 @@ A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and 
 
 - Every Workout starts on the iPhone. Apple Watch can follow it as a remote with heart rate and Zone, and the Live Activity carries it on the Lock Screen and Dynamic Island.
 - Open Phases end only when the owner marks Done; nothing ends a Phase by a stray touch.
-- Workouts of 10 minutes or more save to Apple Health when they end, with heart rate from Apple Watch when present.
+- Nothing saves to Apple Health. Apple Watch shows the heart rate from a workout session that saves no workout.
 
 ## Capabilities and Constraints
 
-- Vocabulary is fixed by `GLOSSARY.md`: Workout, Workout Type, Plan, Block, Preset, Phase (Prepare, Work, Rest, Cooldown), Open, Done, Round, Pause, Cue, Health workout, Zone.
+- Vocabulary is fixed by `GLOSSARY.md`: Workout, Workout Type, Plan, Block, Preset, Phase (Prepare, Work, Rest, Cooldown), Open, Done, Round, Pause, Cue, Zone.
 - iOS 27, SwiftUI, Liquid Glass. No network access and no third-party packages; everything stays on the device.
 - Times run 0:00 to 30:00 in 5-second steps; Rounds 1 to 99.
 - Timing and Phase logic lives in `Packages/TemperCore`; screens adapt to it rather than the other way round.

@@ -8,7 +8,7 @@
 		<string>audio</string>
 	</array>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Temper saves each Workout to Health when it ends.</string>
+	<string>Apple Watch needs this to run a workout session, which shows your heart rate during a Workout. Temper saves no workouts.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Temper reads your heart rate during a Workout on Apple Watch, and your date of birth and resting heart rate to work out heart-rate zones.</string>
 	<key>NSMicrophoneUsageDescription</key>

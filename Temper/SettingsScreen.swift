@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsScreen: View {
-    let health: HealthSaves
+    let health: HealthAccess
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -13,7 +13,7 @@ struct SettingsScreen: View {
         let colors = InkColors(contrast: contrast)
 
         Form {
-            AppleHealthSection(health: health, colors: colors)
+            AppleWatchSection(health: health, colors: colors)
             Section {
                 LabeledContent("Version", value: version)
                     .listRowBackground(colors.raised)
@@ -21,7 +21,7 @@ struct SettingsScreen: View {
                 Text("About").foregroundStyle(colors.secondary)
             } footer: {
                 // A footer rather than a row, since a row of its own read as something to tap.
-                Text("Temper keeps everything on this device, and uses Apple Health only if you allow it.")
+                Text("Temper keeps everything on this device, and saves nothing to Apple Health.")
                     .foregroundStyle(colors.secondary)
             }
         }

@@ -14,7 +14,7 @@ struct WatchIdleTests {
     @Test func `Without workouts allowed, the idle Watch sends the owner to Temper's Settings on the iPhone`() {
         let idle = WatchIdle(workoutsAllowed: false)
 
-        #expect(idle.title == "Turn on Apple Health in Temper’s Settings on iPhone")
+        #expect(idle.title == "Allow Heart Rate in Temper’s Settings on iPhone")
         #expect(idle.message == nil)
     }
 }

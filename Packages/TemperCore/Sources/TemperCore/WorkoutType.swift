@@ -13,9 +13,9 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
 
     public var id: Self { self }
 
-    /// The Workout Type whose Health workouts are filed under this activity type. Each activity type belongs to
-    /// exactly one Workout Type, so this undoes `HealthRecord.ActivityType(_:)`.
-    public init(filedAs activityType: HealthRecord.ActivityType) {
+    /// The Workout Type whose Watch sessions run as this activity type. Each activity type belongs to exactly one
+    /// Workout Type, so this undoes `ActivityType(_:)`.
+    public init(runningAs activityType: ActivityType) {
         switch activityType {
         case .highIntensityIntervalTraining: self = .intervals
         case .other: self = .stopwatch
@@ -98,7 +98,7 @@ public nonisolated enum WorkoutType: String, CaseIterable, Codable, Hashable, Id
     public func plan(from settings: WorkoutSettings) -> Plan {
         let prepare = Self.leavingOutOff([PlannedPhase(kind: .prepare, duration: settings.prepare)])
             .map(Plan.Block.phase)
-        let activity = HealthRecord.ActivityType(self)
+        let activity = ActivityType(self)
         switch self {
         case .intervals:
             let round = [

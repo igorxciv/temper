@@ -6,53 +6,35 @@ import Foundation
 /// the Workout has ended, so a Watch that connects late or reconnects catches up the same way. An instance that
 /// belongs to no running Workout gets `discard` alone. There are no
 /// acknowledgements: the iPhone sees the Watch's session end through the mirrored session's own state. A running
-/// Phase's update is under 1 KB, far inside the session's limit of 100 KB per 10 s. Only `end` and Open Rounds' ended
-/// update, with a row per Round, grow with the Workout, and even 200 Rounds stay under half that limit, so nothing
+/// Phase's update is under 1 KB, far inside the session's limit of 100 KB per 10 s. Only Open Rounds' ended update,
+/// with a row per Round, grows with the Workout, and even 200 Rounds stay under half that limit, so nothing
 /// throttles.
 public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     /// The version of these messages. A Watch that gets a `begin` with another version shows "Update Temper" and ends
-    /// without saving, and the iPhone's own Health workout covers the Workout. Raise it whenever a message changes
-    /// in a way an older build can't read.
+    /// its session, and the Workout runs on the iPhone alone. Raise it whenever a message changes in a way an older
+    /// build can't read, and keep `begin` readable by every earlier version, so that check can happen.
     /// Version 2 added each Phase's Cues. Version 3 added `refused`, with the Watch's taps going the other way.
-    /// Version 4 added `begin`'s `savesToHealth`, which an older Watch would ignore and save anyway.
-    public static let version = 4
+    /// Version 4 added `begin`'s `savesToHealth`, for a Settings switch that turned saving off. Version 5 dropped the
+    /// Health record from `end`, as Temper stopped saving Health workouts altogether.
+    public static let version = 5
 
-    /// The first message to each mirrored instance: which Workout it belongs to, when that Workout started, whether
-    /// the Watch arrived within the 10 s window after the iPhone asked it to open, and whether the owner has Temper
-    /// saving to Health. With saving off, the Watch follows the Workout as usual and ends its session without saving.
+    /// The first message to each mirrored instance: which Workout it belongs to, when that Workout started, and
+    /// whether the Watch arrived within the 10 s window after the iPhone asked it to open.
     ///
-    /// The Watch reads the Workout Type only for the activity type its Health workout is filed under. So a Plan that
-    /// isn't a Workout Type's sends the type filed under the same activity type, and the message keeps the shape a
-    /// Watch on this version reads.
+    /// The Watch no longer reads the Workout Type or `savesToHealth`, which is always `false`. They're still sent
+    /// because a Watch on an earlier version needs them to read `begin` at all, and only then sees the version and
+    /// shows "Update Temper".
     case begin(
         workoutID: UUID, start: Date, workoutType: WorkoutType, inTime: Bool, savesToHealth: Bool, version: Int)
     /// What to draw now, sent on every event.
     case update(WatchState)
     /// A tap from the Watch reached the iPhone more than 2 s after the owner made it, so the engine never got it.
     case refused(WatchCommand)
-    /// The Workout has ended, with the Health record the iPhone saves, or `nil` for no record.
-    case end(HealthRecord?)
-    /// The session belongs to no running Workout, so the Watch ends it without saving. It needed no new version: a
-    /// build that can't read it drops it, and carries on as it did before there was one.
+    /// The Workout has ended, so the Watch ends its session, saving nothing.
+    case end
+    /// The session belongs to no running Workout, so the Watch ends it. It needed no new version: a build that can't
+    /// read it drops it, and carries on as it did before there was one.
     case discard
-
-    /// What `begin` says of the Workout itself, which the Watch keeps for the Health record it may have to build
-    /// alone, and for whether to save one at all. It isn't sent: `begin` carries the same values.
-    public struct Begin: Hashable, Sendable {
-        public let workoutID: UUID
-        /// The Workout's Start.
-        public let start: Date
-        public let workoutType: WorkoutType
-        /// Whether the Watch saves a Health workout at the end, from the iPhone's record or by itself.
-        public let savesToHealth: Bool
-
-        public init(workoutID: UUID, start: Date, workoutType: WorkoutType, savesToHealth: Bool = true) {
-            self.workoutID = workoutID
-            self.start = start
-            self.workoutType = workoutType
-            self.savesToHealth = savesToHealth
-        }
-    }
 
     /// Decodes a message from the JSON `json()` made.
     public init(json: Data) throws {

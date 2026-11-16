@@ -13,13 +13,14 @@ import WatchKit
 /// Only the flow is tested. No protocol stands in for HealthKit here, since this would be its only adapter, so this
 /// adapter is checked on the devices.
 ///
-/// The session collects heart rate and energy, and pauses and resumes live, but collects no events of its own. At the
-/// end the Phases and Pauses come from the iPhone's Health record, so the Watch's copy carries the iPhone's times.
+/// The session collects heart rate, and pauses and resumes live. It saves nothing: at the end its builder is discarded,
+/// because Temper makes no Health workouts. While it runs, Apple Watch still writes its own samples to Health, such as
+/// heart rate and energy, which no API holds back.
 ///
-/// The Watch owns the session, though the iPhone runs the Workout, because only a workout session keeps the Watch app
-/// awake and reachable with the wrist down. So a dropout doesn't stop the recording: HealthKit reconnects the session
-/// by itself, and the iPhone catches the Watch up through the new mirrored instance. After a Watch app crash,
-/// HealthKit hands the session back and the same thing happens.
+/// The Watch owns the session, though the iPhone runs the Workout, because only a workout session gives live heart
+/// rate and keeps the Watch app awake and reachable with the wrist down. So a dropout doesn't stop it: HealthKit
+/// reconnects the session by itself, and the iPhone catches the Watch up through the new mirrored instance. After a
+/// Watch app crash, HealthKit hands the session back and the same thing happens.
 @Observable
 final class WatchSession: NSObject {
     static let shared = WatchSession()
@@ -40,8 +41,6 @@ final class WatchSession: NSObject {
     @ObservationIgnored private var collectionStart: Date?
     /// True once collection has been asked to begin, so only a builder with something to discard is discarded.
     @ObservationIgnored private var hasBegunCollection = false
-    /// The record to save, from the flow's `endAndSave` until the session has stopped and the save can begin.
-    @ObservationIgnored private var pendingSave: HealthRecord?
     /// What the Zones are worked out from, read when the session starts and held until the Workout's Start is known.
     @ObservationIgnored private var zoneInputs: WatchHealth.ZoneInputs?
     /// The Workout's Start, from the iPhone's `begin`, which dates the age the Zones use.
@@ -118,23 +117,8 @@ final class WatchSession: NSObject {
             session?.pause()
         case .resumeSession:
             session?.resume()
-        case .endAndSave(let record):
-            collectionStart = nil
-            guard hasBegunCollection, let session else {
-                session?.end()
-                return
-            }
-            pendingSave = record
-            // Stopped at the record's end, then saved once it has stopped, the order that saved on the devices. A
-            // session another workout app took over has ended already, and its builder can still save.
-            if session.state == .stopped || session.state == .ended {
-                save(session)
-            } else {
-                session.stopActivity(with: record.end)
-            }
         case .endWithoutSaving:
             collectionStart = nil
-            pendingSave = nil
             if hasBegunCollection {
                 builder?.discardWorkout()
             }
@@ -177,7 +161,7 @@ final class WatchSession: NSObject {
         guard let configuration,
             let session = try? HKWorkoutSession(healthStore: store, configuration: configuration)
         else {
-            apply(.sessionEnded(at: .now))
+            apply(.sessionEnded)
             return
         }
         follow(session)
@@ -189,8 +173,7 @@ final class WatchSession: NSObject {
         let builder = session.associatedWorkoutBuilder()
         builder.dataSource = HKLiveWorkoutDataSource(
             healthStore: store, workoutConfiguration: session.workoutConfiguration)
-        // The Pauses come from the iPhone's record at the end, with its times, rather than from the session's live
-        // pauses, which reach the Watch moments late.
+        // Nothing is saved, so the session's own pause and resume events have no use.
         builder.shouldCollectWorkoutEvents = false
         builder.delegate = self
         session.delegate = self
@@ -200,7 +183,6 @@ final class WatchSession: NSObject {
         collectionStart = nil
         // A recovered session's builder may have begun before the crash.
         hasBegunCollection = builder.startDate != nil
-        pendingSave = nil
         lastHeard = nil
         heartRate.current = WorkoutHeartRate(zones: nil)
         zoneInputs = nil
@@ -232,29 +214,6 @@ final class WatchSession: NSObject {
         Task { try? await builder.beginCollection(at: start) }
     }
 
-    /// Saves the pending record and ends the session. If any step fails, what was collected is discarded and the
-    /// iPhone's own copy, which has every Phase, covers the Workout.
-    ///
-    /// The live builder adds one activity of its own spanning the whole workout. It's left alone: on the devices it did
-    /// no harm next to the Phases added from the record.
-    private func save(_ session: HKWorkoutSession) {
-        guard let record = pendingSave.take(), let builder else {
-            session.end()
-            return
-        }
-        let configuration = session.workoutConfiguration
-        Task {
-            do {
-                try await builder.add(record, configuration: configuration)
-                try await builder.endCollection(at: record.end)
-                _ = try await builder.finishWorkout()
-            } catch {
-                builder.discardWorkout()
-            }
-            session.end()
-        }
-    }
-
     /// Mirrors only once the session is prepared, which works around an iOS 26 bug that dropped the mirroring of
     /// iPhone-started sessions. The activity starts whether or not mirroring did.
     private func prepared(_ session: HKWorkoutSession) {
@@ -272,18 +231,12 @@ final class WatchSession: NSObject {
         case .running:
             beginCollectionIfRunning()
         case .stopped:
-            if pendingSave != nil {
-                save(session)
-            }
             apply(.sessionStopped)
         case .ended:
             // The flow hears of it while the builder is still here. A session the Watch didn't end was ended by the
-            // system, as when another workout app starts its own, and the flow may save what it collected. HealthKit
+            // system, as when another workout app starts its own, and the flow discards what it collected. HealthKit
             // reports that error before this change of state, so the change alone is acted on.
-            apply(.sessionEnded(at: date))
-            if pendingSave != nil {
-                save(session)
-            }
+            apply(.sessionEnded)
             self.session = nil
             builder = nil
         case .notStarted, .paused:
