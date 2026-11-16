@@ -188,6 +188,50 @@ nonisolated struct RunningDisplayTests {
         )
     }
 
+    // MARK: The line in a Plan with Phases between its Rounds
+
+    /// 2 Rounds of open Work and a Rest, a Cooldown, a Rest, then 2 more Rounds and the same Cooldown.
+    private let between = try! Plan(
+        activity: .other,
+        blocks: [
+            .rounds(
+                .times(2),
+                [PlannedPhase(kind: .work, length: .open), PlannedPhase(kind: .rest, duration: .seconds(60))]),
+            .phase(PlannedPhase(kind: .cooldown, duration: .seconds(60))),
+            .phase(PlannedPhase(kind: .rest, duration: .seconds(30))),
+            .rounds(.times(2), [PlannedPhase(kind: .work, duration: .seconds(40))]),
+            .phase(PlannedPhase(kind: .cooldown, duration: .seconds(60))),
+            .phase(PlannedPhase(kind: .rest, duration: .seconds(90))),
+        ]
+    ).makeWorkout()
+
+    private func between(_ progress: Snapshot.Progress, previousOpenPhaseTime: Duration? = nil) -> Display {
+        Display(
+            workout: between,
+            snapshot: Snapshot(progress: progress, rounds: 4, previousOpenPhaseTime: previousOpenPhaseTime))
+    }
+
+    @Test func `A Phase between Rounds shows how many there are, not the last as done`() {
+        let expected = RingLine.value("4", caption: .after("Rounds"), spoken: "4 Rounds")
+
+        #expect(between(running(cooldown, endsAt: 100)).line == expected)
+        #expect(between(running(Phase(kind: .rest, duration: .seconds(30)), endsAt: 100)).line == expected)
+    }
+
+    @Test func `A Phase only after every Round shows the last Round as done`() {
+        #expect(
+            between(running(Phase(kind: .rest, duration: .seconds(90)), endsAt: 100)).line
+                == .value("4", caption: .after("of 4"), spoken: "4 Rounds")
+        )
+    }
+
+    @Test func `A Rest in no Round after open Work shows the Work time`() {
+        let display = between(
+            running(Phase(kind: .rest, duration: .seconds(30)), endsAt: 100), previousOpenPhaseTime: .seconds(102))
+
+        #expect(display.line == .value("1:42", caption: .before("Work"), spoken: "Work 1 minute 42 seconds"))
+    }
+
     // MARK: The line in a Stopwatch
 
     @Test func `A Stopwatch's Prepare shows the length to come`() {

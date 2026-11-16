@@ -12,7 +12,8 @@ nonisolated struct WatchFlowTests {
 
     private var begin: MessageToWatch {
         .begin(
-            workoutID: workoutID, start: start, workoutType: .intervals, inTime: true, version: MessageToWatch.version)
+            workoutID: workoutID, start: start, workoutType: .intervals, inTime: true, savesToHealth: false,
+            version: MessageToWatch.version)
     }
 
     private var work: WatchPhase {
@@ -211,7 +212,7 @@ nonisolated struct WatchFlowTests {
         let effects = flow.handle(
             .received(
                 .begin(
-                    workoutID: workoutID, start: start, workoutType: .intervals, inTime: true,
+                    workoutID: workoutID, start: start, workoutType: .intervals, inTime: true, savesToHealth: false,
                     version: MessageToWatch.version + 1), at: now))
 
         #expect(effects == [.endWithoutSaving])
@@ -224,7 +225,7 @@ nonisolated struct WatchFlowTests {
         _ = flow.handle(
             .received(
                 .begin(
-                    workoutID: workoutID, start: start, workoutType: .intervals, inTime: true,
+                    workoutID: workoutID, start: start, workoutType: .intervals, inTime: true, savesToHealth: false,
                     version: MessageToWatch.version + 1), at: now))
 
         _ = flow.handle(.received(.update(.phase(work)), at: now))
@@ -463,7 +464,7 @@ nonisolated struct WatchFlowTests {
 
     private var lateBegin: MessageToWatch {
         .begin(
-            workoutID: workoutID, start: start, workoutType: .intervals, inTime: false,
+            workoutID: workoutID, start: start, workoutType: .intervals, inTime: false, savesToHealth: false,
             version: MessageToWatch.version)
     }
 

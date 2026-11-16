@@ -65,67 +65,97 @@ enum PlanWriter {
         }
     }
 
-    /// Checked against the on-device model with descriptions of sets with no time, timed intervals, Rounds until Stop
-    /// and a Cooldown. Naming the Work and Rest lengths, and asking whether Work is timed first, kept a Rest length
-    /// out of the Work.
+    /// The plan is a list of parts, each one Round's Phases and how often they run, so any Phase can go anywhere: a
+    /// Cooldown between parts, Rests one after another, or several Works in a Round. The example shows a Phase that
+    /// runs once as a part of its own. Asking whether a Phase is timed before its length kept a Rest length out of the
+    /// Work, as checked against the on-device model when every Round was one Work and one Rest.
     private static let instructions = """
         You turn a person's description of today's training into a plan for an interval timer.
 
-        A plan is an optional Prepare countdown, then one or more blocks of Rounds, then an optional Cooldown. Each \
-        Round is one Work followed by one Rest. Some Work is timed, such as 20 seconds of sprinting. Other Work has no \
-        time, such as a set of lifts or repetitions: the person taps Done when they finish it.
+        A plan is a list of parts in the order they happen. Each part is a list of phases that runs a number of times, \
+        and each run through it is one Round. The phases are Prepare, a countdown to get into position; Work; Rest; \
+        and Cooldown. Any phase can go anywhere and more than once, such as a Cooldown between two parts and another \
+        at the end, or two Rests one after another. A Round can hold several exercises, each its own Work. A phase \
+        that happens once, such as a Prepare, a Cooldown or a longer Rest between parts, is a part of its own that \
+        runs 1 time.
 
-        Use exactly the numbers the person gives. A rest length always goes in restSeconds, never in workSeconds. \
-        Never add a Prepare, a Cooldown or a Rest the person didn't ask for. Weights, percentages and repetitions \
-        aren't timer settings, so leave them out.
+        Some Work is timed, such as 20 seconds of sprinting. Other Work has no time, such as a set of lifts or \
+        repetitions: the person taps Done when they finish it.
+
+        For example, "8 rounds of 20 seconds on and 10 off, a 2 minute cooldown, 8 more rounds, then 3 minutes of \
+        cooldown" is four parts: 8 times Work 20 seconds and Rest 10 seconds; 1 time Cooldown 120 seconds; 8 times \
+        Work 20 seconds and Rest 10 seconds; 1 time Cooldown 180 seconds.
+
+        Use exactly the numbers the person gives. A rest length always goes in a Rest, never in a Work. Never add a \
+        Prepare, a Cooldown or a Rest the person didn't ask for. Weights, percentages and repetitions aren't timer \
+        settings, so leave them out.
         """
 }
 
 @Generable(description: "Today's training as a timer plan")
 private struct GeneratedPlan {
-    @Guide(
-        description: "Seconds of countdown before the first Work, or 0 if the person doesn't ask for one",
-        .range(0...1800))
-    var prepareSeconds: Int
-
-    @Guide(description: "The blocks of Rounds, in order. Usually one.", .count(1...5))
-    var blocks: [GeneratedBlock]
-
-    @Guide(
-        description: "Seconds of cooldown after the last Work, or 0 if the person doesn't ask for one",
-        .range(0...1800))
-    var cooldownSeconds: Int
+    @Guide(description: "Every part of the training, in the order it happens", .count(1...12))
+    var parts: [GeneratedPart]
 
     var draft: PlanDraft {
-        PlanDraft(prepareSeconds: prepareSeconds, blocks: blocks.map(\.draft), cooldownSeconds: cooldownSeconds)
+        PlanDraft(blocks: parts.map(\.draft))
     }
 }
 
-/// The order of the properties is the order the model writes them, so it settles whether Work is timed before it
-/// writes any length.
-@Generable(description: "Rounds of one Work followed by one Rest")
-private struct GeneratedBlock {
-    @Guide(description: "How many Rounds or sets, exactly as the person says", .range(1...99))
+@Generable(description: "Phases that run, in order, a number of times")
+private struct GeneratedPart {
+    @Guide(
+        description:
+            "How many times the phases run, exactly as the person says. 1 for a phase that happens once, such as a"
+            + " Prepare, a Cooldown or a Rest between parts.",
+        .range(1...99))
     var rounds: Int
 
     @Guide(description: "true only if the person wants to keep going until they stop, with no set number of Rounds")
     var untilStop: Bool
 
-    @Guide(
-        description:
-            "true only if the person says how long each Work lasts. false for sets of repetitions or lifts with no"
-            + " time given."
-    )
-    var workIsTimed: Bool
-
-    @Guide(description: "How long each Work lasts in seconds, or 0 if workIsTimed is false", .range(0...1800))
-    var workSeconds: Int
-
-    @Guide(description: "How long each Rest between Works lasts in seconds, or 0 for no Rest", .range(0...1800))
-    var restSeconds: Int
+    @Guide(description: "One run's phases, in the order they happen", .count(1...8))
+    var phases: [GeneratedPhase]
 
     var draft: PlanDraft.Block {
-        PlanDraft.Block(
-            rounds: rounds, untilStop: untilStop, workSeconds: workIsTimed ? workSeconds : 0, restSeconds: restSeconds)
+        PlanDraft.Block(rounds: rounds, untilStop: untilStop, phases: phases.map(\.draft))
+    }
+}
+
+/// The order of the properties is the order the model writes them, so it settles whether a Phase is timed before it
+/// writes any length.
+@Generable(description: "One phase of the timer")
+private struct GeneratedPhase {
+    var kind: GeneratedKind
+
+    @Guide(
+        description:
+            "true only if the person says how long it lasts. false for a set of repetitions or lifts with no time"
+            + " given."
+    )
+    var isTimed: Bool
+
+    @Guide(description: "How long it lasts in seconds, or 0 if isTimed is false", .range(0...1800))
+    var seconds: Int
+
+    var draft: PlanDraft.Phase {
+        PlanDraft.Phase(kind.phaseKind, seconds: isTimed ? seconds : 0)
+    }
+}
+
+@Generable(description: "Which phase it is")
+private enum GeneratedKind {
+    case prepare
+    case work
+    case rest
+    case cooldown
+
+    var phaseKind: Phase.Kind {
+        switch self {
+        case .prepare: .prepare
+        case .work: .work
+        case .rest: .rest
+        case .cooldown: .cooldown
+        }
     }
 }

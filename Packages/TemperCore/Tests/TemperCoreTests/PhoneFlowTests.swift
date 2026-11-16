@@ -13,7 +13,7 @@ nonisolated struct PhoneFlowTests {
 
     private func begin(inTime: Bool = true) -> MessageToWatch {
         .begin(
-            workoutID: workoutID, start: start, workoutType: .openRounds, inTime: inTime,
+            workoutID: workoutID, start: start, workoutType: .openRounds, inTime: inTime, savesToHealth: false,
             version: MessageToWatch.version)
     }
 
@@ -121,7 +121,7 @@ nonisolated struct PhoneFlowTests {
             taken == [
                 .send(
                     .begin(
-                        workoutID: nextID, start: next, workoutType: .openRounds, inTime: true,
+                        workoutID: nextID, start: next, workoutType: .openRounds, inTime: true, savesToHealth: false,
                         version: MessageToWatch.version),
                     to: 2)
             ])
@@ -331,7 +331,7 @@ nonisolated struct PhoneFlowTests {
             effects == [
                 .send(
                     .begin(
-                        workoutID: nextID, start: next, workoutType: .intervals, inTime: true,
+                        workoutID: nextID, start: next, workoutType: .intervals, inTime: true, savesToHealth: false,
                         version: MessageToWatch.version),
                     to: 2),
                 .send(.update(phase(.prepare, startingAt: 600)), to: 2),

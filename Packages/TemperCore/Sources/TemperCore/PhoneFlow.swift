@@ -118,7 +118,7 @@ where Instant.Duration == Duration {
             let begin = MessageToWatch.begin(
                 workoutID: running.workoutID, start: running.start,
                 workoutType: WorkoutType(runningAs: running.activityType),
-                inTime: inTime, version: MessageToWatch.version)
+                inTime: inTime, savesToHealth: false, version: MessageToWatch.version)
             return [.send(begin, to: instance)] + (latest.map { [.send(.update($0), to: instance)] } ?? [])
                 + ending(instance)
         case .instanceDisconnected(let instance):

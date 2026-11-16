@@ -100,28 +100,41 @@ where Instant.Duration == Duration {
     }
 
     /// A Rest after an open Work shows the Work time just ended, whether or not the Rounds have a set number.
+    ///
+    /// A Phase in no Round, such as a Prepare, a Cooldown or a Plan's single Rest between Blocks, shows the number of
+    /// Rounds: as "8 of 8" once every Round is behind it, as Intervals' Cooldown, and as "8 Rounds" otherwise, since a
+    /// Plan can place it before, between or after its Rounds.
     private func roundLine(in phase: Phase) -> RingLine? {
-        if phase.kind == .rest, let round = phase.round, let workTime = snapshot.previousOpenPhaseTime {
+        if phase.kind == .rest, let workTime = snapshot.previousOpenPhaseTime {
+            let name = phase.round.map { "Round \($0) · Work" } ?? "Work"
+            let spokenName = phase.round.map { "Round \($0), Work" } ?? "Work"
             return .value(
                 workTime.shortClockText(rounding: .down),
-                caption: .before("Round \(round) · Work"),
-                spoken: "Round \(round), Work \(workTime.spokenText(rounding: .down))"
+                caption: .before(name),
+                spoken: "\(spokenName) \(workTime.spokenText(rounding: .down))"
             )
         }
         guard let rounds = snapshot.rounds else {
             guard let round = phase.round else { return nil }
             return .value("\(round)", caption: .before("Round"), spoken: "Round \(round)")
         }
-        let total = rounds == 1 ? "1 Round" : "\(rounds) Rounds"
-        switch phase.kind {
-        case .prepare:
-            return .value("\(rounds)", caption: .after(rounds == 1 ? "Round" : "Rounds"), spoken: total)
-        case .work, .rest:
-            let round = phase.round ?? rounds
+        if let round = phase.round {
             return .value("\(round)", caption: .after("of \(rounds)"), spoken: "Round \(round) of \(rounds)")
-        case .cooldown:
+        }
+        let total = rounds == 1 ? "1 Round" : "\(rounds) Rounds"
+        if followsEveryRound(phase) {
             return .value("\(rounds)", caption: .after("of \(rounds)"), spoken: total)
         }
+        return .value("\(rounds)", caption: .after(rounds == 1 ? "Round" : "Rounds"), spoken: total)
+    }
+
+    /// Whether a Phase in no Round runs only once every Round is done. A snapshot doesn't say where in the Workout it
+    /// is, so a Phase that also appears before the last Round, as the same Cooldown between two Blocks and at the end,
+    /// doesn't count.
+    private func followsEveryRound(_ phase: Phase) -> Bool {
+        guard workout.repeatingRound.isEmpty, let lastRound = workout.phases.lastIndex(where: { $0.round != nil })
+        else { return false }
+        return !workout.phases[...lastRound].contains(phase)
     }
 
     /// Prepare shows the length to come, and Work shows the length it counts up to, and keeps showing it past it.

@@ -181,7 +181,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
 
     private mutating func act(on message: MessageToWatch, at arrival: Date) -> [Effect] {
         switch message {
-        case .begin(let workoutID, let start, _, let inTime, let version):
+        case .begin(let workoutID, let start, _, let inTime, _, let version):
             guard version == MessageToWatch.version else {
                 screen = .updateNeeded
                 return endSession()

@@ -10,7 +10,8 @@ nonisolated struct MessageToWatchTests {
 
     @Test(arguments: [
         MessageToWatch.begin(
-            workoutID: workoutID, start: start, workoutType: .openRounds, inTime: true, version: MessageToWatch.version),
+            workoutID: workoutID, start: start, workoutType: .openRounds, inTime: true, savesToHealth: false,
+            version: MessageToWatch.version),
         .update(.ended(.total(.seconds(530)))),
         .update(
             .phase(
