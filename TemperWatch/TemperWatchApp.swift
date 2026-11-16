@@ -40,8 +40,6 @@ struct WatchRootView: View {
         case .running(let phase, let isConnected):
             WatchRunningPages(
                 phase: phase, isConnected: isConnected, heartRate: session.heartRate, tap: session.tap)
-        case .runningOnIPhone:
-            RunningOnIPhoneScreen()
         case .complete(let completion):
             WatchCompleteScreen(
                 completion: completion, heartRate: session.heartRate.current.summary, done: session.done)

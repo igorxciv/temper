@@ -5,11 +5,10 @@ import TemperCore
 struct TemperApp: App {
     @State private var runner: WorkoutRunner
     @State private var remembered = RememberedValues()
+    @State private var health = HealthAccess()
 
     init() {
-        let health = HealthSaves()
-        health.retryWhenPossible()
-        let runner = WorkoutRunner(health: health)
+        let runner = WorkoutRunner()
         _runner = State(initialValue: runner)
         // The Live Activity's Pause, Resume and Done run in this process, and may be what launched it, so the
         // runner is set before any of them can run.
@@ -18,7 +17,7 @@ struct TemperApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(runner: runner, remembered: remembered)
+            RootView(runner: runner, remembered: remembered, health: health)
         }
     }
 }
@@ -29,6 +28,7 @@ struct TemperApp: App {
 struct RootView: View {
     let runner: WorkoutRunner
     @Bindable var remembered: RememberedValues
+    let health: HealthAccess
 
     /// The Plan the Workout was started from, for the complete screen's recap, or `nil` if it isn't known, as after a
     /// relaunch mid-Workout.
@@ -56,13 +56,9 @@ struct RootView: View {
                     // The runner keeps only an ended snapshot with a complete screen.
                     switch display.completion {
                     case .rounds(let summary):
-                        RoundsCompleteScreen(
-                            summary: summary, activeTime: snapshot.record?.activeTime ?? .zero,
-                            lastPhase: lastPhase ?? finalPhase, health: runner.health, close: close)
+                        RoundsCompleteScreen(summary: summary, lastPhase: lastPhase ?? finalPhase, close: close)
                     case .total(let total):
-                        CompleteScreen(
-                            board: ranBoard, total: total, lastPhase: lastPhase ?? finalPhase, health: runner.health,
-                            close: close)
+                        CompleteScreen(board: ranBoard, total: total, lastPhase: lastPhase ?? finalPhase, close: close)
                     case nil:
                         EmptyView()
                     }
@@ -78,7 +74,7 @@ struct RootView: View {
                             NavigationStack {
                                 SetupScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
                                     ranBoard = PlanBoard(workoutType: workoutType, settings: remembered[workoutType])
-                                    runner.start(workout, filedAs: HealthRecord.ActivityType(workoutType))
+                                    runner.start(workout, runningAs: ActivityType(workoutType))
                                 }
                             }
                         }
@@ -87,13 +83,13 @@ struct RootView: View {
                         NavigationStack {
                             DescribeScreen(remembered: remembered) { workout, activityType in
                                 ranBoard = remembered.describedPlan.map(PlanBoard.init(plan:))
-                                runner.start(workout, filedAs: activityType)
+                                runner.start(workout, runningAs: activityType)
                             }
                         }
                     }
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
                         NavigationStack {
-                            SettingsScreen(health: runner.health)
+                            SettingsScreen(health: health)
                         }
                     }
                 }

@@ -113,9 +113,9 @@ struct PlanTests {
         #expect(problem([.rounds(.untilStop, [openWork]), .phase(rest)]) == .blockAfterUntilStop(block: 1))
     }
 
-    @Test func `Each Workout Type's Plan files its Health workout as that type does`() {
+    @Test func `Each Workout Type's Plan runs as that type's activity type`() {
         for type in WorkoutType.allCases {
-            #expect(type.plan(from: type.firstLaunch).activity == HealthRecord.ActivityType(type))
+            #expect(type.plan(from: type.firstLaunch).activity == ActivityType(type))
         }
     }
 

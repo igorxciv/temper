@@ -31,7 +31,7 @@ final class WatchLink: NSObject {
     var tapped: (WatchCommand, ContinuousClock.Instant) -> Void = { _, _ in }
 
     /// `workoutsAllowed` reads the iPhone's workout write status, which is also the Watch's.
-    init(workoutsAllowed: @escaping () -> Bool = { HealthKitWorkouts().writeStatus == .allowed }) {
+    init(workoutsAllowed: @escaping () -> Bool = { HealthKitPermissions().writeStatus == .allowed }) {
         self.workoutsAllowed = workoutsAllowed
         let (stream, effects) = AsyncStream.makeStream(of: Flow.Effect.self)
         self.effects = effects
@@ -50,17 +50,16 @@ final class WatchLink: NSObject {
     }
 
     /// Opens the Watch if workouts are allowed, once the engine has set the Workout's start point at `start`.
-    func start(workoutID: UUID, activityType: HealthRecord.ActivityType, start: Date) {
+    func start(workoutID: UUID, activityType: ActivityType, start: Date) {
         handle(
             .started(
                 workoutID: workoutID, activityType: activityType, start: start, workoutsAllowed: workoutsAllowed()))
     }
 
-    /// Holds the Health record the iPhone saves for the Workout that just ended, or `nil` for none, until the Watch's
-    /// session has ended. It comes before the ended state, which sends it to the Watch in `end`. It's kept only in
-    /// memory: if the app dies first, the Watch's own fallback covers the Workout.
-    func hold(_ record: HealthRecord?) {
-        handle(.recordReady(record))
+    /// Notes when the Workout that just ended ended, before its ended state goes out, so a Watch session that
+    /// started only after it is told to end.
+    func ended(at end: Date) {
+        handle(.ended(at: end))
     }
 
     /// Sends the Watch's state after each engine event.
@@ -94,7 +93,7 @@ final class WatchLink: NSObject {
 
     private func match(_ session: HKWorkoutSession, start: Date?, arrival: Date) {
         let id = ObjectIdentifier(session)
-        // Kept even when it belongs to no running Workout, since the flow then tells it to end without saving.
+        // Kept even when it belongs to no running Workout, since the flow then tells it to end.
         sessions[id] = session
         handle(.instanceArrived(id, start: start, at: arrival))
     }

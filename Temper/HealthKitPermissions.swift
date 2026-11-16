@@ -2,12 +2,13 @@ import Foundation
 import HealthKit
 import TemperCore
 
-/// Saves Health workouts with HealthKit: one `HKWorkoutBuilder` per attempt, built after the Workout from its record,
-/// with no workout session and no samples.
+/// Reads and asks for Temper's Health permission with HealthKit. Temper saves nothing to Health: the permission is for
+/// the Watch's workout session, which shows the heart rate during a Workout.
 ///
-/// It asks for one fixed set, whether or not a Watch is paired: sharing workouts, and reading what the Watch needs for
-/// its heart rate and Zones. The Watch's grant is the iPhone's, so the Watch never asks.
-struct HealthKitWorkouts: HealthWorkoutStore {
+/// It asks for one fixed set, whether or not a Watch is paired: sharing workouts, which Apple's guide asks of any app
+/// that runs a workout session, and reading what the Watch needs for its heart rate and Zones. The Watch's grant is
+/// the iPhone's, so the Watch never asks.
+struct HealthKitPermissions: HealthPermissionStore {
     static let shareTypes: Set<HKSampleType> = [.workoutType()]
     static let readTypes: Set<HKObjectType> = [
         HKQuantityType(.heartRate), HKQuantityType(.restingHeartRate), HKCharacteristicType(.dateOfBirth),
@@ -45,28 +46,9 @@ struct HealthKitWorkouts: HealthWorkoutStore {
         // The status is read again afterward, so a failure needs nothing more.
         try? await healthStore.requestAuthorization(toShare: Self.shareTypes, read: Self.readTypes)
     }
-
-    func save(_ record: HealthRecord) async -> HealthSaveOutcome {
-        let configuration = HKWorkoutConfiguration()
-        configuration.activityType = record.activityType.healthKit
-        let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: .local())
-        do {
-            try await builder.beginCollection(at: record.start)
-            try await builder.add(record, configuration: configuration)
-            try await builder.endCollection(at: record.end)
-            // A locked save can return no workout and no error, saved or not, so only a workout counts.
-            return try await builder.finishWorkout() == nil ? .unverified : .saved
-        } catch let error as HKError
-            where error.code == .errorAuthorizationDenied || error.code == .errorAuthorizationNotDetermined
-        {
-            return .notAllowed
-        } catch {
-            return .failed
-        }
-    }
 }
 
-extension HealthRecord.ActivityType {
+extension ActivityType {
     var healthKit: HKWorkoutActivityType {
         switch self {
         case .highIntensityIntervalTraining: .highIntensityIntervalTraining

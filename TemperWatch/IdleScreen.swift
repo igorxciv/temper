@@ -34,6 +34,6 @@ struct IdleNotice: View {
     IdleNotice(idle: .startOnIPhone)
 }
 
-#Preview("Turn on Apple Health") {
-    IdleNotice(idle: .turnOnHealth)
+#Preview("Allow Heart Rate") {
+    IdleNotice(idle: .allowHeartRate)
 }

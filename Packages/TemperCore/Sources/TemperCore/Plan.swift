@@ -24,13 +24,13 @@ public nonisolated struct Plan: Equatable, Sendable {
         case rounds(Count, [PlannedPhase])
     }
 
-    /// The kind of exercise its Health workout is filed under.
-    public var activity: HealthRecord.ActivityType
+    /// The kind of exercise the Watch's session runs as.
+    public var activity: ActivityType
     public var blocks: [Block]
     /// Whether a Rest long enough says "10 seconds" before it ends.
     public var warnsBeforeRestEnds: Bool
 
-    public init(activity: HealthRecord.ActivityType, blocks: [Block], warnsBeforeRestEnds: Bool = false) {
+    public init(activity: ActivityType, blocks: [Block], warnsBeforeRestEnds: Bool = false) {
         self.activity = activity
         self.blocks = blocks
         self.warnsBeforeRestEnds = warnsBeforeRestEnds

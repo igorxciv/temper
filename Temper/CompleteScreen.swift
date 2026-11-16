@@ -2,7 +2,7 @@ import SwiftUI
 import TemperCore
 
 /// The end of a Workout that ran its Phases: the running screen's ring closed in the last Phase's color with the total
-/// inside, what the Rounds ran, and whether the Workout goes to Health.
+/// inside, and what the Rounds ran.
 ///
 /// Has to hold together on the iPhone SE, 375 by 667 pt, at every text size.
 struct CompleteScreen: View {
@@ -12,7 +12,6 @@ struct CompleteScreen: View {
     let total: Duration
     /// The last Phase that ran, whose color the ring closes in.
     let lastPhase: Phase.Kind?
-    let health: HealthSaves
     let close: () -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -41,9 +40,6 @@ struct CompleteScreen: View {
                 CompleteRecap(board: board)
             }
             Spacer(minLength: 0)
-            CompleteHealthLine(health: health, activeTime: total, alignment: .center)
-                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                .padding(.horizontal)
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity)

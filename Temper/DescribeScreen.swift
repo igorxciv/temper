@@ -11,7 +11,7 @@ import TemperCore
 /// so a Workout can run again after it ends.
 struct DescribeScreen: View {
     @Bindable var remembered: RememberedValues
-    let start: (Workout, HealthRecord.ActivityType) -> Void
+    let start: (Workout, ActivityType) -> Void
 
     @State private var isWriting = false
     @State private var problem: String?

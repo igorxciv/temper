@@ -8,11 +8,8 @@ import TemperCore
 /// iPhone SE, 375 by 667 pt, at every text size.
 struct RoundsCompleteScreen: View {
     let summary: RoundsSummary
-    /// The Workout record's active time, for the Health line.
-    let activeTime: Duration
     /// The last Phase that ran, whose color the ring closes in.
     let lastPhase: Phase.Kind?
-    let health: HealthSaves
     let close: () -> Void
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -63,10 +60,6 @@ struct RoundsCompleteScreen: View {
                     }
                 } header: {
                     Text("Work").foregroundStyle(colors.secondary)
-                } footer: {
-                    CompleteHealthLine(health: health, activeTime: activeTime)
-                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                        .padding(.top, 8)
                 }
             }
             .scrollContentBackground(.hidden)
