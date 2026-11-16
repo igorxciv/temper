@@ -8,7 +8,8 @@ import Foundation
 /// goes to the iPhone dated when it was made, and the update it causes shows it worked. Its session pauses and resumes
 /// with each update, so active time and energy follow the Workout, and while it runs the Watch taps the wrist at each
 /// Cue. At the end it saves the Health record the iPhone sends, at ``HealthRecord/watchSyncVersion``, so Health keeps
-/// the Watch's copy, with heart rate, in place of the iPhone's.
+/// the Watch's copy, with heart rate, in place of the iPhone's. When `begin` says the owner turned saving off, the
+/// Watch saves nothing, from the iPhone's record or by itself, and only discards what its session collected.
 ///
 /// The link dropping starts a dropout. The Watch says so, refuses taps and plays no haptics, while its session keeps
 /// recording. Any message from the iPhone ends the dropout, and the update that follows `begin` on every reconnect
@@ -191,13 +192,14 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
 
     private mutating func act(on message: MessageToWatch, at arrival: Date) -> [Effect] {
         switch message {
-        case .begin(let workoutID, let start, let workoutType, let inTime, let version):
+        case .begin(let workoutID, let start, let workoutType, let inTime, let savesToHealth, let version):
             guard version == MessageToWatch.version else {
                 screen = .updateNeeded
                 return endSession()
             }
             guard workoutID != begin?.workoutID else { return [] }
-            begin = MessageToWatch.Begin(workoutID: workoutID, start: start, workoutType: workoutType)
+            begin = MessageToWatch.Begin(
+                workoutID: workoutID, start: start, workoutType: workoutType, savesToHealth: savesToHealth)
             isLate = !inTime
             // An in-time Watch waits on for the update with its first Phase. A late one has nothing more to show.
             if isLate {
@@ -265,11 +267,12 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         return [isPaused ? .pauseSession : .resumeSession]
     }
 
-    /// Ends the session once, and any dropout with it, saving `record` if there is one.
+    /// Ends the session once, and any dropout with it, saving `record` if there is one and the owner has saving on.
     private mutating func endSession(saving record: HealthRecord? = nil) -> [Effect] {
         guard hasSession else { return [] }
         hasSession = false
-        return regainContact() + cancelHaptics() + [record.map(Effect.endAndSave) ?? .endWithoutSaving]
+        let saved = begin?.savesToHealth == false ? nil : record
+        return regainContact() + cancelHaptics() + [saved.map(Effect.endAndSave) ?? .endWithoutSaving]
     }
 
     /// Ends the session with no record from the iPhone: it saves the one built from what the Watch heard up to

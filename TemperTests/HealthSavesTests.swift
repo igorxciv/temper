@@ -147,6 +147,41 @@ struct HealthSavesTests {
         #expect(harness.store.saved.isEmpty)
     }
 
+    @Test func `Saving is on until the owner turns it off, and stays as they left it after a relaunch`() async throws {
+        let harness = try Harness()
+        let health = harness.launch()
+        #expect(health.isOn)
+
+        health.isOn = false
+
+        #expect(!harness.launch().isOn)
+    }
+
+    @Test func `With saving turned off, an ended Workout saves nothing and leaves nothing to retry`() async throws {
+        let harness = try Harness()
+        let health = harness.launch()
+        health.isOn = false
+
+        await health.save(stopwatch(seconds: 90)).value
+        health.isOn = true
+        await harness.launch().retryPending()
+
+        #expect(harness.store.saved.isEmpty)
+    }
+
+    /// Only Workouts that end after the switch goes off are left out.
+    @Test func `Turning saving off lets a save already pending finish`() async throws {
+        let harness = try Harness()
+        harness.store.outcomes = [.unverified]
+        let health = harness.launch()
+
+        await health.save(stopwatch(seconds: 90)).value
+        health.isOn = false
+        await health.retryPending()
+
+        #expect(harness.store.saved.map(\.syncVersion) == [1, 2])
+    }
+
     @Test(arguments: [HealthSaveOutcome.unverified, .failed])
     func `A save Health doesn't confirm is retried after a relaunch, with its version raised by 1`(
         outcome: HealthSaveOutcome
@@ -257,6 +292,35 @@ struct HealthSavesTests {
         #expect(health.row == row)
     }
 
+    @Test(arguments: [HealthRequestStatus.shouldRequest, .unnecessary])
+    func `With workouts allowed and saving turned off, Settings shows the switch off`(
+        requestStatus: HealthRequestStatus
+    ) async throws {
+        let harness = try Harness()
+        harness.store.requestStatus = requestStatus
+        let health = harness.launch()
+        await health.refreshStatus()
+
+        health.isOn = false
+
+        #expect(health.row == .off)
+    }
+
+    @Test(arguments: [HealthWriteStatus.notDetermined, .denied])
+    func `Until workouts are allowed, the switch being off changes nothing in Settings`(
+        writeStatus: HealthWriteStatus
+    ) async throws {
+        let harness = try Harness()
+        harness.store.writeStatus = writeStatus
+        let health = harness.launch()
+        await health.refreshStatus()
+        let row = health.row
+
+        health.isOn = false
+
+        #expect(health.row == row)
+    }
+
     /// "Allow Heart Rate" still saves workouts, so its footer keeps the saves sentence and adds what the Watch does.
     @Test(arguments: [
         (
@@ -268,18 +332,15 @@ struct HealthSavesTests {
             "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch. "
                 + "Apple Watch shows your heart rate and saves it to Health."
         ),
-        (
-            .saving,
-            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch. "
-                + "Turn this off in the Health app."
-        ),
+        (.saving, "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch."),
+        (.off, "Workouts aren't saved to Health. Apple Watch still follows each one."),
         (.notAllowed, "Allow Temper under Settings › Health › Data Access & Devices."),
     ])
     func `Each row has its footer`(row: AppleHealthRow, footer: String) {
         #expect(row.footer == footer)
     }
 
-    /// Anyone who allowed workouts in the shipped build is asked once more, and the row settles on the checkmark.
+    /// Anyone who allowed workouts in the shipped build is asked once more, and the row settles on the switch alone.
     @Test func `Asking for permission reads both statuses again`() async throws {
         let harness = try Harness()
         harness.store.requestStatus = .shouldRequest

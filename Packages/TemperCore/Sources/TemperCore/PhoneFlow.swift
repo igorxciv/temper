@@ -30,8 +30,11 @@ public nonisolated struct PhoneFlow<Instance: Hashable & Sendable, Instant: Inst
 where Instant.Duration == Duration {
     public enum Event: Equatable, Sendable {
         /// The engine set the Workout's fixed start point, at `start` on the wall clock. `workoutsAllowed` is the
-        /// iPhone's workout write status, which is also the Watch's.
-        case started(workoutID: UUID, activityType: HealthRecord.ActivityType, start: Date, workoutsAllowed: Bool)
+        /// iPhone's workout write status, which is also the Watch's. `savesToHealth` is the owner's choice in Settings,
+        /// read at Start, which `begin` passes on so the Watch saves only when the iPhone does.
+        case started(
+            workoutID: UUID, activityType: HealthRecord.ActivityType, start: Date, workoutsAllowed: Bool,
+            savesToHealth: Bool)
         /// The Health record the iPhone saves for the Workout that just ended, or `nil` when there's none, as for a
         /// Workout under 1 minute. It comes before the ended state, which sends it in `end`.
         case recordReady(HealthRecord?)
@@ -67,6 +70,7 @@ where Instant.Duration == Duration {
         let workoutID: UUID
         let activityType: HealthRecord.ActivityType
         let start: Date
+        let savesToHealth: Bool
     }
 
     /// How long after the request to open the Watch its session can arrive and still be in time for the Watch's
@@ -93,9 +97,10 @@ where Instant.Duration == Duration {
 
     public mutating func handle(_ event: Event) -> [Effect] {
         switch event {
-        case .started(let workoutID, let activityType, let start, let workoutsAllowed):
+        case .started(let workoutID, let activityType, let start, let workoutsAllowed, let savesToHealth):
             self = Self()
-            running = Running(workoutID: workoutID, activityType: activityType, start: start)
+            running = Running(
+                workoutID: workoutID, activityType: activityType, start: start, savesToHealth: savesToHealth)
             return workoutsAllowed ? [.startWatchApp(activityType)] : []
         case .recordReady(let record):
             guard running != nil else { return [] }
@@ -124,7 +129,7 @@ where Instant.Duration == Duration {
             let begin = MessageToWatch.begin(
                 workoutID: running.workoutID, start: running.start,
                 workoutType: WorkoutType(filedAs: running.activityType),
-                inTime: inTime, version: MessageToWatch.version)
+                inTime: inTime, savesToHealth: running.savesToHealth, version: MessageToWatch.version)
             return [.send(begin, to: instance)] + (latest.map { [.send(.update($0), to: instance)] } ?? [])
                 + ending(instance)
         case .instanceDisconnected(let instance):

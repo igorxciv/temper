@@ -4,7 +4,8 @@ import TemperCore
 import UIKit
 
 /// Saves each ended Workout to Health, at most once, and asks for permission when Settings says to. The one request
-/// covers everything the Watch will need as well, so the Watch never asks.
+/// covers everything the Watch will need as well, so the Watch never asks. The owner can turn saving off in Settings
+/// without taking back Health access, which keeps the Watch following each Workout.
 ///
 /// A save counts as done only when Health returns the workout. A locked iPhone can return nothing and save nothing,
 /// so until then the save stays pending in `UserDefaults`, and it's tried again with its sync version raised by 1
@@ -17,10 +18,26 @@ final class HealthSaves {
     /// works. The limit keeps a save Health never confirms from being tried forever.
     static let attemptLimit = 3
 
-    /// Settings' Apple Health row, from the statuses as last read, or `nil` before the first read.
-    private(set) var row: AppleHealthRow?
+    /// Where ``isOn`` is kept.
+    static let isOnKey = "savesToHealth"
+
+    /// Settings' Apple Health row, from the statuses as last read and the switch, or `nil` before the first read.
+    var row: AppleHealthRow? {
+        statuses.map { AppleHealthRow(writeStatus: $0.write, requestStatus: $0.request, isOn: isOn) }
+    }
+
+    /// The owner's switch in Settings, on until they turn it off. Turning it off stops saving Workouts that end after,
+    /// and leaves saves already pending to finish. It's read at Start for the Watch too, and can't change during a
+    /// Workout, since Settings isn't on screen then.
+    var isOn: Bool {
+        didSet { defaults.set(isOn, forKey: Self.isOnKey) }
+    }
+
+    /// The statuses as last read, or `nil` before the first read.
+    private var statuses: (write: HealthWriteStatus, request: HealthRequestStatus)?
 
     @ObservationIgnored private let store: any HealthWorkoutStore
+    @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let pending: PendingHealthSaves
     @ObservationIgnored private let isProtectedDataAvailable: () -> Bool
     /// The Workouts with an attempt under way, so overlapping triggers don't save one twice at once.
@@ -32,13 +49,15 @@ final class HealthSaves {
         isProtectedDataAvailable: @escaping () -> Bool = { UIApplication.shared.isProtectedDataAvailable }
     ) {
         self.store = store
+        self.defaults = defaults
+        isOn = defaults.object(forKey: Self.isOnKey) as? Bool ?? true
         pending = PendingHealthSaves(defaults: defaults)
         self.isProtectedDataAvailable = isProtectedDataAvailable
     }
 
     func refreshStatus() async {
         let requestStatus = await store.requestStatus
-        row = AppleHealthRow(writeStatus: store.writeStatus, requestStatus: requestStatus)
+        statuses = (store.writeStatus, requestStatus)
     }
 
     func requestPermission() async {
@@ -46,15 +65,16 @@ final class HealthSaves {
         await refreshStatus()
     }
 
-    /// Saves the Health workout of an ended Workout, if writing is allowed. `record` is the first attempt's, or `nil`
-    /// for a Workout that ran for less than ``HealthRecord/minimumActiveTime`` and so saves nothing.
+    /// Saves the Health workout of an ended Workout, if writing is allowed and the owner has saving on. `record` is the
+    /// first attempt's, or `nil` for a Workout that ran for less than ``HealthRecord/minimumActiveTime`` and so saves
+    /// nothing.
     ///
     /// The background task and the pending save are in place before this returns, so the save can finish, or be
     /// tried again later, even if the app is suspended straight after.
     @discardableResult
     func save(_ record: HealthRecord?) -> Task<Void, Never> {
         let backgroundTask = BackgroundTask(named: "Health")
-        guard let record, store.writeStatus == .allowed else {
+        guard let record, isOn, store.writeStatus == .allowed else {
             backgroundTask.end()
             return Task {}
         }

@@ -13,6 +13,8 @@ enum CompleteHealthNote: Equatable {
     case savingWithoutHeartRate
     /// The owner hasn't been asked yet.
     case notTurnedOn
+    /// Workouts are allowed, but the owner turned saving off in Settings.
+    case turnedOff
     /// The owner said no, or the device has no Health.
     case accessOff
 
@@ -28,6 +30,7 @@ enum CompleteHealthNote: Equatable {
         case .saving: self = .saving
         case .allowHeartRate: self = .savingWithoutHeartRate
         case .saveWorkouts: self = .notTurnedOn
+        case .off: self = .turnedOff
         case .notAllowed: self = .accessOff
         }
     }
@@ -38,6 +41,7 @@ enum CompleteHealthNote: Equatable {
         case .saving: "Saving to Apple Health."
         case .savingWithoutHeartRate: "Saving to Apple Health, without heart rate."
         case .notTurnedOn: "Not saved to Health. Turn it on in Settings."
+        case .turnedOff: "Not saved to Health. Saving is off in Settings."
         case .accessOff: "Not saved: Health access is off."
         }
     }
@@ -46,7 +50,7 @@ enum CompleteHealthNote: Equatable {
     var systemImage: String? {
         switch self {
         case .saving, .savingWithoutHeartRate: "heart.fill"
-        case .tooShort, .notTurnedOn, .accessOff: nil
+        case .tooShort, .notTurnedOn, .turnedOff, .accessOff: nil
         }
     }
 }

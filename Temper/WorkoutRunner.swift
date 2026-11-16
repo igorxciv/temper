@@ -67,7 +67,8 @@ final class WorkoutRunner {
                 self.startDate = startDate
                 // Opened only once the start point is set, so the Watch's session always starts after it and is
                 // matched to this Workout.
-                watch.start(workoutID: workoutID, activityType: activityType, start: startDate)
+                watch.start(
+                    workoutID: workoutID, activityType: activityType, start: startDate, savesToHealth: health.isOn)
             }
             for await snapshot in engine.snapshots {
                 show(snapshot)

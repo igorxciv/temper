@@ -50,7 +50,7 @@ nonisolated struct RunningLinkTests {
                     .started(
                         workoutID: workoutID, activityType: HealthRecord.ActivityType(workoutType),
                         start: date(of: start),
-                        workoutsAllowed: true)
+                        workoutsAllowed: true, savesToHealth: true)
                 ))
         }
 

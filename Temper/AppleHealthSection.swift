@@ -3,9 +3,9 @@ import SwiftUI
 /// The one place Temper asks for Health permission, for the iPhone and the Watch together. It never asks at Start or at
 /// the end, so Start stays one tap and training never waits on Health. Its row follows the write status and whether
 /// the full set would prompt, read again whenever Temper comes to the front, so a change made in the Health app shows
-/// here.
+/// here. Once workouts are allowed, a switch turns saving off and on without going to the Health app.
 struct AppleHealthSection: View {
-    let health: HealthSaves
+    @Bindable var health: HealthSaves
     let colors: InkColors
 
     @Environment(\.scenePhase) private var scenePhase
@@ -18,16 +18,11 @@ struct AppleHealthSection: View {
                     Button("Save Workouts to Health", action: requestPermission)
                         .foregroundStyle(colors.accent)
                 case .allowHeartRate:
-                    LabeledContent("Saving to Health") {
-                        Button("Allow Heart Rate", action: requestPermission)
-                            .foregroundStyle(colors.accent)
-                    }
-                case .saving:
-                    LabeledContent("Saving to Health") {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(colors.text)
-                            .accessibilityHidden(true)
-                    }
+                    saveToggle
+                    Button("Allow Heart Rate", action: requestPermission)
+                        .foregroundStyle(colors.accent)
+                case .saving, .off:
+                    saveToggle
                 case .notAllowed:
                     Text("Not allowed")
                 case nil:
@@ -45,6 +40,10 @@ struct AppleHealthSection: View {
                 await health.refreshStatus()
             }
         }
+    }
+
+    private var saveToggle: some View {
+        Toggle("Save Workouts to Health", isOn: $health.isOn)
     }
 
     private func requestPermission() {

@@ -14,15 +14,18 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     /// without saving, and the iPhone's own Health workout covers the Workout. Raise it whenever a message changes
     /// in a way an older build can't read.
     /// Version 2 added each Phase's Cues. Version 3 added `refused`, with the Watch's taps going the other way.
-    public static let version = 3
+    /// Version 4 added `begin`'s `savesToHealth`, which an older Watch would ignore and save anyway.
+    public static let version = 4
 
-    /// The first message to each mirrored instance: which Workout it belongs to, when that Workout started, and
-    /// whether the Watch arrived within the 10 s window after the iPhone asked it to open.
+    /// The first message to each mirrored instance: which Workout it belongs to, when that Workout started, whether
+    /// the Watch arrived within the 10 s window after the iPhone asked it to open, and whether the owner has Temper
+    /// saving to Health. With saving off, the Watch follows the Workout as usual and ends its session without saving.
     ///
     /// The Watch reads the Workout Type only for the activity type its Health workout is filed under. So a Plan that
     /// isn't a Workout Type's sends the type filed under the same activity type, and the message keeps the shape a
     /// Watch on this version reads.
-    case begin(workoutID: UUID, start: Date, workoutType: WorkoutType, inTime: Bool, version: Int)
+    case begin(
+        workoutID: UUID, start: Date, workoutType: WorkoutType, inTime: Bool, savesToHealth: Bool, version: Int)
     /// What to draw now, sent on every event.
     case update(WatchState)
     /// A tap from the Watch reached the iPhone more than 2 s after the owner made it, so the engine never got it.
@@ -34,17 +37,20 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     case discard
 
     /// What `begin` says of the Workout itself, which the Watch keeps for the Health record it may have to build
-    /// alone. It isn't sent: `begin` carries the same values.
+    /// alone, and for whether to save one at all. It isn't sent: `begin` carries the same values.
     public struct Begin: Hashable, Sendable {
         public let workoutID: UUID
         /// The Workout's Start.
         public let start: Date
         public let workoutType: WorkoutType
+        /// Whether the Watch saves a Health workout at the end, from the iPhone's record or by itself.
+        public let savesToHealth: Bool
 
-        public init(workoutID: UUID, start: Date, workoutType: WorkoutType) {
+        public init(workoutID: UUID, start: Date, workoutType: WorkoutType, savesToHealth: Bool = true) {
             self.workoutID = workoutID
             self.start = start
             self.workoutType = workoutType
+            self.savesToHealth = savesToHealth
         }
     }
 

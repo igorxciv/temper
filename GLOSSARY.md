@@ -85,7 +85,7 @@ The Cue that counts "5, 4, 3, 2, 1" aloud, one number a second, over the last fi
 _Avoid_: Beeps, final seconds, Prepare
 
 **Health workout**:
-The record that Temper saves to Apple Health of one Training, or of one Workout run outside a Training. Each makes at most one.
+The record that Temper saves to Apple Health of one Training, or of one Workout run outside a Training. Each makes at most one, and none while the owner has saving turned off in Settings.
 _Avoid_: Activity, Session, Fitness workout
 
 **Zone**:
