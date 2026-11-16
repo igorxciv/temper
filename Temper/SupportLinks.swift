@@ -3,7 +3,7 @@ import Foundation
 /// Where Settings sends someone for the privacy policy or for help. The pages come from `site/`, which the Pages
 /// workflow publishes.
 enum SupportLinks {
-    static let address = "support@temper.example"
+    static let address = "support@igorcodes.dev"
     /// Optional only because `URL(string:)` is; the tests hold it to a real address.
     static let privacyPolicy = URL(string: "https://igorxciv.github.io/temper/privacy/")
 
