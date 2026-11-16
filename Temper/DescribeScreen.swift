@@ -60,7 +60,7 @@ struct DescribeScreen: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(
                         unavailable
-                            ?? "Say how many Rounds, and how long each Work and Rest lasts. A Work with no time ends when you tap Done."
+                            ?? "Say each part in order: how many Rounds, and how long each Prepare, Work, Rest and Cooldown lasts. Any of them can come between Rounds. A Work with no time ends when you tap Done."
                     )
                     .foregroundStyle(colors.secondary)
                     if let problem = dictation.problem ?? problem {

@@ -53,7 +53,7 @@ The owner's mark that ends an open Phase, or a Stopwatch's Work once it has pass
 _Avoid_: Next, Skip, Lap, Split, Finish
 
 **Prepare**:
-The optional Phase at the start of a Workout, used to get into position.
+The optional Phase at the start of a Workout, used to get into position. A Plan can also put one before any later Block.
 _Avoid_: Countdown, warm-up
 
 **Round**:
@@ -65,11 +65,11 @@ The Phase in which the exercise is performed: one per Round in Intervals and Ope
 _Avoid_: Work round, active time
 
 **Rest**:
-The Phase between one Work and the next.
+The Phase between one Work and the next. A Plan can also put one between Blocks, on its own or one after another.
 _Avoid_: Break, pause
 
 **Cooldown**:
-The optional final Phase of Intervals, and of Open Rounds with a set number of Rounds, following the last Work.
+The optional final Phase of Intervals, and of Open Rounds with a set number of Rounds, following the last Work. A Plan can put one anywhere, such as between two Blocks of Rounds as well as at the end.
 _Avoid_: Final rest, warm-down
 
 **Pause**:

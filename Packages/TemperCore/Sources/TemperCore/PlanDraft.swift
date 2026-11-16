@@ -1,69 +1,83 @@
 /// A Workout as a language model writes it from the owner's description, before it's a Plan.
 ///
-/// It's flatter than a Plan, with fewer ways to go wrong for a small on-device model: every Block is Rounds of one
-/// Work and one Rest, every length is whole seconds, and zero stands for none. Making the Plan settles what zero
-/// means for each Phase, and the activity type comes from the Plan's shape rather than from the model.
+/// It has the Plan's freedom, Blocks of any Phases in any order, in a flatter shape that leaves fewer ways to go wrong
+/// for a small on-device model. Every Block is Rounds of a list of Phases, and one that runs once with no Work stands
+/// for single Phases, such as a Prepare, a Cooldown or a Rest between two Blocks. Every length is whole seconds, and
+/// zero stands for none. Making the Plan settles what that means for each, and the activity type comes from the Plan's
+/// shape rather than from the model.
 public nonisolated struct PlanDraft: Equatable, Sendable {
-    /// Rounds of one Work followed by one Rest.
-    public struct Block: Equatable, Sendable {
-        /// How many Rounds, unless they repeat until Stop.
-        public var rounds: Int
-        /// Whether the Rounds repeat until the owner Stops, in place of a set number.
-        public var untilStop: Bool
-        /// Each Work's length in whole seconds, or zero for open Work, which ends when the owner marks it Done, as
-        /// for a set with no time given.
-        public var workSeconds: Int
-        /// Each Rest's length in whole seconds, or zero for no Rest.
-        public var restSeconds: Int
+    /// One Phase of a Block.
+    public struct Phase: Equatable, Sendable {
+        public var kind: TemperCore.Phase.Kind
+        /// Its length in whole seconds. Zero makes a Work open, so it ends when the owner marks it Done, as for a set
+        /// with no time given, and leaves out any other Phase.
+        public var seconds: Int
 
-        public init(rounds: Int, untilStop: Bool = false, workSeconds: Int, restSeconds: Int) {
-            self.rounds = rounds
-            self.untilStop = untilStop
-            self.workSeconds = workSeconds
-            self.restSeconds = restSeconds
+        public init(_ kind: TemperCore.Phase.Kind, seconds: Int) {
+            self.kind = kind
+            self.seconds = seconds
         }
     }
 
-    /// The Prepare in whole seconds, or zero for none.
-    public var prepareSeconds: Int
-    public var blocks: [Block]
-    /// The Cooldown in whole seconds, or zero for none.
-    public var cooldownSeconds: Int
+    /// Phases that run, in order, a number of times.
+    public struct Block: Equatable, Sendable {
+        /// How many Rounds, unless they repeat until Stop. One for Phases that run once.
+        public var rounds: Int
+        /// Whether the Rounds repeat until the owner Stops, in place of a set number.
+        public var untilStop: Bool
+        public var phases: [Phase]
 
-    public init(prepareSeconds: Int, blocks: [Block], cooldownSeconds: Int) {
-        self.prepareSeconds = prepareSeconds
-        self.blocks = blocks
-        self.cooldownSeconds = cooldownSeconds
+        public init(rounds: Int, untilStop: Bool = false, phases: [Phase]) {
+            self.rounds = rounds
+            self.untilStop = untilStop
+            self.phases = phases
+        }
     }
 
-    /// The Plan it describes. A Work of zero becomes open, and a zero Prepare, Rest or Cooldown is left out.
+    /// Every part of the Workout, in the order it runs.
+    public var blocks: [Block]
+
+    public init(blocks: [Block]) {
+        self.blocks = blocks
+    }
+
+    /// The Plan it describes. A Work of zero becomes open, and any other Phase of zero is left out. A Block that runs
+    /// once and holds no Work becomes a single Phase for each of its Phases, so a Prepare, a Cooldown or a Rest
+    /// belongs to no Round. Any other Block becomes Rounds, even one with no Work, which the Plan then refuses.
     ///
     /// A Plan with open Work is filed as strength training, like Open Rounds, and its Rest says "10 seconds" before it
     /// ends, since the owner isn't watching a clock during the Work. One with only timed Work is filed as interval
     /// training, like Intervals. The Plan still has to make a Workout before it runs.
     public var plan: Plan {
-        let prepare =
-            prepareSeconds > 0 ? [Plan.Block.phase(PlannedPhase(kind: .prepare, seconds: prepareSeconds))] : []
-        let cooldown =
-            cooldownSeconds > 0 ? [Plan.Block.phase(PlannedPhase(kind: .cooldown, seconds: cooldownSeconds))] : []
-        let rounds = blocks.map { block in
-            let work =
-                block.workSeconds > 0
-                ? PlannedPhase(kind: .work, seconds: block.workSeconds) : PlannedPhase(kind: .work, length: .open)
-            let rest = block.restSeconds > 0 ? [PlannedPhase(kind: .rest, seconds: block.restSeconds)] : []
-            return Plan.Block.rounds(block.untilStop ? .untilStop : .times(block.rounds), [work] + rest)
+        let planned = blocks.map { block in
+            (block, block.phases.compactMap(PlannedPhase.init(drafted:)))
         }
-        let hasOpenWork = blocks.contains { $0.workSeconds <= 0 }
+        let planBlocks = planned.flatMap { block, phases -> [Plan.Block] in
+            if !block.untilStop, block.rounds == 1, !phases.contains(where: { $0.kind == .work }) {
+                return phases.map(Plan.Block.phase)
+            }
+            return [.rounds(block.untilStop ? .untilStop : .times(block.rounds), phases)]
+        }
+        let hasOpenWork = planned.contains { _, phases in
+            phases.contains { $0.kind == .work && $0.length == .open }
+        }
         return Plan(
             activity: hasOpenWork ? .traditionalStrengthTraining : .highIntensityIntervalTraining,
-            blocks: prepare + rounds + cooldown,
+            blocks: planBlocks,
             warnsBeforeRestEnds: hasOpenWork
         )
     }
 }
 
 extension PlannedPhase {
-    fileprivate nonisolated init(kind: Phase.Kind, seconds: Int) {
-        self.init(kind: kind, duration: .seconds(seconds))
+    /// The drafted Phase, or `nil` for a Phase other than Work with no length, which is left out.
+    fileprivate nonisolated init?(drafted: PlanDraft.Phase) {
+        if drafted.seconds > 0 {
+            self.init(kind: drafted.kind, duration: .seconds(drafted.seconds))
+        } else if drafted.kind == .work {
+            self.init(kind: .work, length: .open)
+        } else {
+            return nil
+        }
     }
 }
