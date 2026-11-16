@@ -44,8 +44,8 @@ struct InkColors {
 
 /// The colors of one Phase's screen.
 ///
-/// Prepare and Cooldown nearly match under color blindness. That's accepted because they're never next to each
-/// other, and the Phase name and Cue tell them apart.
+/// Prepare and Cooldown nearly match under color blindness. That's accepted because they're rarely next to each
+/// other, only where a Plan puts a Prepare right after a Cooldown, and the Phase name and Cue tell them apart.
 struct PhaseColors {
     let background: Color
     let ring: Color
