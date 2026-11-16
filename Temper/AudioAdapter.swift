@@ -76,7 +76,9 @@ actor AudioAdapter: AudioOutput {
         try session.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    /// A Cue whose Exercise isn't rendered yet plays plain, so the Phase change is still heard.
+    /// A Cue whose Exercise isn't rendered yet plays plain, so the Phase change is still heard. A Prepare's start
+    /// says only its Exercise, so then there's nothing to play: it ends at once, quietly, rather than as a failure
+    /// that would let go of the session.
     func schedule(
         _ cue: Cue,
         saying exercise: Exercise?,
@@ -85,6 +87,10 @@ actor AudioAdapter: AudioOutput {
         token: CueToken
     ) throws {
         guard let buffer = cues.buffer(for: cue, saying: exercise) ?? cues.buffer(for: cue) else {
+            guard cue != .prepare else {
+                eventSender.yield(.cueFinished(token))
+                return
+            }
             throw AudioAdapterError.cueNotRendered
         }
         try startAudio()

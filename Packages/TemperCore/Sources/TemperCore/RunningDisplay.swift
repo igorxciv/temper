@@ -142,11 +142,13 @@ where Instant.Duration == Duration {
 
     /// Whether a Phase in no Round runs only once every Round is done. A snapshot doesn't say where in the Workout it
     /// is, so a Phase that also appears before the last Round, as the same Cooldown between two Blocks and at the end,
-    /// doesn't count.
+    /// doesn't count. Nor does a Work like one before the last Round, whatever its Exercise.
     private func followsEveryRound(_ phase: Phase) -> Bool {
         guard workout.repeatingRound.isEmpty, let lastRound = workout.phases.lastIndex(where: { $0.round != nil })
         else { return false }
-        return !workout.phases[...lastRound].contains(phase)
+        return !workout.phases[...lastRound].contains {
+            $0.kind == phase.kind && $0.length == phase.length && $0.round == phase.round
+        }
     }
 
     /// Prepare shows the length to come, and Work shows the length it counts up to, and keeps showing it past it.

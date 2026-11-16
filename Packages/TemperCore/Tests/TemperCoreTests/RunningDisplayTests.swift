@@ -600,4 +600,48 @@ nonisolated struct ExerciseDisplayTests {
         #expect(phase.title == nil)
         #expect(phase.nextExercise == nil)
     }
+
+    /// A snapshot doesn't say where in the Workout it is, so a Phase in no Round that also appears before the last
+    /// Round counts as possibly between Rounds. Exercises don't make two such Phases different.
+    @Test func `Following every Round ignores Exercises`() throws {
+        let plan = Plan(
+            activity: .highIntensityIntervalTraining,
+            blocks: [
+                .phase(PlannedPhase(kind: .work, duration: .seconds(30), exercise: Exercise("Run"))),
+                .rounds(
+                    .times(3),
+                    [
+                        PlannedPhase(kind: .work, duration: .seconds(30)),
+                        PlannedPhase(kind: .rest, duration: .seconds(15)),
+                    ]
+                ),
+                .phase(PlannedPhase(kind: .work, duration: .seconds(30), exercise: Exercise("Stretch"))),
+            ]
+        )
+        let workout = try plan.makeWorkout()
+        let stretch = Phase(kind: .work, duration: .seconds(30), exercise: Exercise("Stretch"))
+
+        let display = Display(workout: workout, snapshot: Snapshot(progress: running(stretch, endsAt: 100), rounds: 3))
+
+        #expect(display.line == .value("3", caption: .after("Rounds"), spoken: "3 Rounds"))
+    }
+
+    @Test func `The Watch taps for the Work after a Prepare, never for the Prepare saying it's next`() {
+        let prepare = Phase(kind: .prepare, duration: .seconds(10))
+        let cues = [
+            Snapshot.TimedCue(cue: .prepare, due: at(0)),
+            Snapshot.TimedCue(cue: .countdown, due: at(5)),
+            Snapshot.TimedCue(cue: .work, due: at(10)),
+        ]
+        let display = Display(
+            workout: intervals,
+            snapshot: Snapshot(
+                progress: running(prepare, endsAt: 10), rounds: 8, cues: cues, nextExercise: squats.exercise))
+
+        guard case .phase(let phase) = display.watchState(at: at(0), date: date) else {
+            Issue.record("Expected a running Phase")
+            return
+        }
+        #expect(phase.cues.map(\.cue) == [.work])
+    }
 }

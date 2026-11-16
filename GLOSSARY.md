@@ -61,7 +61,7 @@ The Phase in which the exercise is performed: one per Round in Intervals and Ope
 _Avoid_: Work round, active time
 
 **Exercise**:
-What the owner calls the activity of a Work in a Plan, such as Squats. A Work may have none. The Phase before a named Work shows it as next and says it after its own Cue, and the Work shows it in place of "Work".
+What the owner calls the activity of a Work in a Plan, such as Squats. A Work may have none. The Phase before a named Work shows it as next and, if that Phase is timed and has room, says it after its own Cue. Otherwise the Work says it over its gong. The Work shows it in place of "Work".
 _Avoid_: Name, label, move, title
 
 **Rest**:

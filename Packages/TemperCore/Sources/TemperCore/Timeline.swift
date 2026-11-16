@@ -1,5 +1,6 @@
 /// The announcement of a Phase change, of the end of the Workout, that Rest is about to end, that a Phase is
-/// about to reach its set length, or that a Stopwatch's Work has reached it.
+/// about to reach its set length, that a Stopwatch's Work has reached it, or, at a Prepare's start, the next
+/// Exercise.
 ///
 /// The raw value is what the Watch is sent, so renaming a case changes the messages' version.
 public nonisolated enum Cue: String, Codable, Equatable, Sendable {

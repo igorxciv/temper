@@ -6,9 +6,9 @@ import Testing
 
 struct CueBankTests {
     /// The longest name an Exercise keeps.
-    private let longest = Exercise(String(repeating: "Kettlebell ", count: 3))
+    private let longestName = String(repeating: "Kettlebell ", count: 3)
 
-    private func rendered(_ cue: Cue, saying exercise: Exercise?) async throws -> AVAudioPCMBuffer {
+    private func rendered(_ cue: Cue, saying exercise: Exercise) async throws -> AVAudioPCMBuffer {
         let bank = CueBank()
         bank.render([CueBank.Sound(cue: cue, exercise: exercise)])
         await bank.waitForRendering(atMost: .seconds(30))
@@ -23,6 +23,8 @@ struct CueBankTests {
     /// that. "Cooldown. Next, …" over the gong is the longest.
     @Test(arguments: [Cue.cooldown, .rest, .work, .prepare])
     func `Every Cue saying the longest Exercise ends within the 5s a Phase leaves for it`(cue: Cue) async throws {
+        let longest = try #require(Exercise(longestName))
+        #expect(longest.name.count == Exercise.maximumLength)
         let buffer = try await rendered(cue, saying: longest)
 
         #expect(seconds(buffer) <= 5)

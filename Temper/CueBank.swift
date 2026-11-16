@@ -38,6 +38,10 @@ nonisolated final class CueBank: @unchecked Sendable {
             return missing
         }
         guard let missing else { return }
+        startRendering(missing)
+    }
+
+    private func startRendering(_ missing: Set<Sound>) {
         Task { @MainActor in
             store(RenderedCues(buffers: await CueSounds.render(missing), attempted: missing))
         }
@@ -89,16 +93,18 @@ nonisolated final class CueBank: @unchecked Sendable {
     }
 
     /// A Sound that failed to render isn't tried again until it's asked for again, so a voice that's missing can't
-    /// keep rendering in a loop.
+    /// keep rendering in a loop. Sounds asked for meanwhile follow at once, still rendering throughout, so a wait
+    /// that began before them doesn't end early.
     private func store(_ rendered: RenderedCues) {
-        let followsUp = lock.withLock {
+        let followUp: Set<Sound>? = lock.withLock {
             buffers.merge(rendered.buffers) { _, new in new }
-            isRendering = false
             wanted = Set(buffers.keys).union(wanted.subtracting(rendered.attempted))
-            return !wanted.subtracting(buffers.keys).isEmpty
+            let missing = wanted.subtracting(buffers.keys)
+            isRendering = !missing.isEmpty
+            return missing.isEmpty ? nil : missing
         }
-        if followsUp {
-            render()
+        if let followUp {
+            startRendering(followUp)
         }
     }
 }
