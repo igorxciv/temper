@@ -33,7 +33,7 @@ where Instant.Duration == Duration {
         /// iPhone's workout write status, which is also the Watch's.
         case started(workoutID: UUID, activityType: HealthRecord.ActivityType, start: Date, workoutsAllowed: Bool)
         /// The Health record the iPhone saves for the Workout that just ended, or `nil` when there's none, as for a
-        /// Workout under 1 minute. It comes before the ended state, which sends it in `end`.
+        /// Workout under 10 minutes. It comes before the ended state, which sends it in `end`.
         case recordReady(HealthRecord?)
         /// The iPhone asked the Watch to open, `at` on the wall clock, which starts the window.
         case watchAppRequested(at: Date)

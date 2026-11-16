@@ -58,7 +58,7 @@ private let start = ContinuousClock.now
 private let startDate = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
 /// The Health record of a Stopwatch's Work that ran for `seconds` from Start, with no Prepare, or `nil` if it ran for
-/// less than a minute.
+/// less than 10 minutes.
 private func stopwatch(seconds: Int, workoutID: UUID = UUID()) -> HealthRecord? {
     let end = start + .seconds(seconds)
     let record = WorkoutRecord(
@@ -71,12 +71,12 @@ private func stopwatch(seconds: Int, workoutID: UUID = UUID()) -> HealthRecord? 
 
 @MainActor
 struct HealthSavesTests {
-    @Test func `An ended Workout of a minute or more is saved once, and leaves nothing pending`() async throws {
+    @Test func `An ended Workout of 10 minutes or more is saved once, and leaves nothing pending`() async throws {
         let harness = try Harness()
         let health = harness.launch()
         let workoutID = UUID()
 
-        await health.save(stopwatch(seconds: 60, workoutID: workoutID)).value
+        await health.save(stopwatch(seconds: 600, workoutID: workoutID)).value
 
         #expect(harness.store.saved.count == 1)
         #expect(harness.store.saved.first?.syncIdentifier == workoutID.uuidString)
@@ -91,7 +91,7 @@ struct HealthSavesTests {
         let harness = try Harness()
         let workoutID = UUID()
 
-        let saving = harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID))
+        let saving = harness.launch().save(stopwatch(seconds: 600, workoutID: workoutID))
 
         #expect(harness.store.saved.isEmpty)
         #expect(PendingHealthSaves(defaults: harness.defaults)[workoutID: workoutID]?.record.syncVersion == 1)
@@ -107,7 +107,7 @@ struct HealthSavesTests {
             storedDuringSave = PendingHealthSaves(defaults: defaults)[workoutID: workoutID]?.record.syncVersion
         }
 
-        await harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID)).value
+        await harness.launch().save(stopwatch(seconds: 600, workoutID: workoutID)).value
 
         #expect(storedDuringSave == 2)
     }
@@ -120,15 +120,15 @@ struct HealthSavesTests {
             await health.retryPending()
         }
 
-        await health.save(stopwatch(seconds: 90)).value
+        await health.save(stopwatch(seconds: 600)).value
 
         #expect(harness.store.saved.map(\.syncVersion) == [1])
     }
 
-    @Test func `A Workout of less than a minute saves nothing`() async throws {
+    @Test func `A Workout of less than 10 minutes saves nothing`() async throws {
         let harness = try Harness()
 
-        await harness.launch().save(stopwatch(seconds: 59)).value
+        await harness.launch().save(stopwatch(seconds: 599)).value
 
         #expect(harness.store.saved.isEmpty)
     }
@@ -140,7 +140,7 @@ struct HealthSavesTests {
         let harness = try Harness()
         harness.store.writeStatus = status
 
-        await harness.launch().save(stopwatch(seconds: 90)).value
+        await harness.launch().save(stopwatch(seconds: 600)).value
         harness.store.writeStatus = .allowed
         await harness.launch().retryPending()
 
@@ -155,7 +155,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [outcome]
         let workoutID = UUID()
 
-        await harness.launch().save(stopwatch(seconds: 90, workoutID: workoutID)).value
+        await harness.launch().save(stopwatch(seconds: 600, workoutID: workoutID)).value
         await harness.launch().retryPending()
         await harness.launch().retryPending()
 
@@ -169,7 +169,7 @@ struct HealthSavesTests {
         harness.store.outcomes = Array(repeating: .unverified, count: 5)
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90)).value
+        await health.save(stopwatch(seconds: 600)).value
         for _ in 1...3 {
             await health.retryPending()
         }
@@ -185,7 +185,7 @@ struct HealthSavesTests {
         let health = harness.launch()
         harness.isProtectedDataAvailable = false
 
-        await health.save(stopwatch(seconds: 90)).value
+        await health.save(stopwatch(seconds: 600)).value
         await health.retryPending()
         harness.isProtectedDataAvailable = true
         for _ in 1...4 {
@@ -200,7 +200,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [.notAllowed]
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90)).value
+        await health.save(stopwatch(seconds: 600)).value
         await health.retryPending()
 
         #expect(harness.store.saved.count == 1)
@@ -211,7 +211,7 @@ struct HealthSavesTests {
         harness.store.outcomes = [.unverified]
         let health = harness.launch()
 
-        await health.save(stopwatch(seconds: 90)).value
+        await health.save(stopwatch(seconds: 600)).value
         harness.store.writeStatus = .denied
         await health.retryPending()
         harness.store.writeStatus = .allowed
@@ -227,8 +227,8 @@ struct HealthSavesTests {
         let first = UUID()
         let second = UUID()
 
-        await health.save(stopwatch(seconds: 90, workoutID: first)).value
-        await health.save(stopwatch(seconds: 90, workoutID: second)).value
+        await health.save(stopwatch(seconds: 600, workoutID: first)).value
+        await health.save(stopwatch(seconds: 600, workoutID: second)).value
         await health.retryPending()
         await health.retryPending()
 
@@ -261,16 +261,16 @@ struct HealthSavesTests {
     @Test(arguments: [
         (
             AppleHealthRow.saveWorkouts,
-            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch."
+            "Saves each Workout of 10 minutes or more when it ends, with heart rate from Apple Watch."
         ),
         (
             .allowHeartRate,
-            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch. "
+            "Saves each Workout of 10 minutes or more when it ends, with heart rate from Apple Watch. "
                 + "Apple Watch shows your heart rate and saves it to Health."
         ),
         (
             .saving,
-            "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch. "
+            "Saves each Workout of 10 minutes or more when it ends, with heart rate from Apple Watch. "
                 + "Turn this off in the Health app."
         ),
         (.notAllowed, "Allow Temper under Settings › Health › Data Access & Devices."),

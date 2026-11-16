@@ -21,7 +21,7 @@ enum AppleHealthRow {
 
     /// The section's footer under this row.
     var footer: String {
-        let saves = "Saves each Workout of 1 minute or more when it ends, with heart rate from Apple Watch."
+        let saves = "Saves each Workout of 10 minutes or more when it ends, with heart rate from Apple Watch."
         switch self {
         case .saveWorkouts: return saves
         case .allowHeartRate: return "\(saves) Apple Watch shows your heart rate and saves it to Health."

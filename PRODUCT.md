@@ -24,7 +24,7 @@ A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and 
 
 - Every Workout starts on the iPhone. Apple Watch can follow it as a remote with heart rate and Zone, and the Live Activity carries it on the Lock Screen and Dynamic Island.
 - Open Phases end only when the owner marks Done; nothing ends a Phase by a stray touch.
-- Workouts of 1 minute or more save to Apple Health when they end, with heart rate from Apple Watch when present.
+- Workouts of 10 minutes or more save to Apple Health when they end, with heart rate from Apple Watch when present.
 
 ## Capabilities and Constraints
 
