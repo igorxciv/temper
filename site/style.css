@@ -1,0 +1,109 @@
+:root {
+  color-scheme: dark;
+  --background: #11151d;
+  --raised: #1b212c;
+  --separator: #2e3643;
+  --text: #f3f1ea;
+  --secondary: #a9adb5;
+  --accent: #e6b566;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --background: #0a0d13;
+    --raised: #161b24;
+    --separator: #6a7486;
+    --text: #ffffff;
+    --secondary: #d3d6db;
+    --accent: #f3ca85;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font: 1.0625rem/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+}
+
+nav {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+  font-size: 0.9375rem;
+}
+
+h1 {
+  font-size: 2.25rem;
+  line-height: 1.15;
+  margin: 0 0 0.5rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 2.5rem 0 0.5rem;
+}
+
+h3 {
+  font-size: 1.0625rem;
+  margin: 1.5rem 0 0.25rem;
+}
+
+p,
+ul {
+  margin: 0 0 1rem;
+}
+
+ul {
+  padding-left: 1.25rem;
+}
+
+li + li {
+  margin-top: 0.375rem;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 0.15em;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.lead {
+  color: var(--secondary);
+  font-size: 1.1875rem;
+}
+
+.note {
+  background: var(--raised);
+  border: 1px solid var(--separator);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+.note p:last-child {
+  margin-bottom: 0;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--separator);
+  color: var(--secondary);
+  font-size: 0.875rem;
+}
