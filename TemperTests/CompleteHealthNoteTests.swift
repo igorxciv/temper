@@ -11,7 +11,7 @@ struct CompleteHealthNoteTests {
         #expect(CompleteHealthNote(row: nil, activeTime: .seconds(10)) == nil)
     }
 
-    @Test(arguments: [AppleHealthRow.saving, .allowHeartRate, .saveWorkouts, .notAllowed])
+    @Test(arguments: [AppleHealthRow.saving, .allowHeartRate, .saveWorkouts, .off, .notAllowed])
     func `A Workout under the minimum is never saved, whatever Health allows`(row: AppleHealthRow) {
         let note = CompleteHealthNote(row: row, activeTime: longEnough - .milliseconds(1))
 
@@ -40,6 +40,14 @@ struct CompleteHealthNoteTests {
 
         #expect(note == .notTurnedOn)
         #expect(note?.text == "Not saved to Health. Turn it on in Settings.")
+        #expect(note?.systemImage == nil)
+    }
+
+    @Test func `When the owner turned saving off, the note says it's off in Settings`() {
+        let note = CompleteHealthNote(row: .off, activeTime: .seconds(600))
+
+        #expect(note == .turnedOff)
+        #expect(note?.text == "Not saved to Health. Saving is off in Settings.")
         #expect(note?.systemImage == nil)
     }
 

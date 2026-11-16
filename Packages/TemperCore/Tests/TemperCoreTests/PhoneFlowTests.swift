@@ -13,7 +13,7 @@ nonisolated struct PhoneFlowTests {
 
     private func begin(inTime: Bool = true) -> MessageToWatch {
         .begin(
-            workoutID: workoutID, start: start, workoutType: .openRounds, inTime: inTime,
+            workoutID: workoutID, start: start, workoutType: .openRounds, inTime: inTime, savesToHealth: true,
             version: MessageToWatch.version)
     }
 
@@ -38,7 +38,8 @@ nonisolated struct PhoneFlowTests {
         var flow = Flow()
         _ = flow.handle(
             .started(
-                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: true))
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: true,
+                savesToHealth: true))
         _ = flow.handle(.watchAppRequested(at: start.addingTimeInterval(seconds)))
         return flow
     }
@@ -48,7 +49,8 @@ nonisolated struct PhoneFlowTests {
 
         let effects = flow.handle(
             .started(
-                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: true))
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: true,
+                savesToHealth: true))
 
         #expect(effects == [.startWatchApp(.traditionalStrengthTraining)])
     }
@@ -58,7 +60,8 @@ nonisolated struct PhoneFlowTests {
         var flow = Flow()
         _ = flow.handle(
             .started(
-                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: false))
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: false,
+                savesToHealth: true))
 
         let effects = flow.handle(
             .instanceArrived(1, start: start.addingTimeInterval(1), at: start.addingTimeInterval(2)))
@@ -66,12 +69,34 @@ nonisolated struct PhoneFlowTests {
         #expect(effects == [.send(begin(inTime: false), to: 1)])
     }
 
+    @Test func `The owner's choice not to save to Health goes to the Watch in begin`() {
+        var flow = Flow()
+        _ = flow.handle(
+            .started(
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: true,
+                savesToHealth: false))
+        _ = flow.handle(.watchAppRequested(at: start))
+
+        let effects = flow.handle(
+            .instanceArrived(1, start: start.addingTimeInterval(1), at: start.addingTimeInterval(2)))
+
+        #expect(
+            effects == [
+                .send(
+                    .begin(
+                        workoutID: workoutID, start: start, workoutType: .openRounds, inTime: true,
+                        savesToHealth: false, version: MessageToWatch.version),
+                    to: 1)
+            ])
+    }
+
     @Test func `Without workout permission, Start doesn't open the Watch`() {
         var flow = Flow()
 
         let effects = flow.handle(
             .started(
-                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: false))
+                workoutID: workoutID, activityType: .traditionalStrengthTraining, start: start, workoutsAllowed: false,
+                savesToHealth: true))
 
         #expect(effects == [])
     }
@@ -112,7 +137,9 @@ nonisolated struct PhoneFlowTests {
         let next = start.addingTimeInterval(120)
         let nextID = UUID()
         _ = flow.handle(
-            .started(workoutID: nextID, activityType: .traditionalStrengthTraining, start: next, workoutsAllowed: true))
+            .started(
+                workoutID: nextID, activityType: .traditionalStrengthTraining, start: next, workoutsAllowed: true,
+                savesToHealth: true))
         _ = flow.handle(.watchAppRequested(at: next))
 
         let leftover = flow.handle(
@@ -126,7 +153,7 @@ nonisolated struct PhoneFlowTests {
             taken == [
                 .send(
                     .begin(
-                        workoutID: nextID, start: next, workoutType: .openRounds, inTime: true,
+                        workoutID: nextID, start: next, workoutType: .openRounds, inTime: true, savesToHealth: true,
                         version: MessageToWatch.version),
                     to: 2)
             ])
@@ -349,7 +376,8 @@ nonisolated struct PhoneFlowTests {
 
         _ = flow.handle(
             .started(
-                workoutID: nextID, activityType: .highIntensityIntervalTraining, start: next, workoutsAllowed: true))
+                workoutID: nextID, activityType: .highIntensityIntervalTraining, start: next, workoutsAllowed: true,
+                savesToHealth: true))
         _ = flow.handle(.watchAppRequested(at: next))
         let effects =
             flow.handle(.published(phase(.prepare, startingAt: 600)))
@@ -359,7 +387,7 @@ nonisolated struct PhoneFlowTests {
             effects == [
                 .send(
                     .begin(
-                        workoutID: nextID, start: next, workoutType: .intervals, inTime: true,
+                        workoutID: nextID, start: next, workoutType: .intervals, inTime: true, savesToHealth: true,
                         version: MessageToWatch.version),
                     to: 2),
                 .send(.update(phase(.prepare, startingAt: 600)), to: 2),

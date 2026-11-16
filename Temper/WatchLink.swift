@@ -50,10 +50,12 @@ final class WatchLink: NSObject {
     }
 
     /// Opens the Watch if workouts are allowed, once the engine has set the Workout's start point at `start`.
-    func start(workoutID: UUID, activityType: HealthRecord.ActivityType, start: Date) {
+    /// `savesToHealth` is the owner's switch in Settings, which tells the Watch whether to save its copy.
+    func start(workoutID: UUID, activityType: HealthRecord.ActivityType, start: Date, savesToHealth: Bool) {
         handle(
             .started(
-                workoutID: workoutID, activityType: activityType, start: start, workoutsAllowed: workoutsAllowed()))
+                workoutID: workoutID, activityType: activityType, start: start, workoutsAllowed: workoutsAllowed(),
+                savesToHealth: savesToHealth))
     }
 
     /// Holds the Health record the iPhone saves for the Workout that just ended, or `nil` for none, until the Watch's
