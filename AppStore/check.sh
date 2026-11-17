@@ -35,19 +35,21 @@ limit name.txt 30
 limit subtitle.txt 30
 limit promotional_text.txt 170
 limit description.txt 4000
-limit keywords.txt 100
+[ -f "$dir/keywords.txt" ] || fail "keywords.txt is missing"
 # The keyword checks below read these three.
 for field in name.txt subtitle.txt keywords.txt; do
 	[ -f "$dir/$field" ] || exit 1
 done
 
-# Apple counts the keyword limit in bytes on one page and characters on another, so hold it in bytes too.
+# Apple counts the keyword limit in bytes on one page and characters on another. Bytes are never fewer, so hold it
+# in bytes.
 bytes=$(text keywords.txt | wc -c | tr -d ' ')
 [ "$bytes" -le 100 ] || fail "keywords.txt is $bytes bytes, over the limit of 100"
 
-keywords=$(cat "$dir/keywords.txt")
+[ "$(wc -l <"$dir/keywords.txt" | tr -d ' ')" -le 1 ] || fail "keywords.txt is more than one line"
+keywords=$(text keywords.txt)
 case $keywords in
-*", "* | *" ,"*) fail "keywords.txt has a space beside a comma, which spends a character for nothing" ;;
+*", "* | *" ,"* | " "* | *" ") fail "keywords.txt has a space beside a comma or at an end, which spends a character" ;;
 esac
 case $keywords in
 *,,* | ,* | *,) fail "keywords.txt has an empty keyword" ;;

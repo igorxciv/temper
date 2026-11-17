@@ -14,7 +14,7 @@ The listing uses the words people search for, such as HIIT, Tabata and timer, ev
 | `description.txt` | Description | 4000 characters |
 | `keywords.txt` | Keywords | 100 characters |
 
-Keywords are comma-separated with no space after a comma. Apple already indexes every word of the name, the subtitle and the category, so a keyword that repeats one of them, or is only its plural, wastes characters. `make listing` catches both. Don't use competitors' app names or other trademarks as keywords. That's why the list has "watch" rather than "Apple Watch".
+Keywords are comma-separated with no space after a comma. Apple already indexes every word of the name, the subtitle and the category, so a keyword that repeats one of them, or is only its plural, wastes characters. `make listing` catches a repeat and a plural made with a final "s", but not one made with "es", such as "boxes". Don't use competitors' app names or other trademarks as keywords. That's why the list has "watch" rather than "Apple Watch".
 
 Keep prices and the word "Free" out of the name, subtitle and screenshots: guideline 2.3.7 bars pricing information in metadata. The description and promotional text are where the promise goes.
 
