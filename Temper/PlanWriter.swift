@@ -89,6 +89,9 @@ enum PlanWriter {
         Use exactly the numbers the person gives. A rest length always goes in a Rest, never in a Work. Never add a \
         Prepare, a Cooldown or a Rest the person didn't ask for. Weights, percentages and repetitions aren't timer \
         settings, so leave them out.
+
+        When the person names the exercise for a Work, such as squats or push-ups, give that Work the exercise's \
+        name, such as "Squats". Leave it empty if they name none, and never make one up.
         """
 }
 
@@ -138,8 +141,16 @@ private struct GeneratedPhase {
     @Guide(description: "How long it lasts in seconds, or 0 if isTimed is false", .range(0...1800))
     var seconds: Int
 
+    /// Written last, so naming the exercise can't sway the lengths before it.
+    @Guide(
+        description:
+            "For a Work, the exercise the person names, in a few words, such as Squats, without repetitions, weights"
+            + " or percentages. Empty if they name none, and for any other phase."
+    )
+    var exercise: String
+
     var draft: PlanDraft.Phase {
-        PlanDraft.Phase(kind.phaseKind, seconds: isTimed ? seconds : 0)
+        PlanDraft.Phase(kind.phaseKind, seconds: isTimed ? seconds : 0, exercise: exercise)
     }
 }
 

@@ -16,7 +16,8 @@
 /// }
 /// ```
 ///
-/// Rounds until Stop say `"untilStop": true` in place of `"times"`. Decoding checks only the shape: a stored Plan
+/// Rounds until Stop say `"untilStop": true` in place of `"times"`. A Phase with an Exercise adds
+/// `"exercise": "Squats"`, which builds older than Exercises ignore. Decoding checks only the shape: a stored Plan
 /// still goes through `makeWorkout()` before it runs.
 nonisolated extension Plan: Codable {
     /// The version of the stored format. Raise it whenever a change would be misread by a build that reads the
@@ -104,7 +105,7 @@ nonisolated extension Plan.Block: Codable {
 
 nonisolated extension PlannedPhase: Codable {
     private enum CodingKeys: String, CodingKey {
-        case kind, length, seconds
+        case kind, length, seconds, exercise
     }
 
     /// The stored names of a Phase's lengths.
@@ -115,19 +116,20 @@ nonisolated extension PlannedPhase: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Phase.Kind.self, forKey: .kind)
-        switch try container.decode(StoredLength.self, forKey: .length) {
-        case .open:
-            self.init(kind: kind, length: .open)
-        case .set:
-            self.init(kind: kind, length: .set(.seconds(try container.decode(Double.self, forKey: .seconds))))
-        case .runsPast:
-            self.init(kind: kind, length: .runsPast(.seconds(try container.decode(Double.self, forKey: .seconds))))
-        }
+        let length: Phase.Length =
+            switch try container.decode(StoredLength.self, forKey: .length) {
+            case .open: .open
+            case .set: .set(.seconds(try container.decode(Double.self, forKey: .seconds)))
+            case .runsPast: .runsPast(.seconds(try container.decode(Double.self, forKey: .seconds)))
+            }
+        let exercise = try container.decodeIfPresent(String.self, forKey: .exercise).flatMap(Exercise.init)
+        self.init(kind: kind, length: length, exercise: exercise)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(kind, forKey: .kind)
+        try container.encodeIfPresent(exercise?.name, forKey: .exercise)
         switch length {
         case .open:
             try container.encode(StoredLength.open, forKey: .length)

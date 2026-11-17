@@ -39,14 +39,18 @@ where Instant.Duration == Duration {
     /// places them. A Paused Phase has none, since nothing is due until Resume places them again, and neither has an
     /// ended Workout.
     public let cues: [TimedCue]
+    /// The Exercise of the named Work that follows the current Phase, a timed Phase other than Work, or `nil`.
+    public let nextExercise: Exercise?
 
     public init(
-        progress: Progress, rounds: Int?, previousOpenPhaseTime: Duration? = nil, cues: [TimedCue] = []
+        progress: Progress, rounds: Int?, previousOpenPhaseTime: Duration? = nil, cues: [TimedCue] = [],
+        nextExercise: Exercise? = nil
     ) {
         self.progress = progress
         self.rounds = rounds
         self.previousOpenPhaseTime = previousOpenPhaseTime
         self.cues = cues
+        self.nextExercise = nextExercise
     }
 
     /// What the Workout ended as, once it has finished or been Stopped, or `nil` before then.

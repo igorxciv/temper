@@ -34,7 +34,7 @@ nonisolated extension Cue {
     /// Stopwatch ran on past it.
     ///
     /// The Countdown has none, and the Watch isn't sent it: the iPhone speaks it, and the wrist already feels the Cue
-    /// it counts down to.
+    /// it counts down to. Nor has a Prepare's start, which says only the next Exercise, since taps mark Phase changes.
     public var wristHaptic: WristHaptic? {
         switch self {
         case .work: WristHaptic(tap: .notification, count: 2)
@@ -42,7 +42,7 @@ nonisolated extension Cue {
         case .cooldown: WristHaptic(tap: .notification, count: 3)
         case .workoutComplete, .finish: WristHaptic(tap: .success, count: 2)
         case .tenSeconds: WristHaptic(tap: .click, count: 3)
-        case .countdown: nil
+        case .countdown, .prepare: nil
         }
     }
 }

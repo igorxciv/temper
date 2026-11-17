@@ -183,7 +183,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
         }
         return Snapshot(
             progress: progress, rounds: rounds, previousOpenPhaseTime: position.previousOpenPhaseTime,
-            cues: cues ?? [])
+            cues: cues ?? [], nextExercise: position.nextExercise)
     }
 
     private func wakeUp(at deadline: Instant) {

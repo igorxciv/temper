@@ -15,8 +15,9 @@ public nonisolated enum MessageToWatch: Codable, Hashable, Sendable {
     /// build can't read, and keep `begin` readable by every earlier version, so that check can happen.
     /// Version 2 added each Phase's Cues. Version 3 added `refused`, with the Watch's taps going the other way.
     /// Version 4 added `begin`'s `savesToHealth`, for a Settings switch that turned saving off. Version 5 dropped the
-    /// Health record from `end`, as Temper stopped saving Health workouts altogether.
-    public static let version = 5
+    /// Health record from `end`, as Temper stopped saving Health workouts altogether. Version 6 added each Phase's
+    /// title and next Exercise.
+    public static let version = 6
 
     /// The first message to each mirrored instance: which Workout it belongs to, when that Workout started, and
     /// whether the Watch arrived within the 10 s window after the iPhone asked it to open.

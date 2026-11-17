@@ -54,6 +54,18 @@ where Instant.Duration == Duration {
         self.snapshot = snapshot
     }
 
+    /// The big name over the ring: a named Work's Exercise, or the kind of Phase. Empty once the Workout has ended.
+    public var title: String {
+        guard let phase = snapshot.phase else { return "" }
+        return phase.exercise?.name ?? phase.kind.name
+    }
+
+    /// The Exercise of the named Work that follows the current Phase, shown as next, running or Paused. `nil` once
+    /// the Workout has ended.
+    public var nextExercise: Exercise? {
+        snapshot.phase == nil ? nil : snapshot.nextExercise
+    }
+
     /// True during a Phase that ends at Done, an open Phase or a Stopwatch's Work, including while it's Paused.
     public var countsUp: Bool {
         snapshot.phase?.endsAtDone ?? false
@@ -130,11 +142,13 @@ where Instant.Duration == Duration {
 
     /// Whether a Phase in no Round runs only once every Round is done. A snapshot doesn't say where in the Workout it
     /// is, so a Phase that also appears before the last Round, as the same Cooldown between two Blocks and at the end,
-    /// doesn't count.
+    /// doesn't count. Nor does a Work like one before the last Round, whatever its Exercise.
     private func followsEveryRound(_ phase: Phase) -> Bool {
         guard workout.repeatingRound.isEmpty, let lastRound = workout.phases.lastIndex(where: { $0.round != nil })
         else { return false }
-        return !workout.phases[...lastRound].contains(phase)
+        return !workout.phases[...lastRound].contains {
+            $0.kind == phase.kind && $0.length == phase.length && $0.round == phase.round
+        }
     }
 
     /// Prepare shows the length to come, and Work shows the length it counts up to, and keeps showing it past it.

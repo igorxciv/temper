@@ -54,6 +54,7 @@ final class WorkoutRunner {
         let engine = WorkoutEngine(workout: workout, clock: ContinuousClock(), audio: audio)
         self.engine = engine
         liveActivity = LiveActivityAdapter()
+        cues.render(CueBank.sounds(for: workout))
         Task { [cues] in
             await cues.waitForRendering(atMost: renderingWaitLimit)
             if let start = await engine.start() {

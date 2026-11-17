@@ -316,4 +316,121 @@ nonisolated struct TimelineTests {
     @Test func `A finished Workout has no Cue to come`() {
         #expect(timeline.position(at: .seconds(145)).cues == [])
     }
+
+    // MARK: Exercises
+
+    private let squats = Phase(kind: .work, duration: .seconds(30), round: 1, exercise: Exercise("Squats"))
+
+    /// The Cue due exactly at `seconds`, as the Phase starting then begins.
+    private func cue(at seconds: Double, in timeline: Timeline) -> UpcomingCue? {
+        timeline.position(at: .seconds(seconds)).nextCue
+    }
+
+    /// A Plan's Workout counts down. A 12 s Rest has 7 s before its Countdown and an 8 s Rest has none, so both have
+    /// room, and a 10 s Rest's Countdown starts just as its room ends. A 4 s Rest has no room.
+    @Test(arguments: [(12.0, true), (10, true), (8, true), (4, false)])
+    func `A Rest says the next Exercise with 5s before its Countdown or end, and otherwise the Work says it`(
+        restSeconds: Double, saysNext: Bool
+    ) {
+        let rest = Phase(kind: .rest, duration: .seconds(restSeconds))
+        let timeline = Timeline(workout: Workout(phases: [rest, squats], countsDown: true))
+
+        let squatsName = Exercise("Squats")
+        #expect(cue(at: 0, in: timeline) == UpcomingCue(cue: .rest, due: .zero, exercise: saysNext ? squatsName : nil))
+        #expect(
+            cue(at: restSeconds, in: timeline)
+                == UpcomingCue(cue: .work, due: .seconds(restSeconds), exercise: saysNext ? nil : squatsName))
+    }
+
+    /// A Prepare has no Cue of its own, so its Countdown can start at once. Saying the next Exercise needs the same
+    /// room before the Countdown as any other Phase, so a Prepare under 10 s keeps its Countdown and leaves the
+    /// Exercise to the Work.
+    @Test(arguments: [(15.0, true), (10, true), (8, false), (4, false)])
+    func `A Prepare says the next Exercise at its start when it has room, keeping its Countdown`(
+        prepareSeconds: Double, saysNext: Bool
+    ) {
+        let prepare = Phase(kind: .prepare, duration: .seconds(prepareSeconds))
+        let timeline = Timeline(workout: Workout(phases: [prepare, squats], countsDown: true))
+
+        let squatsName = Exercise("Squats")
+        let start = timeline.position(at: .zero)
+        if saysNext {
+            #expect(start.nextCue == UpcomingCue(cue: .prepare, due: .zero, exercise: squatsName))
+        } else {
+            #expect(start.nextCue?.cue != .prepare)
+        }
+        if prepareSeconds >= 5 {
+            #expect(start.cues.contains(UpcomingCue(cue: .countdown, due: .seconds(prepareSeconds - 5))))
+        }
+        #expect(
+            cue(at: prepareSeconds, in: timeline)
+                == UpcomingCue(cue: .work, due: .seconds(prepareSeconds), exercise: saysNext ? nil : squatsName))
+    }
+
+    @Test func `A Cooldown before a named Work says it's next`() {
+        let cooldown = Phase(kind: .cooldown, duration: .seconds(60))
+        let timeline = Timeline(workout: Workout(phases: [cooldown, squats], countsDown: true))
+
+        #expect(cue(at: 0, in: timeline)?.exercise == Exercise("Squats"))
+        #expect(cue(at: 60, in: timeline)?.exercise == nil)
+    }
+
+    @Test func `A named Work after another Work, or after an open Rest, says its Exercise over its own gong`() throws {
+        let openRest = Phase(kind: .rest, length: .open)
+        let pushUps = Phase(kind: .work, duration: .seconds(30), round: 2, exercise: Exercise("Push-ups"))
+        let timeline = try #require(
+            Timeline(workout: Workout(phases: [squats, pushUps, openRest, squats], countsDown: true))
+                .markingDone(at: .seconds(70)))
+
+        #expect(cue(at: 0, in: timeline) == UpcomingCue(cue: .work, due: .zero, exercise: Exercise("Squats")))
+        #expect(
+            cue(at: 30, in: timeline) == UpcomingCue(cue: .work, due: .seconds(30), exercise: Exercise("Push-ups")))
+        #expect(cue(at: 60, in: timeline) == UpcomingCue(cue: .rest, due: .seconds(60)))
+        #expect(cue(at: 70, in: timeline) == UpcomingCue(cue: .work, due: .seconds(70), exercise: Exercise("Squats")))
+    }
+
+    @Test func `A Prepare before an unnamed Work stays silent, and that Work says only Work`() {
+        let prepare = Phase(kind: .prepare, duration: .seconds(10))
+        let timeline = Timeline(
+            workout: Workout(phases: [prepare, firstWork, rest, squats], countsDown: true))
+
+        #expect(cue(at: 0, in: timeline) == UpcomingCue(cue: .countdown, due: .seconds(5)))
+        #expect(cue(at: 40, in: timeline) == UpcomingCue(cue: .rest, due: .seconds(40), exercise: Exercise("Squats")))
+        #expect(cue(at: 10, in: timeline) == UpcomingCue(cue: .work, due: .seconds(10)))
+    }
+
+    @Test func `"10 seconds" keeps its time before a Rest that says the next Exercise`() {
+        let rest = Phase(kind: .rest, duration: .seconds(30))
+        let timeline = Timeline(workout: Workout(phases: [rest, squats], warnsBeforeRestEnds: true, countsDown: true))
+
+        #expect(
+            timeline.position(at: .zero).cues == [
+                UpcomingCue(cue: .tenSeconds, due: .seconds(20)),
+                UpcomingCue(cue: .countdown, due: .seconds(25)),
+                UpcomingCue(cue: .work, due: .seconds(30)),
+            ])
+    }
+
+    @Test func `A timed Phase before a named Work knows its Exercise is next, even with no room to say it`() {
+        let shortRest = Phase(kind: .rest, duration: .seconds(3))
+        let prepare = Phase(kind: .prepare, duration: .seconds(10))
+        let pushUps = Phase(kind: .work, duration: .seconds(30), round: 2, exercise: Exercise("Push-ups"))
+        let timeline = Timeline(workout: Workout(phases: [prepare, squats, shortRest, pushUps], countsDown: true))
+
+        #expect(timeline.position(at: .seconds(5)).nextExercise == Exercise("Squats"))
+        #expect(timeline.position(at: .seconds(20)).nextExercise == nil)
+        #expect(timeline.position(at: .seconds(41)).nextExercise == Exercise("Push-ups"))
+    }
+
+    @Test func `A Rest before a named Work knows it's next, an open Rest doesn't, and neither does the last Phase`()
+        throws
+    {
+        let openRest = Phase(kind: .rest, length: .open)
+        let timeline = Timeline(workout: Workout(phases: [rest, squats, openRest, squats, rest], countsDown: true))
+
+        #expect(timeline.position(at: .seconds(1)).nextExercise == Exercise("Squats"))
+        #expect(timeline.position(at: .seconds(50)).nextExercise == nil)
+        let afterDone = try #require(timeline.markingDone(at: .seconds(60)))
+        #expect(afterDone.position(at: .seconds(95)).nextExercise == nil)
+    }
 }

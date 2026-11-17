@@ -35,8 +35,11 @@ struct WorkoutLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
-                            PhaseLine(phase: phase)
-                                .font(.headline)
+                            HStack(spacing: 12) {
+                                PhaseLine(phase: phase)
+                                NextExercise(phase: phase)
+                            }
+                            .font(.headline)
                             if phase.hasBar {
                                 PhaseBar(phase: phase)
                             }
@@ -50,6 +53,8 @@ struct WorkoutLiveActivity: Widget {
             } compactLeading: {
                 PhaseName(phase: phase)
                     .font(.caption.weight(.semibold))
+                    // An Exercise is cut short rather than crowding the camera.
+                    .frame(maxWidth: 72, alignment: .leading)
             } compactTrailing: {
                 PhaseTime(phase: phase)
                     .monospacedDigit()
@@ -122,6 +127,8 @@ private struct MediumPhaseView: View {
                         .font(.title2.weight(.semibold))
                     PhaseLine(phase: phase)
                         .font(.headline)
+                    NextExercise(phase: phase)
+                        .font(.headline)
                 }
                 Spacer(minLength: 12)
                 PhaseTime(phase: phase)
@@ -157,6 +164,8 @@ private struct SmallPhaseView: View {
                 PhaseLine(phase: phase)
                     .font(.caption.weight(.semibold))
             }
+            NextExercise(phase: phase)
+                .font(.caption.weight(.semibold))
             HStack {
                 PhaseTime(phase: phase)
                     .font(.system(size: 36, weight: .semibold).monospacedDigit())
@@ -216,10 +225,25 @@ private struct PhaseName: View {
     let phase: LivePhase
 
     var body: some View {
-        Text(phase.kind.name)
+        Text(phase.shownTitle)
             .phaseColor(phase.kind, \.ring)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
+    }
+}
+
+/// "Next: Squats" in the Phase before a named Work, and nothing otherwise.
+private struct NextExercise: View {
+    let phase: LivePhase
+
+    var body: some View {
+        if let next = phase.nextExercise {
+            Text("Next: \(next)")
+                .phaseColor(phase.kind, \.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .accessibilityLabel("Next, \(next)")
+        }
     }
 }
 

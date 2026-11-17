@@ -99,7 +99,7 @@ struct PlanBoardTests {
         #expect(board.note == "Tap Done to end each open Work. The last Round skips Rest.")
     }
 
-    @Test func `A described Plan reads as its Blocks, with nothing to edit`() {
+    @Test func `A described Plan reads as its Blocks, with no setup value to edit`() {
         let plan = Plan(
             activity: .traditionalStrengthTraining,
             blocks: [
@@ -116,7 +116,10 @@ struct PlanBoardTests {
             board.items == [
                 .rounds(
                     .times(10),
-                    [.init(kind: .work, length: .open), .init(kind: .rest, length: .set(.seconds(60)))],
+                    [
+                        .init(kind: .work, length: .open, exercisePlace: Plan.PhasePlace(block: 0, phase: 0)),
+                        .init(kind: .rest, length: .set(.seconds(60))),
+                    ],
                     value: nil
                 )
             ]
@@ -129,5 +132,50 @@ struct PlanBoardTests {
         #expect(PlanBoard.Line(kind: .rest, length: .set(.seconds(80))).spokenText == "Rest, 1 minute 20 seconds")
         #expect(PlanBoard.Line(kind: .prepare, length: .off).spokenText == "Prepare, Off")
         #expect(PlanBoard.Line(kind: .work, length: .open).spokenText == "Work, open until Done")
+    }
+
+    // MARK: Exercises
+
+    private let circuit = Plan(
+        activity: .highIntensityIntervalTraining,
+        blocks: [
+            .phase(PlannedPhase(kind: .prepare, duration: .seconds(10))),
+            .rounds(
+                .times(3),
+                [
+                    PlannedPhase(kind: .work, duration: .seconds(30), exercise: Exercise("Lunches")),
+                    PlannedPhase(kind: .rest, duration: .seconds(15)),
+                    PlannedPhase(kind: .work, duration: .seconds(30)),
+                ]
+            ),
+        ]
+    )
+
+    @Test func `A described Plan's Work lines show their Exercise and can rename it, and no other line can`() {
+        let lines = PlanBoard(plan: circuit).allLines
+
+        #expect(lines.map(\.exercise?.name) == [nil, "Lunches", nil, nil])
+        #expect(lines.map { $0.exercisePlace != nil } == [false, true, false, true])
+        #expect(lines[1].spokenText == "Lunches, Work, 30 seconds")
+    }
+
+    @Test func `A Workout Type's lines never rename an Exercise`() {
+        let board = PlanBoard(workoutType: .intervals, settings: WorkoutType.intervals.firstLaunch)
+
+        #expect(board.allLines.allSatisfy { $0.exercisePlace == nil })
+    }
+
+    @Test func `Renaming a line's Exercise changes only that Work, and a blank name clears it`() throws {
+        let lines = PlanBoard(plan: circuit).allLines
+        let misheard = try #require(lines[1].exercisePlace)
+        let unnamed = try #require(lines[3].exercisePlace)
+
+        let renamed = circuit.renamingExercise(at: misheard, to: "  Lunges ").renamingExercise(
+            at: unnamed, to: "Squats")
+        let cleared = renamed.renamingExercise(at: misheard, to: " ")
+
+        #expect(PlanBoard(plan: renamed).allLines.map(\.exercise?.name) == [nil, "Lunges", nil, "Squats"])
+        #expect(PlanBoard(plan: cleared).allLines.map(\.exercise?.name) == [nil, nil, nil, "Squats"])
+        #expect(PlanBoard(plan: renamed).allLines.map(\.time) == PlanBoard(plan: circuit).allLines.map(\.time))
     }
 }

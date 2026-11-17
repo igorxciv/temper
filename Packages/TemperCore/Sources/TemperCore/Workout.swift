@@ -38,16 +38,20 @@ public nonisolated struct Phase: Equatable, Sendable {
     /// The Round a Work or Rest in Intervals or Open Rounds belongs to. Prepare, Cooldown and a Stopwatch's Work have
     /// none.
     public let round: Int?
+    /// What the owner calls a Work's activity, if anything. Only a Work has one.
+    public let exercise: Exercise?
 
-    public init(kind: Kind, length: Length, round: Int? = nil) {
+    /// Any `exercise` given to a Phase other than Work is dropped.
+    public init(kind: Kind, length: Length, round: Int? = nil, exercise: Exercise? = nil) {
         self.kind = kind
         self.length = length
         self.round = round
+        self.exercise = kind == .work ? exercise : nil
     }
 
     /// A Phase with a set length.
-    public init(kind: Kind, duration: Duration, round: Int? = nil) {
-        self.init(kind: kind, length: .set(duration), round: round)
+    public init(kind: Kind, duration: Duration, round: Int? = nil, exercise: Exercise? = nil) {
+        self.init(kind: kind, length: .set(duration), round: round, exercise: exercise)
     }
 
     /// Its set length, or `nil` if it's open. A Phase that runs past its set length doesn't end there.
@@ -150,7 +154,9 @@ public nonisolated struct Workout: Equatable, Sendable {
             guard !repeatingRound.isEmpty else { return nil }
             let (roundsBefore, offset) = (index - phases.count).quotientAndRemainder(dividingBy: repeatingRound.count)
             let phase = repeatingRound[offset]
-            return Phase(kind: phase.kind, length: phase.length, round: firstRepeatingRound + roundsBefore)
+            return Phase(
+                kind: phase.kind, length: phase.length, round: firstRepeatingRound + roundsBefore,
+                exercise: phase.exercise)
         }
     }
 }
