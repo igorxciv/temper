@@ -1,0 +1,34 @@
+Temper runs your intervals and calls every change aloud, so you never have to look at your phone mid-set.
+
+Free. No ads. No account. Everything stays on your iPhone.
+Everything free today stays free.
+
+SAY THE WORKOUT, GET THE PLAN
+Tell Temper what you're doing today, out loud or typed, the way you'd tell a training partner: "10 sets, open work, exactly 1 minute of rest between them." Apple Intelligence turns it into a plan on your iPhone and shows it as an outline you can check before you start. Your words never leave the device.
+
+READABLE FROM ACROSS THE ROOM
+The time fills the screen, and each phase has its own color: blue to get ready, coral for work, teal for rest, indigo for cooldown. One glance from the floor or the rack tells you where you are.
+
+CUES YOU CAN HEAR
+A boxing gong starts and ends every work period. A voice says when rest is about to end, names the cooldown and the end of the workout, and counts down the last five seconds aloud. Cues play over your music or podcast without pausing it or turning it down, and they keep playing with the iPhone locked or on silent.
+
+THREE WAYS TO TRAIN
+• Intervals: work and rest for a set number of rounds, with an optional prepare and cooldown. For HIIT, Tabata, EMOM and boxing rounds.
+• Stopwatch: one work period that counts up past its target until you mark it done.
+• Open Rounds: work for as long as a set takes, then a timed rest, for as many rounds as you like or a set number. For lifting and circuits.
+
+Times run up to 30 minutes in 5-second steps, and rounds from 1 to 99. Save any setup as a preset and start it again in one tap.
+
+NOTHING ENDS BY ACCIDENT
+Open work ends only when you tap Done, and Stop always asks first.
+
+ON THE LOCK SCREEN
+A running workout stays on the Lock Screen and in the Dynamic Island, with buttons to pause, resume and mark work done.
+
+APPLE WATCH
+Start on your iPhone and Temper opens on your Watch. It shows the workout with your heart rate and heart-rate zone, taps your wrist at each cue, and lets you pause, resume, mark done and stop from your wrist.
+
+NOTHING LEAVES YOUR DEVICES
+Temper doesn't connect to the internet. No analytics, no tracking, no third-party code. It saves nothing to Apple Health. While a workout runs on Apple Watch, the Watch records your heart rate and activity as it does for any workout, so your rings still move.
+
+Requires iOS 27. Describe needs an iPhone with Apple Intelligence turned on, and understands English. The Apple Watch app needs watchOS 26.

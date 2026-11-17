@@ -21,7 +21,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - run: make identifiers
+      - run: make identifiers listing
       - name: Fail on commit emails that aren't GitHub no-reply addresses
         # Prints hashes only, because these logs are public.
         run: >
