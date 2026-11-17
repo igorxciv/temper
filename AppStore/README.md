@@ -23,7 +23,7 @@ Keep prices and the word "Free" out of the name, subtitle and screenshots: guide
 - **Support URL:** https://igorxciv.github.io/temper/
 - **Privacy Policy URL:** https://igorxciv.github.io/temper/privacy/
 - **Primary category:** Health & Fitness. **Secondary:** Sports, where boxing and rounds timers sit.
-- **Price:** Free, with no in-app purchases. Temper has no StoreKit code.
+- **Price:** Free, with three consumable tips in Settings that unlock nothing: `tip.small`, `tip.medium` and `tip.large`, named "Small Tip", "Medium Tip" and "Large Tip", at about $1.99, $4.99 and $9.99. Create them in App Store Connect with those product IDs, each with a review screenshot of Settings' Support Temper section, and submit them with the build. They don't load in production until the Paid Applications Agreement and the tax and banking forms are done. Enroll in the App Store Small Business Program so Apple keeps 15%. `TemperTests/Temper.storekit` mirrors the three for the Simulator and the tests, so change both together.
 
 ### Open decision
 
@@ -31,7 +31,7 @@ Keep prices and the word "Free" out of the name, subtitle and screenshots: guide
 
 ## App Privacy
 
-Answer **Data Not Collected**. Apple counts data as collected only once it's sent off the device. Temper has no network code (`make lint` fails on any) and no third-party code. Speech, Describe and Health readings are all handled on the device. Crash reports that users opt to share through iOS Analytics are collected by Apple, and Apple says developers aren't responsible for disclosing those. `Temper/PrivacyInfo.xcprivacy` declares no collected data and no tracking, so the label and the manifest agree.
+Answer **Data Not Collected**. Apple counts data as collected only once it's sent off the device. Temper has no network code (`make lint` fails on any) and no third-party code. Speech, Describe and Health readings are all handled on the device. Tips go through Apple's StoreKit, and Temper sends and keeps nothing about them, so purchase history isn't collected by Temper either. Crash reports that users opt to share through iOS Analytics are collected by Apple, and Apple says developers aren't responsible for disclosing those. `Temper/PrivacyInfo.xcprivacy` declares no collected data and no tracking, so the label and the manifest agree.
 
 Check again before every release that nothing has added a crash reporter, an SDK or a network call.
 

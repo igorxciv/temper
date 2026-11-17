@@ -3,6 +3,7 @@ import UIKit
 
 struct SettingsScreen: View {
     let health: HealthAccess
+    let tipJar: TipJar
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -19,6 +20,7 @@ struct SettingsScreen: View {
 
         Form {
             AppleWatchSection(health: health, colors: colors)
+            TipJarSection(tipJar: tipJar, colors: colors)
             Section {
                 LabeledContent("Version", value: version)
                 if let privacyPolicy = SupportLinks.privacyPolicy {

@@ -6,6 +6,7 @@ struct TemperApp: App {
     @State private var runner: WorkoutRunner
     @State private var remembered = RememberedValues()
     @State private var health = HealthAccess()
+    @State private var tipJar = TipJar()
 
     init() {
         let runner = WorkoutRunner()
@@ -17,7 +18,7 @@ struct TemperApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(runner: runner, remembered: remembered, health: health)
+            RootView(runner: runner, remembered: remembered, health: health, tipJar: tipJar)
         }
     }
 }
@@ -29,6 +30,7 @@ struct RootView: View {
     let runner: WorkoutRunner
     @Bindable var remembered: RememberedValues
     let health: HealthAccess
+    let tipJar: TipJar
 
     /// The Plan the Workout was started from, for the complete screen's recap, or `nil` if it isn't known, as after a
     /// relaunch mid-Workout.
@@ -89,7 +91,7 @@ struct RootView: View {
                     }
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
                         NavigationStack {
-                            SettingsScreen(health: health)
+                            SettingsScreen(health: health, tipJar: tipJar)
                         }
                     }
                 }
@@ -99,6 +101,8 @@ struct RootView: View {
             }
         }
         .fontDesign(.rounded)
+        // From launch, so a tip approved or interrupted while Temper was away is finished without opening Settings.
+        .task { await tipJar.observeTransactionUpdates() }
         .onChange(of: runner.snapshot?.phase?.kind, initial: true) { _, kind in
             if let kind {
                 lastPhase = kind
