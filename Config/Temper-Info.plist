@@ -7,12 +7,15 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<!-- Temper uses no encryption of its own, so each upload skips the export compliance question. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Apple Watch needs this to run a workout session, which shows your heart rate during a Workout. Temper saves no workouts.</string>
+	<string>Apple Watch needs this to show your heart rate during a Workout. Temper saves no workouts to Health, and sends none of your data anywhere.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Temper reads your heart rate during a Workout on Apple Watch, and your date of birth and resting heart rate to work out heart-rate zones.</string>
+	<string>Temper reads your heart rate during a Workout, and your date of birth and resting heart rate to work out your heart-rate zones. It keeps all of it on your iPhone and Apple Watch.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Temper listens while you describe a Workout, and writes down your words on this iPhone.</string>
+	<string>Temper listens while you describe a Workout and turns your words into text on this iPhone. Nothing you say leaves it.</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>healthkit</string>

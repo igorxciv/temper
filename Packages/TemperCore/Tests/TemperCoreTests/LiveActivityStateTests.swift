@@ -292,3 +292,60 @@ nonisolated struct LiveActivityStateOpenRoundsTests {
         #expect(livePhase(decoded)?.end == nil)
     }
 }
+
+/// When the Live Activity goes stale, so a Workout that iOS ended mid-Phase doesn't sit on the Lock Screen at 0:00, or
+/// counting up, as if it ran on.
+nonisolated struct LiveActivityStalenessTests {
+    /// When the state is shown.
+    private let date = Date(timeIntervalSinceReferenceDate: 1_000_000)
+
+    private func phase(end: Double?, pausedAt: Date? = nil, countsPastEnd: Bool? = nil) -> LiveActivityState {
+        .phase(
+            LivePhase(
+                kind: .work, start: date.addingTimeInterval(-20), end: end.map { date.addingTimeInterval($0) },
+                pausedAt: pausedAt, countsUp: end == nil, line: "", spokenLine: "", button: nil,
+                countsPastEnd: countsPastEnd))
+    }
+
+    @Test func `A running timed Phase goes stale 30 s after its end, and needs showing no more until then`() {
+        let state = phase(end: 40)
+
+        #expect(state.staleDate(shownAt: date) == date.addingTimeInterval(70))
+        #expect(state.renewalDate(shownAt: date) == nil)
+    }
+
+    /// An open Work has no end, so it stays fresh for a while at a time, shown again halfway.
+    @Test func `An open Phase goes stale 10 minutes after it's shown, and is shown again after 5`() {
+        let state = phase(end: nil)
+
+        #expect(state.staleDate(shownAt: date) == date.addingTimeInterval(600))
+        #expect(state.renewalDate(shownAt: date) == date.addingTimeInterval(300))
+    }
+
+    /// It counts on past its set length until Done, and the engine keeps Temper running meanwhile.
+    @Test func `A Stopwatch's Work past its set length stays fresh the way an open Phase does`() {
+        let state = phase(end: 40, countsPastEnd: true)
+
+        #expect(state.staleDate(shownAt: date) == date.addingTimeInterval(600))
+        #expect(state.renewalDate(shownAt: date) == date.addingTimeInterval(300))
+    }
+
+    /// Pause lets go of the audio session, so iOS suspends a locked Temper and nothing could renew a lease. A Paused
+    /// Phase shows no running time to go wrong, and its Resume has to stay.
+    @Test func `A Paused Phase never goes stale`() {
+        let timed = phase(end: 40, pausedAt: date)
+        let open = phase(end: nil, pausedAt: date)
+
+        for state in [timed, open] {
+            #expect(state.staleDate(shownAt: date) == nil)
+            #expect(state.renewalDate(shownAt: date) == nil)
+        }
+    }
+
+    @Test func `The complete state never goes stale, since its Live Activity has ended`() {
+        let state = LiveActivityState.complete(total: "8:50", spokenTotal: "8 minutes 50 seconds")
+
+        #expect(state.staleDate(shownAt: date) == nil)
+        #expect(state.renewalDate(shownAt: date) == nil)
+    }
+}

@@ -15,6 +15,9 @@ import Foundation
 /// screen right. If nothing comes for ``outOfContactLimit``, the Watch ends its session and goes back to idle. It does
 /// the same when another workout app takes its session over.
 ///
+/// Connecting and a dropout can each last for up to 10 minutes with the iPhone app gone, so both offer End, which ends
+/// the Watch's session and goes back to idle. The iPhone sees the session end, and its Workout runs on.
+///
 /// A Watch whose session reached the iPhone after the 10 s window is late. It doesn't join the Workout under way: it
 /// ends its session and goes back to idle.
 public nonisolated struct WatchFlow: Equatable, Sendable {
@@ -50,6 +53,9 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case sessionEnded
         /// The owner tapped Done on the complete screen.
         case doneTapped
+        /// The owner tapped End while the Watch was connecting or out of contact, which may last because the iPhone
+        /// app has gone.
+        case endTapped
         /// The time `awaitFirstMessage` gave the iPhone's first message ran out.
         case firstMessageTimedOut
         /// The owner tapped the capsule or the secondary page at `date` on the Watch's clock.
@@ -153,6 +159,15 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
                 screen = .idle
             }
             return []
+        case .endTapped:
+            // In contact, Stop ends the Workout itself, so End is only for a Watch with no iPhone to answer.
+            switch screen {
+            case .waiting, .running(_, isConnected: false):
+                leaveRunning()
+                return endSession()
+            case .idle, .running, .complete, .updateNeeded:
+                return []
+            }
         case .firstMessageTimedOut:
             // A session tied to a Workout has had its first message. One still tied to nothing never began
             // collection, so it has nothing to save.

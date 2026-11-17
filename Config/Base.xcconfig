@@ -16,7 +16,7 @@ SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES
 // The iPhone and Watch apps each have an AppIcon in their Assets.xcassets, drawn from Design/Logo.
 ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
 
-MARKETING_VERSION = 0.1
+MARKETING_VERSION = 1.0
 CURRENT_PROJECT_VERSION = 1
 
 // Real values live in the git-ignored Local.xcconfig. See Local.xcconfig.example.
