@@ -13,6 +13,8 @@ struct WatchRunningPages: View {
     /// Sends a tap to the iPhone. The update it causes redraws the pages. During a dropout it only gets the failure
     /// haptic.
     let tap: (WatchCommand) -> Void
+    /// Stops following the Workout on the Watch, offered only during a dropout.
+    let end: () -> Void
 
     private enum Page {
         case controls
@@ -23,7 +25,7 @@ struct WatchRunningPages: View {
 
     var body: some View {
         TabView(selection: $page) {
-            WatchControlsPage(phase: phase, isConnected: isConnected) { command in
+            WatchControlsPage(phase: phase, isConnected: isConnected, end: end) { command in
                 tap(command)
                 // Back to the time, to watch the Pause or Resume take hold, as the prototype the owner judged did.
                 if command != .stop, isConnected {
@@ -43,11 +45,13 @@ struct WatchRunningPages: View {
 /// Stop asks by a second tap rather than a dialog, as ``StopConfirmation`` sets out. A tap on Pause or Resume in
 /// between cancels the ask, so only two taps on Stop in a row end the Workout.
 ///
-/// During a dropout both capsules dim in place, under "iPhone not connected" at the top. Stop doesn't ask then: like
-/// every tap, it only gets the failure haptic.
+/// During a dropout Pause or Resume dims in place, under "iPhone not connected" at the top, and like every tap only gets
+/// the failure haptic. Stop becomes End, which asks the same way, since the iPhone app may have gone and the dropout can
+/// last 10 minutes. End stops following the Workout on the Watch, and the iPhone carries on.
 private struct WatchControlsPage: View {
     let phase: WatchPhase
     let isConnected: Bool
+    let end: () -> Void
     let tap: (WatchCommand) -> Void
 
     @State private var stopConfirmation = StopConfirmation()
@@ -62,7 +66,7 @@ private struct WatchControlsPage: View {
 
         // Redrawn when an asking Stop goes back to Stop.
         TimelineView(.explicit(stopConfirmation.expiry.map { [$0] } ?? [])) { context in
-            let isArmed = isConnected && stopConfirmation.isArmed(at: context.date)
+            let isArmed = stopConfirmation.isArmed(at: context.date)
             VStack(spacing: 8) {
                 Spacer(minLength: 0)
                 WatchCapsule(
@@ -73,26 +77,23 @@ private struct WatchControlsPage: View {
                     tap(phase.pauseOrResume)
                 }
                 .accessibilityHint(isConnected ? "" : NotConnectedMark.title)
+                .opacity(isConnected ? 1 : 0.3)
                 WatchCapsule(
-                    title: isArmed ? "Tap to end" : WatchCommand.stop.title, symbol: WatchCommand.stop.symbol,
+                    title: isArmed ? "Tap to end" : isConnected ? WatchCommand.stop.title : "End",
+                    symbol: WatchCommand.stop.symbol,
                     fill: isArmed ? stopColors.red : stopColors.darkRed,
                     ink: isArmed ? stopColors.onRed : stopColors.red,
                     outline: stopColors.red, dim: dim
                 ) {
-                    guard isConnected else {
-                        stopConfirmation = StopConfirmation()
+                    guard stopConfirmation.tap(at: .now) == .end else { return }
+                    if isConnected {
                         tap(.stop)
-                        return
-                    }
-                    if stopConfirmation.tap(at: .now) == .end {
-                        tap(.stop)
+                    } else {
+                        end()
                     }
                 }
-                .accessibilityHint(
-                    !isConnected
-                        ? NotConnectedMark.title : isArmed ? "Ends the Workout" : "Tap twice to end the Workout")
+                .accessibilityHint(stopHint(isArmed: isArmed))
             }
-            .opacity(isConnected ? 1 : 0.3)
         }
         .padding(.horizontal, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -103,6 +104,19 @@ private struct WatchControlsPage: View {
             }
         }
         .background((dim ? Color.black : colors.background).ignoresSafeArea())
+        // A dropout starting or ending between the two taps mustn't turn one into the other.
+        .onChange(of: isConnected) {
+            stopConfirmation = StopConfirmation()
+        }
+    }
+
+    private func stopHint(isArmed: Bool) -> String {
+        switch (isConnected, isArmed) {
+        case (true, true): "Ends the Workout"
+        case (true, false): "Tap twice to end the Workout"
+        case (false, true): "Stops following the Workout on Apple Watch. The iPhone carries on."
+        case (false, false): "\(NotConnectedMark.title). Tap twice to stop following the Workout on Apple Watch."
+        }
     }
 }
 
@@ -111,7 +125,7 @@ private struct WatchControlsPage: View {
         phase: WatchPhase(
             kind: .work, round: 2, start: .now.addingTimeInterval(-40), end: nil, pausedAt: nil, countsUp: true,
             line: .value("2", caption: .before("Round"), spoken: "Round 2"), capsule: .done),
-        isConnected: true, heartRate: LiveHeartRate(), tap: { _ in })
+        isConnected: true, heartRate: LiveHeartRate(), tap: { _ in }, end: {})
 }
 
 #Preview("Secondary page, dropout") {
@@ -119,5 +133,5 @@ private struct WatchControlsPage: View {
         phase: WatchPhase(
             kind: .work, round: 2, start: .now.addingTimeInterval(-40), end: nil, pausedAt: nil, countsUp: true,
             line: .value("2", caption: .before("Round"), spoken: "Round 2"), capsule: .done),
-        isConnected: false, heartRate: LiveHeartRate(), tap: { _ in })
+        isConnected: false, heartRate: LiveHeartRate(), tap: { _ in }, end: {})
 }

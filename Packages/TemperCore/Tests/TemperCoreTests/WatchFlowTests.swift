@@ -544,6 +544,44 @@ nonisolated struct WatchFlowTests {
         #expect(flow.screen == .running(work, isConnected: true))
     }
 
+    // MARK: End on the Watch
+
+    /// The iPhone may have gone, so the Watch can't wait the whole 10 minutes with nothing to press.
+    @Test func `End while connecting ends the session without saving and goes back to idle`() {
+        var flow = WatchFlow()
+        _ = flow.handle(.launched(workoutsAllowed: true))
+
+        let effects = flow.handle(.endTapped)
+
+        #expect(effects == [.endWithoutSaving])
+        #expect(flow.screen == .idle)
+        #expect(flow.handle(.firstMessageTimedOut) == [])
+    }
+
+    @Test func `End during a dropout stops the timer, ends the session without saving and goes back to idle`() {
+        var flow = droppedOut(at: later)
+
+        let effects = flow.handle(.endTapped)
+
+        #expect(effects == [.stopOutOfContactTimer, .endWithoutSaving])
+        #expect(flow.screen == .idle)
+        #expect(flow.handle(.outOfContactTimerFired) == [])
+    }
+
+    /// In contact, Stop on the secondary page ends the Workout itself.
+    @Test func `End changes nothing while the iPhone is in contact, nor outside a Workout`() {
+        var running = running()
+        var idle = WatchFlow()
+        var complete = running
+        _ = complete.handle(.received(.update(.ended(.total(.seconds(90)))), at: now))
+
+        #expect(running.handle(.endTapped) == [])
+        #expect(idle.handle(.endTapped) == [])
+        #expect(complete.handle(.endTapped) == [])
+        #expect(running.screen == .running(work, isConnected: true))
+        #expect(complete.screen == .complete(.total(.seconds(90))))
+    }
+
     // MARK: Leftover sessions
 
     /// The iPhone found no running Workout the session belongs to.

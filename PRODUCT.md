@@ -8,7 +8,7 @@ ios
 
 ## Users
 
-One owner today, who trains in a mix of gym and home sessions. A public App Store release is planned, so the app must make sense to someone who has never seen it: no setup that only the owner understands.
+Anyone who trains in a mix of gym and home sessions and wants each change of Phase called out. Temper is a public App Store app, so it must make sense to someone who has never seen it: no account, no sign-in, and no setup before the first Workout.
 
 During a Workout the phone sits on a bench, floor or rack, often metres away, and is read at a glance between efforts with sweaty or chalky hands. Before a Workout it's held in one hand, briefly, between other things.
 
@@ -23,7 +23,8 @@ A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and 
 ## Operating Context
 
 - Every Workout starts on the iPhone. Apple Watch can follow it as a remote with heart rate and Zone, and the Live Activity carries it on the Lock Screen and Dynamic Island.
-- Open Phases end only when the owner marks Done; nothing ends a Phase by a stray touch.
+- No Watch screen waits on the iPhone with nothing to press: while connecting or out of contact, End stops following the Workout on the Watch.
+- Open Phases end only when Done is marked; nothing ends a Phase by a stray touch.
 - Nothing saves to Apple Health. Apple Watch shows the heart rate from a workout session that saves no workout.
 
 ## Capabilities and Constraints

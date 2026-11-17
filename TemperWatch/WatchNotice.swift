@@ -1,10 +1,13 @@
 import SwiftUI
+import TemperCore
 
-/// A mark, a title and a smaller line under it, centred, with nothing to press: the shape of every Watch screen
-/// outside a running Workout's.
+/// A mark, a title and a smaller line under it, centred: the shape of every Watch screen outside a running Workout's.
+/// A screen that can hold for minutes while the iPhone app may have gone has End under it, and the others have nothing
+/// to press.
 struct WatchNotice<Mark: View>: View {
     let title: String
     let message: String?
+    var end: (() -> Void)? = nil
     @ViewBuilder let mark: Mark
 
     @Environment(\.colorSchemeContrast) private var contrast
@@ -29,6 +32,10 @@ struct WatchNotice<Mark: View>: View {
                         .font(.footnote)
                         .foregroundStyle(ink.secondary.opacity(dim ? 0.6 : 1))
                 }
+                if let end {
+                    EndCapsule(dim: dim, action: end)
+                        .padding(.top, 8)
+                }
             }
             .multilineTextAlignment(.center)
             .padding(.horizontal, 8)
@@ -41,11 +48,31 @@ struct WatchNotice<Mark: View>: View {
     }
 }
 
-/// From the iPhone's request until its first update, which can take 47 s or more. Nothing about the Workout is known
-/// yet, not even its Workout Type.
-struct WaitingScreen: View {
+/// End on the Watch, which stops following the Workout here and leaves it running on the iPhone.
+struct EndCapsule: View {
+    var title = "End"
+    let dim: Bool
+    let action: () -> Void
+
+    @Environment(\.colorSchemeContrast) private var contrast
+
     var body: some View {
-        WatchNotice(title: "Connecting to iPhone", message: "Your Workout has started on the iPhone.") {
+        let colors = StopColors(contrast: contrast)
+        WatchCapsule(
+            title: title, symbol: WatchCommand.stop.symbol, fill: colors.darkRed, ink: colors.red, outline: colors.red,
+            dim: dim, action: action
+        )
+        .accessibilityHint("Stops following the Workout on Apple Watch. The iPhone carries on.")
+    }
+}
+
+/// From the iPhone's request until its first update, which can take 47 s or more. Nothing about the Workout is known
+/// yet, not even its Workout Type. End lets the Watch go back to idle without waiting out the 10 minutes.
+struct WaitingScreen: View {
+    let end: () -> Void
+
+    var body: some View {
+        WatchNotice(title: "Connecting to iPhone", message: "Your Workout has started on the iPhone.", end: end) {
             ProgressView()
                 .controlSize(.large)
         }
@@ -66,7 +93,7 @@ struct UpdateNeededScreen: View {
 }
 
 #Preview("Connecting to iPhone") {
-    WaitingScreen()
+    WaitingScreen(end: {})
 }
 
 #Preview("Update Temper") {

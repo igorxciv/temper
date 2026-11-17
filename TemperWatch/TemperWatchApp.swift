@@ -36,10 +36,11 @@ struct WatchRootView: View {
         case .idle:
             IdleScreen()
         case .waiting:
-            WaitingScreen()
+            WaitingScreen(end: session.end)
         case .running(let phase, let isConnected):
             WatchRunningPages(
-                phase: phase, isConnected: isConnected, heartRate: session.heartRate, tap: session.tap)
+                phase: phase, isConnected: isConnected, heartRate: session.heartRate, tap: session.tap,
+                end: session.end)
         case .complete(let completion):
             WatchCompleteScreen(
                 completion: completion, heartRate: session.heartRate.current.summary, done: session.done)

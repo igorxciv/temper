@@ -14,6 +14,37 @@ public nonisolated enum LiveActivityState: Codable, Hashable, Sendable {
     case complete(total: String?, spokenTotal: String?)
 }
 
+nonisolated extension LiveActivityState {
+    /// How long past a timed Phase's end the app has to show the next state before the Live Activity goes stale.
+    private static let staleMargin: TimeInterval = 30
+    /// How long a state with no end in sight stays fresh after it's shown. The app shows it again halfway through.
+    private static let lease: TimeInterval = 10 * 60
+
+    /// When the Live Activity goes stale if the app shows nothing newer, as when iOS ends Temper mid-Workout, or `nil`
+    /// if it never does. A running timed Phase goes stale just after its end. One with no end in sight, being open,
+    /// Paused or a Stopwatch's Work, goes stale a while after it's shown.
+    public func staleDate(shownAt date: Date) -> Date? {
+        guard case .phase(let phase) = self else { return nil }
+        guard let end = phase.endingAt else { return date.addingTimeInterval(Self.lease) }
+        return end.addingTimeInterval(Self.staleMargin)
+    }
+
+    /// When the app shows this state again to keep it from going stale, or `nil` if it needn't.
+    public func renewalDate(shownAt date: Date) -> Date? {
+        guard case .phase(let phase) = self, phase.endingAt == nil else { return nil }
+        return date.addingTimeInterval(Self.lease / 2)
+    }
+}
+
+extension LivePhase {
+    /// When the Phase ends by itself, or `nil` if it waits on the owner: an open Phase or a Stopwatch's Work for Done,
+    /// and a Paused one for Resume.
+    fileprivate nonisolated var endingAt: Date? {
+        guard !isPaused, countsPastEnd != true else { return nil }
+        return end
+    }
+}
+
 /// A Phase on the Live Activity, running or Paused.
 public nonisolated struct LivePhase: Codable, Hashable, Sendable {
     /// The Live Activity's one button. Its Workout Type isn't on the Live Activity, so the state names the button.

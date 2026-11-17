@@ -1,6 +1,6 @@
 # Temper
 
-Temper is a personal training app. It runs a Workout of a chosen Workout Type, moves through its Phases, and announces each change aloud. Every Workout starts on the iPhone. Apple Watch can follow it, showing the Workout and the heart rate, tapping the wrist at each Cue, and serving as a remote to Pause, Resume, mark Done or Stop.
+Temper is an interval timer for iPhone and Apple Watch. It runs a Workout of a chosen Workout Type, moves through its Phases, and announces each change aloud. Every Workout starts on the iPhone. Apple Watch can follow it, showing the Workout and the heart rate, tapping the wrist at each Cue, and serving as a remote to Pause, Resume, mark Done or Stop.
 
 ## Language
 

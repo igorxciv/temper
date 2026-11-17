@@ -39,6 +39,8 @@ actor AudioAdapter: AudioOutput {
     private let cues: CueBank
     private let clock = ContinuousClock()
     private let session = AVAudioSession.sharedInstance()
+    /// Only notices a call. A mixed session isn't always interrupted by one, so the session can't stand in for it. App
+    /// Review rejects any CallKit use in mainland China, so Temper isn't offered there (`docs/app-store.md`).
     private let calls = CXCallObserver()
     /// Replaced after a media-services reset, because the old one belongs to services that have gone.
     private var engine = AVAudioEngine()
