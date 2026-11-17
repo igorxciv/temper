@@ -76,6 +76,10 @@ _Avoid_: Final rest, warm-down
 A hold on the current Phase, requested by the owner, that stops its clock until resumed.
 _Avoid_: Rest, break
 
+**End**:
+On Apple Watch, stopping following a Workout while the iPhone is out of reach, connecting or out of contact. The Watch goes back to idle and the Workout runs on, on the iPhone. Stop ends the Workout itself.
+_Avoid_: Leave, disconnect, Stop
+
 **Cue**:
 The sound announcing a Phase change, the end of the Workout, that Rest is about to end, that a Phase is about to reach its set length, that a Stopwatch's Work has reached it, or the next Exercise. Work starts and ends on a boxing gong. Cooldown and the end of the Workout add their name, spoken over the gong, and the other Cues are spoken. Apple Watch can also mark it with a tap on the wrist.
 _Avoid_: Alert, notification, beep

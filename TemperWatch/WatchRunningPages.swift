@@ -114,7 +114,7 @@ private struct WatchControlsPage: View {
         switch (isConnected, isArmed) {
         case (true, true): "Ends the Workout"
         case (true, false): "Tap twice to end the Workout"
-        case (false, true): "Stops following the Workout on Apple Watch. The iPhone carries on."
+        case (false, true): EndCapsule.hint
         case (false, false): "\(NotConnectedMark.title). Tap twice to stop following the Workout on Apple Watch."
         }
     }

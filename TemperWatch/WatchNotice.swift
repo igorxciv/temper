@@ -50,7 +50,9 @@ struct WatchNotice<Mark: View>: View {
 
 /// End on the Watch, which stops following the Workout here and leaves it running on the iPhone.
 struct EndCapsule: View {
-    var title = "End"
+    /// What End does, for VoiceOver.
+    static let hint = "Stops following the Workout on Apple Watch. The iPhone carries on."
+
     let dim: Bool
     let action: () -> Void
 
@@ -59,15 +61,16 @@ struct EndCapsule: View {
     var body: some View {
         let colors = StopColors(contrast: contrast)
         WatchCapsule(
-            title: title, symbol: WatchCommand.stop.symbol, fill: colors.darkRed, ink: colors.red, outline: colors.red,
+            title: "End", symbol: WatchCommand.stop.symbol, fill: colors.darkRed, ink: colors.red, outline: colors.red,
             dim: dim, action: action
         )
-        .accessibilityHint("Stops following the Workout on Apple Watch. The iPhone carries on.")
+        .accessibilityHint(Self.hint)
     }
 }
 
 /// From the iPhone's request until its first update, which can take 47 s or more. Nothing about the Workout is known
-/// yet, not even its Workout Type. End lets the Watch go back to idle without waiting out the 10 minutes.
+/// yet, not even its Workout Type. End lets the Watch go back to idle without waiting out the 10 minutes. It takes one
+/// tap, unlike End during a dropout, because nothing has shown on the Watch yet, so there's no heart rate to lose.
 struct WaitingScreen: View {
     let end: () -> Void
 

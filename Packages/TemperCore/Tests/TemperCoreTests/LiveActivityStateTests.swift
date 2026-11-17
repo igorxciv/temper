@@ -322,14 +322,23 @@ nonisolated struct LiveActivityStalenessTests {
         #expect(state.renewalDate(shownAt: date) == date.addingTimeInterval(300))
     }
 
-    /// A Pause can last any time, and a Stopwatch's Work counts on past its set length until Done.
-    @Test func `A Paused Phase and a Stopwatch's Work stay fresh the way an open Phase does`() {
-        let paused = phase(end: 40, pausedAt: date)
-        let stopwatch = phase(end: 40, countsPastEnd: true)
+    /// It counts on past its set length until Done, and the engine keeps Temper running meanwhile.
+    @Test func `A Stopwatch's Work past its set length stays fresh the way an open Phase does`() {
+        let state = phase(end: 40, countsPastEnd: true)
 
-        for state in [paused, stopwatch] {
-            #expect(state.staleDate(shownAt: date) == date.addingTimeInterval(600))
-            #expect(state.renewalDate(shownAt: date) == date.addingTimeInterval(300))
+        #expect(state.staleDate(shownAt: date) == date.addingTimeInterval(600))
+        #expect(state.renewalDate(shownAt: date) == date.addingTimeInterval(300))
+    }
+
+    /// Pause lets go of the audio session, so iOS suspends a locked Temper and nothing could renew a lease. A Paused
+    /// Phase shows no running time to go wrong, and its Resume has to stay.
+    @Test func `A Paused Phase never goes stale`() {
+        let timed = phase(end: 40, pausedAt: date)
+        let open = phase(end: nil, pausedAt: date)
+
+        for state in [timed, open] {
+            #expect(state.staleDate(shownAt: date) == nil)
+            #expect(state.renewalDate(shownAt: date) == nil)
         }
     }
 

@@ -21,27 +21,22 @@ nonisolated extension LiveActivityState {
     private static let lease: TimeInterval = 10 * 60
 
     /// When the Live Activity goes stale if the app shows nothing newer, as when iOS ends Temper mid-Workout, or `nil`
-    /// if it never does. A running timed Phase goes stale just after its end. One with no end in sight, being open,
-    /// Paused or a Stopwatch's Work, goes stale a while after it's shown.
+    /// if it never does. A running timed Phase goes stale just after its end. A running Phase with no end in sight,
+    /// being open or a Stopwatch's Work, goes stale a while after it's shown.
+    ///
+    /// A Paused Phase never does. Pause lets go of the audio session, so iOS suspends a locked Temper and nothing could
+    /// show the state again, and a stale view would lose Resume. Its time is held, so there's no running time to go
+    /// wrong, and the next launch ends a Live Activity left behind.
     public func staleDate(shownAt date: Date) -> Date? {
-        guard case .phase(let phase) = self else { return nil }
+        guard case .phase(let phase) = self, !phase.isPaused else { return nil }
         guard let end = phase.endingAt else { return date.addingTimeInterval(Self.lease) }
         return end.addingTimeInterval(Self.staleMargin)
     }
 
     /// When the app shows this state again to keep it from going stale, or `nil` if it needn't.
     public func renewalDate(shownAt date: Date) -> Date? {
-        guard case .phase(let phase) = self, phase.endingAt == nil else { return nil }
+        guard case .phase(let phase) = self, !phase.isPaused, phase.endingAt == nil else { return nil }
         return date.addingTimeInterval(Self.lease / 2)
-    }
-}
-
-extension LivePhase {
-    /// When the Phase ends by itself, or `nil` if it waits on the owner: an open Phase or a Stopwatch's Work for Done,
-    /// and a Paused one for Resume.
-    fileprivate nonisolated var endingAt: Date? {
-        guard !isPaused, countsPastEnd != true else { return nil }
-        return end
     }
 }
 
@@ -114,6 +109,13 @@ public nonisolated struct LivePhase: Codable, Hashable, Sendable {
         guard length > 0 else { return 0 }
         let fractionLeft = min(1, max(0, end.timeIntervalSince(pausedAt) / length))
         return countsUp ? 1 - fractionLeft : fractionLeft
+    }
+}
+
+nonisolated extension LivePhase {
+    /// When a running Phase ends by itself, or `nil` if it waits on Done: an open Phase, or a Stopwatch's Work.
+    fileprivate var endingAt: Date? {
+        countsPastEnd == true ? nil : end
     }
 }
 
