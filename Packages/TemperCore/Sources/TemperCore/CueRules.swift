@@ -5,8 +5,8 @@ private nonisolated let startLimit = Duration.seconds(1)
 /// How late a Cue can still play: spoken on the iPhone, or tapped on the wrist for a Phase whose update arrives late.
 nonisolated let lateLimit = Duration.seconds(1)
 
-/// Decides which Cues play and when the audio session is active. The session always mixes with other audio and
-/// never lowers it. It has its own actor and never waits
+/// Decides which Cues play, when the audio session is active, and, if the owner has turned it on, which Cues lower
+/// other audio while they speak. The session always mixes with other audio. It has its own actor and never waits
 /// on audio while the engine waits on it, so a slow audio call can't move a Phase's end.
 ///
 /// Audio calls are made as soon as they're decided, without waiting for the one before, because the audio side
@@ -25,11 +25,18 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         let exercise: Exercise?
         let deadline: Instant
         let token: CueToken
+
+        /// Every Cue speaks except a bare gong: a Work or Rest that says no Exercise.
+        var speaks: Bool {
+            exercise != nil || (cue != .work && cue != .rest)
+        }
     }
 
     private var timeline: Timeline
     private let clock: EngineClock
     private let audio: any AudioOutput<Instant>
+    /// The owner's switch, read at Start.
+    private let lowersOtherAudio: Bool
 
     private var session = Session.released
     /// Whether any activate has been made since the session was last released, even one that failed or never
@@ -49,10 +56,11 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
     private var pendingStart: CheckedContinuation<Void, Never>?
     private var startTimeout: Task<Void, Never>?
 
-    init(timeline: Timeline, clock: EngineClock, audio: any AudioOutput<Instant>) {
+    init(timeline: Timeline, clock: EngineClock, audio: any AudioOutput<Instant>, lowersOtherAudio: Bool) {
         self.timeline = timeline
         self.clock = clock
         self.audio = audio
+        self.lowersOtherAudio = lowersOtherAudio
     }
 
     // MARK: Start
@@ -223,7 +231,8 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         do {
             // Audio can take a while to start after this check, so it's told the latest start as well.
             try await audio.schedule(
-                armed.cue, saying: armed.exercise, at: armed.deadline, startingBy: latest, token: armed.token)
+                armed.cue, saying: armed.exercise, at: armed.deadline, startingBy: latest,
+                lowersOtherAudio: lowersOtherAudio && armed.speaks, token: armed.token)
         } catch {
             guard armed.token == token else { return }
             session = .released

@@ -35,6 +35,8 @@ actor FakeAudioOutput: AudioOutput {
     private(set) var latestStarts: [ManualClock.Instant] = []
     /// The Exercise said with every Cue scheduled so far, or `nil` for a Cue that says none.
     private(set) var exercises: [Exercise?] = []
+    /// Whether every Cue scheduled so far lowers other audio.
+    private(set) var lowerings: [Bool] = []
     /// A phone call. Checking for one isn't an audio call, so it's left out of `history`.
     private var hasCall = false
 
@@ -84,11 +86,13 @@ actor FakeAudioOutput: AudioOutput {
         saying exercise: Exercise?,
         at deadline: ManualClock.Instant,
         startingBy latest: ManualClock.Instant,
+        lowersOtherAudio: Bool,
         token: CueToken
     ) async throws {
         tokens.append(token)
         latestStarts.append(latest)
         exercises.append(exercise)
+        lowerings.append(lowersOtherAudio)
         try await perform(.schedule(cue, at: deadline))
     }
 

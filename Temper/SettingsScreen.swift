@@ -3,6 +3,7 @@ import UIKit
 
 struct SettingsScreen: View {
     let health: HealthAccess
+    @Bindable var musicLowering: MusicLowering
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -18,6 +19,15 @@ struct SettingsScreen: View {
         let colors = InkColors(contrast: contrast)
 
         Form {
+            Section {
+                Toggle("Lower music when Temper speaks", isOn: $musicLowering.isOn)
+                    .listRowBackground(colors.raised)
+            } header: {
+                Text("Sound").foregroundStyle(colors.secondary)
+            } footer: {
+                Text("Other apps' audio dips while a Cue is spoken, and comes back up after. The gongs leave it alone.")
+                    .foregroundStyle(colors.secondary)
+            }
             AppleWatchSection(health: health, colors: colors)
             Section {
                 LabeledContent("Version", value: version)

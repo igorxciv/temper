@@ -28,8 +28,7 @@ public nonisolated protocol AudioOutput<Instant>: Sendable {
     /// Has one consumer, the Cue rules.
     var events: AsyncStream<AudioEvent> { get }
 
-    /// Activates the session, mixed with other audio and never lowering it, and starts the engine if it has
-    /// stopped.
+    /// Activates the session, mixed with other audio and not lowering it, and starts the engine if it has stopped.
     func activate() async throws
     /// Releases the session.
     func deactivate() async throws
@@ -38,9 +37,12 @@ public nonisolated protocol AudioOutput<Instant>: Sendable {
     ///
     /// A Cue with an `exercise` says it too: a Work's Cue says it over the gong, and any other Cue says it's next,
     /// after its own sound.
+    ///
+    /// A Cue that `lowersOtherAudio` lowers other apps' audio from now until it has finished speaking, or is cut.
+    /// Other audio stays lowered until every Cue that lowered it has finished.
     func schedule(
-        _ cue: Cue, saying exercise: Exercise?, at deadline: Instant, startingBy latest: Instant, token: CueToken)
-        async throws
+        _ cue: Cue, saying exercise: Exercise?, at deadline: Instant, startingBy latest: Instant,
+        lowersOtherAudio: Bool, token: CueToken) async throws
     /// Cuts any Cue that's speaking or waiting to speak.
     func cancel() async throws
     /// Whether a phone call is ringing, connected or on hold. It isn't an audio call, so it never fails.
