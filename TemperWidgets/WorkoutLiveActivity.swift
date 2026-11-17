@@ -7,30 +7,34 @@ import WidgetKit
 /// The running Workout on the Lock Screen, in the Dynamic Island, and in the Apple Watch Smart Stack.
 ///
 /// The system counts each Phase's time from its dates, so these views change only when the app sends a new
-/// state, at a Phase change, Pause, Resume or the end.
+/// state, at a Phase change, Pause, Resume or the end. A stale state, one the app hasn't kept up, as when iOS has ended
+/// Temper mid-Workout, dims its Phase and drops its button.
 struct WorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutAttributes.self) { context in
-            ActivityView(state: context.state)
+            ActivityView(state: context.state, isStale: context.isStale)
         } dynamicIsland: { context in
-            dynamicIsland(for: context.state)
+            dynamicIsland(for: context.state, isStale: context.isStale)
         }
         // Small is the Apple Watch Smart Stack and CarPlay. Medium is the Lock Screen.
         .supplementalActivityFamilies([.small])
     }
 
-    private func dynamicIsland(for state: LiveActivityState) -> DynamicIsland {
+    private func dynamicIsland(for state: LiveActivityState, isStale: Bool) -> DynamicIsland {
         switch state {
         case .phase(let phase):
+            let opacity = isStale ? staleOpacity : 1
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     PhaseName(phase: phase)
                         .font(.title2.weight(.semibold))
+                        .opacity(opacity)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     PhaseTime(phase: phase)
                         .font(.system(size: 40, weight: .semibold).monospacedDigit())
                         .phaseColor(phase.kind, \.text)
+                        .opacity(opacity)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack(spacing: 12) {
@@ -45,7 +49,8 @@ struct WorkoutLiveActivity: Widget {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        if let button = phase.button {
+                        .opacity(opacity)
+                        if let button = phase.button, !isStale {
                             PhaseButton(phase: phase, button: button)
                         }
                     }
@@ -55,16 +60,19 @@ struct WorkoutLiveActivity: Widget {
                     .font(.caption.weight(.semibold))
                     // An Exercise is cut short rather than crowding the camera.
                     .frame(maxWidth: 72, alignment: .leading)
+                    .opacity(opacity)
             } compactTrailing: {
                 PhaseTime(phase: phase)
                     .monospacedDigit()
                     .phaseColor(phase.kind, \.ring)
                     // A timer's text takes all the width it's offered, which would crowd the camera.
                     .frame(maxWidth: 44)
+                    .opacity(opacity)
             } minimal: {
                 PhaseTime(phase: phase)
                     .font(.caption2.monospacedDigit())
                     .phaseColor(phase.kind, \.ring)
+                    .opacity(opacity)
             }
             // A Dynamic Island isn't a view, so it can't read the contrast setting.
             .keylineTint(PhaseColors(kind: phase.kind, contrast: .standard).ring)
@@ -85,9 +93,13 @@ struct WorkoutLiveActivity: Widget {
     }
 }
 
+/// How much of a stale Phase shows.
+private let staleOpacity = 0.4
+
 /// The Lock Screen banner, and the card in the Apple Watch Smart Stack.
 private struct ActivityView: View {
     let state: LiveActivityState
+    let isStale: Bool
 
     @Environment(\.activityFamily) private var family
     @Environment(\.colorSchemeContrast) private var contrast
@@ -98,11 +110,12 @@ private struct ActivityView: View {
             let colors = PhaseColors(kind: phase.kind, contrast: contrast)
             Group {
                 switch family {
-                case .small: SmallPhaseView(phase: phase)
-                case .medium: MediumPhaseView(phase: phase)
-                @unknown default: MediumPhaseView(phase: phase)
+                case .small: SmallPhaseView(phase: phase, isStale: isStale)
+                case .medium: MediumPhaseView(phase: phase, isStale: isStale)
+                @unknown default: MediumPhaseView(phase: phase, isStale: isStale)
                 }
             }
+            .opacity(isStale ? staleOpacity : 1)
             .foregroundStyle(colors.text)
             .activityBackgroundTint(colors.background)
             .activitySystemActionForegroundColor(colors.text)
@@ -118,6 +131,7 @@ private struct ActivityView: View {
 
 private struct MediumPhaseView: View {
     let phase: LivePhase
+    let isStale: Bool
 
     var body: some View {
         VStack(spacing: 12) {
@@ -135,12 +149,13 @@ private struct MediumPhaseView: View {
                     .font(.system(size: 48, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
             }
-            if phase.hasBar || phase.button != nil {
+            let button = isStale ? nil : phase.button
+            if phase.hasBar || button != nil {
                 HStack(spacing: 12) {
                     if phase.hasBar {
                         PhaseBar(phase: phase)
                     }
-                    if let button = phase.button {
+                    if let button {
                         // With no bar beside it, Done takes the whole row, the easier to hit mid-set.
                         PhaseButton(phase: phase, button: button, fillsWidth: !phase.hasBar)
                     }
@@ -154,6 +169,7 @@ private struct MediumPhaseView: View {
 /// Sized for the Apple Watch Smart Stack, where it's read at a glance mid-Workout, so the time comes first.
 private struct SmallPhaseView: View {
     let phase: LivePhase
+    let isStale: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -170,7 +186,7 @@ private struct SmallPhaseView: View {
                 PhaseTime(phase: phase)
                     .font(.system(size: 36, weight: .semibold).monospacedDigit())
                 Spacer(minLength: 4)
-                if let button = phase.button {
+                if let button = phase.button, !isStale {
                     PhaseButton(phase: phase, button: button)
                 }
             }

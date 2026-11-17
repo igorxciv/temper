@@ -83,6 +83,11 @@ final class WatchSession: NSObject {
         apply(.doneTapped)
     }
 
+    /// End while connecting or out of contact.
+    func end() {
+        apply(.endTapped)
+    }
+
     /// A tap on the running screen's capsule or the secondary page, dated now on the Watch's clock.
     func tap(_ command: WatchCommand) {
         apply(.tapped(command, at: .now))

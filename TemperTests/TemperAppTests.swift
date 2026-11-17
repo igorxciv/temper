@@ -71,13 +71,22 @@ struct TemperAppTests {
 
         #expect(
             info["NSHealthUpdateUsageDescription"] as? String
-                == "Apple Watch needs this to run a workout session, which shows your heart rate during a Workout. "
-                + "Temper saves no workouts.")
+                == "Apple Watch needs this to show your heart rate during a Workout. Temper saves no workouts to "
+                + "Health, and sends none of your data anywhere.")
         #expect(
             info["NSHealthShareUsageDescription"] as? String
-                == "Temper reads your heart rate during a Workout on Apple Watch, and your date of birth and resting "
-                + "heart rate to work out heart-rate zones.")
+                == "Temper reads your heart rate during a Workout, and your date of birth and resting heart rate to "
+                + "work out your heart-rate zones. It keeps all of it on your iPhone and Apple Watch.")
         #expect((info["UIRequiredDeviceCapabilities"] as? [String])?.contains("healthkit") == true)
+    }
+
+    /// So each upload to App Store Connect skips the encryption question.
+    @Test func `The iPhone and Watch apps declare no encryption of their own`() throws {
+        let app = Bundle.main.infoDictionary ?? [:]
+        let watch = try watchApp().infoDictionary ?? [:]
+
+        #expect(app["ITSAppUsesNonExemptEncryption"] as? Bool == false)
+        #expect(watch["ITSAppUsesNonExemptEncryption"] as? Bool == false)
     }
 
     /// The set is fixed, whether or not a Watch is paired, so the Watch never has to ask.
