@@ -17,13 +17,18 @@ struct TipJarTests {
 
     private let session: SKTestSession
 
-    init() throws {
+    init() async throws {
         session = try SKTestSession(contentsOf: Self.configuration)
         session.resetToDefaultState()
         session.clearTransactions()
         session.disableDialogs = true
         session.storefront = "USA"
         session.locale = Locale(identifier: "en_US")
+        // `clearTransactions()` leaves a purchase that completed after an earlier run stopped, such as CI's warm-up,
+        // unfinished, and it would read as this run's.
+        for await transaction in Transaction.unfinished {
+            await transaction.unsafePayloadValue.finish()
+        }
     }
 
     @Test func `The tips load smallest first, priced by the App Store`() async {
@@ -51,13 +56,14 @@ struct TipJarTests {
     }
 
     @Test func `A tip says thank you, and its transaction is finished`() async throws {
+        let start = Date.now
         let jar = TipJar()
         await jar.load()
 
         await jar.tip("tip.medium")
 
         #expect(jar.outcome == .thanks)
-        #expect(await unfinishedTransactions().isEmpty)
+        await expectFinished("tip.medium", since: start)
     }
 
     @Test func `Cancelling a tip leaves the tip jar as it was`() async throws {
@@ -104,6 +110,7 @@ struct TipJarTests {
     /// An approved Ask to Buy, or a purchase interrupted earlier, arrives as an update rather than from the tap.
     @Test(.timeLimit(.minutes(1)))
     func `A tip that arrives later says thank you, and its transaction is finished`() async throws {
+        let start = Date.now
         let jar = TipJar()
         let updates = Task { await jar.observeTransactionUpdates() }
         defer { updates.cancel() }
@@ -113,14 +120,22 @@ struct TipJarTests {
         for await outcome in Observations({ jar.outcome }) where outcome == .thanks {
             break
         }
-        #expect(await unfinishedTransactions().isEmpty)
+        await expectFinished("tip.small", since: start)
     }
 
-    private func unfinishedTransactions() async -> [VerificationResult<Transaction>] {
-        var transactions: [VerificationResult<Transaction>] = []
+    /// Expects no unfinished transaction for the tip this test bought. Only its own count, since one from an earlier
+    /// run can complete late, as CI's warm-up can leave one.
+    private func expectFinished(
+        _ productID: String, since start: Date, sourceLocation: SourceLocation = #_sourceLocation
+    ) async {
+        var unfinished: [Transaction] = []
         for await transaction in Transaction.unfinished {
-            transactions.append(transaction)
+            unfinished.append(transaction.unsafePayloadValue)
         }
-        return transactions
+        // A second's margin, in case a purchase date is kept to whole seconds.
+        let mine = unfinished.filter { $0.productID == productID && $0.purchaseDate >= start.addingTimeInterval(-1) }
+        #expect(
+            mine.isEmpty, "Unfinished: \(unfinished.map { "\($0.productID) at \($0.purchaseDate)" })",
+            sourceLocation: sourceLocation)
     }
 }
