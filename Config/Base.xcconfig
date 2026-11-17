@@ -29,4 +29,9 @@ PRODUCT_BUNDLE_IDENTIFIER = $(BUNDLE_ID_PREFIX).$(TARGET_NAME:lower)
 // TemperWidgets.xcconfig clears it too, and TemperWatch.xcconfig names the Watch app's own file.
 TEMPER_ENTITLEMENTS_Temper = Config/Temper.entitlements
 CODE_SIGN_ENTITLEMENTS = $(TEMPER_ENTITLEMENTS_$(TARGET_NAME))
+
+// StoreKitTest's own SKTestTransaction.h uses a deprecated StoreKit 1 type, which fails CI's warnings-as-errors build
+// before any of Temper's code compiles. Only the test bundle imports it, so only it keeps that warning a warning.
+TEMPER_SWIFT_FLAGS_TemperTests = -Xcc -Wno-error=deprecated-declarations
+OTHER_SWIFT_FLAGS = $(inherited) $(TEMPER_SWIFT_FLAGS_$(TARGET_NAME))
 #include? "Local.xcconfig"

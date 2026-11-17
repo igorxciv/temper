@@ -68,7 +68,13 @@ struct TipJarTests {
 
         await jar.tip("tip.small")
 
-        #expect(jar.outcome == nil)
+        // iOS 27.0's test session reports every simulated error as `.unknown`, so a cancel can't be told apart there.
+        withKnownIssue("A simulated cancel arrives as StoreKitError.unknown before iOS 27.2") {
+            #expect(jar.outcome == nil)
+        } when: {
+            !ProcessInfo.processInfo.isOperatingSystemAtLeast(
+                OperatingSystemVersion(majorVersion: 27, minorVersion: 2, patchVersion: 0))
+        }
         #expect(jar.shelf == shelf)
     }
 
