@@ -9,7 +9,7 @@ iOS 27 minimum, Swift 6 language mode, the latest SwiftUI. Availability checks a
 
 ## Standing rules
 
-- Temper has no third-party runtime dependencies, network access, analytics, accounts, or backend. Data stays on the device.
+- Temper has no third-party runtime dependencies, network access, analytics, accounts, or backend. Data stays on the device. The tip jar's StoreKit purchases are the one exception: they go through Apple, and Temper keeps nothing about them.
 
 ## Source order
 

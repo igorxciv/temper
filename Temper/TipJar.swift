@@ -19,7 +19,8 @@ final class TipJar {
         case unavailable
     }
 
-    /// What the last tip came to, said in place. A cancel or a wait for Ask to Buy says nothing.
+    /// What the last tip came to, said in place. A cancel or a wait for Ask to Buy says nothing, and a new tip clears
+    /// it.
     enum Outcome: Equatable {
         case thanks
         case failed
@@ -44,7 +45,8 @@ final class TipJar {
                 loaded.isEmpty
                 ? .unavailable : .ready(loaded.map { Tip(id: $0.id, name: $0.displayName, price: $0.displayPrice) })
         } catch {
-            if shelf == .loading {
+            // A load cut short as Temper leaves the front isn't a sign of being offline.
+            if shelf == .loading, !Task.isCancelled {
                 shelf = .unavailable
             }
         }
@@ -53,15 +55,14 @@ final class TipJar {
     func tip(_ id: Tip.ID) async {
         guard purchasing == nil, let product = products[id] else { return }
         purchasing = id
+        outcome = nil
         defer { purchasing = nil }
         do {
             switch try await product.purchase() {
             case .success(.verified(let transaction)):
-                await transaction.finish()
-                outcome = .thanks
-            case .success(.unverified):
-                outcome = .failed
-            case .userCancelled, .pending:
+                await finish(transaction)
+            case .success(.unverified), .userCancelled, .pending:
+                // An unverified tip may still have been charged, so it isn't called a failure.
                 break
             @unknown default:
                 break
@@ -77,9 +78,16 @@ final class TipJar {
     func observeTransactionUpdates() async {
         for await update in Transaction.updates {
             if case .verified(let transaction) = update {
-                await transaction.finish()
-                outcome = .thanks
+                await finish(transaction)
             }
+        }
+    }
+
+    /// Finishes a verified transaction, and thanks for it unless it's a refund.
+    private func finish(_ transaction: Transaction) async {
+        await transaction.finish()
+        if transaction.revocationDate == nil, Self.productIDs.contains(transaction.productID) {
+            outcome = .thanks
         }
     }
 }
