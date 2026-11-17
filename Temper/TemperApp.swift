@@ -6,9 +6,12 @@ struct TemperApp: App {
     @State private var runner: WorkoutRunner
     @State private var remembered = RememberedValues()
     @State private var health = HealthAccess()
+    @State private var musicLowering: MusicLowering
 
     init() {
-        let runner = WorkoutRunner()
+        let musicLowering = MusicLowering()
+        _musicLowering = State(initialValue: musicLowering)
+        let runner = WorkoutRunner(musicLowering: musicLowering)
         _runner = State(initialValue: runner)
         // The Live Activity's Pause, Resume and Done run in this process, and may be what launched it, so the
         // runner is set before any of them can run.
@@ -17,7 +20,7 @@ struct TemperApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(runner: runner, remembered: remembered, health: health)
+            RootView(runner: runner, remembered: remembered, health: health, musicLowering: musicLowering)
         }
     }
 }
@@ -29,6 +32,7 @@ struct RootView: View {
     let runner: WorkoutRunner
     @Bindable var remembered: RememberedValues
     let health: HealthAccess
+    let musicLowering: MusicLowering
 
     /// The Plan the Workout was started from, for the complete screen's recap, or `nil` if it isn't known, as after a
     /// relaunch mid-Workout.
@@ -89,7 +93,7 @@ struct RootView: View {
                     }
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
                         NavigationStack {
-                            SettingsScreen(health: health)
+                            SettingsScreen(health: health, musicLowering: musicLowering)
                         }
                     }
                 }

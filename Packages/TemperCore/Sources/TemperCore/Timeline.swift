@@ -15,6 +15,11 @@ public nonisolated enum Cue: String, Codable, Equatable, Sendable {
     /// starts silently.
     case prepare
 
+    /// Whether any of it is spoken: every Cue but a bare gong, which is a Work or Rest that says no Exercise.
+    public func speaks(saying exercise: Exercise?) -> Bool {
+        exercise != nil || (self != .work && self != .rest)
+    }
+
     /// The Cue for entering a Phase. Prepare starts silently, unless it says the next Exercise.
     init?(entering kind: Phase.Kind) {
         switch kind {

@@ -30,12 +30,15 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     private var latest: Snapshot?
     private var wake: Task<Void, Never>?
 
-    public init(workout: Workout, clock: EngineClock, audio: any AudioOutput<Instant>) {
+    /// With `lowersOtherAudio`, other apps' audio is lowered while a Cue speaks, and left alone for a bare gong.
+    public init(
+        workout: Workout, clock: EngineClock, audio: any AudioOutput<Instant>, lowersOtherAudio: Bool = false
+    ) {
         (snapshots, continuation) = AsyncStream.makeStream()
         self.clock = clock
         timeline = Timeline(workout: workout)
         rounds = workout.rounds
-        cueRules = CueRules(timeline: timeline, clock: clock, audio: audio)
+        cueRules = CueRules(timeline: timeline, clock: clock, audio: audio, lowersOtherAudio: lowersOtherAudio)
     }
 
     /// Waits for audio, for at most a second, then sets the fixed start point and returns it. It returns `nil` if the

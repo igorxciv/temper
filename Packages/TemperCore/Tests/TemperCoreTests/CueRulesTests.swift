@@ -22,8 +22,9 @@ nonisolated struct CueRulesTests {
         makeEngine([prepare, firstWork, rest, secondWork, cooldown])
     }
 
-    private func makeEngine(_ phases: [Phase]) -> WorkoutEngine<ManualClock> {
-        WorkoutEngine(workout: Workout(phases: phases), clock: clock, audio: audio)
+    private func makeEngine(_ phases: [Phase], lowersOtherAudio: Bool = false) -> WorkoutEngine<ManualClock> {
+        WorkoutEngine(
+            workout: Workout(phases: phases), clock: clock, audio: audio, lowersOtherAudio: lowersOtherAudio)
     }
 
     private func at(_ seconds: Double) -> ManualClock.Instant {
@@ -75,6 +76,62 @@ nonisolated struct CueRulesTests {
         advance(to: 8.5)
         #expect(await calls.next() == .schedule(.work, at: at(10)))
         #expect(await audio.latestStarts == [at(11)])
+    }
+
+    // MARK: Lowering other audio
+
+    @Test func `With lowering on, the gongs leave other audio alone and Cooldown and "Workout complete" lower it`()
+        async
+    {
+        let engine = makeEngine([prepare, firstWork, rest, secondWork, cooldown], lowersOtherAudio: true)
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate)
+
+        for (seconds, cue) in [
+            (8.5, Cue.work), (38.5, .rest), (53.5, .work), (83.5, .cooldown), (143.5, .workoutComplete),
+        ] {
+            advance(to: seconds)
+            #expect(await calls.next() == .schedule(cue, at: at(seconds + 1.5)))
+            await audio.finishSpeaking()
+        }
+
+        #expect(await audio.lowerings == [false, false, false, true, true])
+    }
+
+    @Test(arguments: [true, false])
+    func `A gong that says an Exercise lowers other audio only with lowering on`(lowersOtherAudio: Bool) async {
+        let squats = Phase(kind: .work, duration: .seconds(30), round: 1, exercise: Exercise("Squats"))
+        let pushUps = Phase(kind: .work, duration: .seconds(30), round: 2, exercise: Exercise("Push-ups"))
+        let engine = makeEngine([squats, rest, pushUps], lowersOtherAudio: lowersOtherAudio)
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate)
+        #expect(await calls.next() == .schedule(.work, at: at(0)))
+
+        await audio.finishSpeaking()
+        advance(to: 28.5)
+        #expect(await calls.next() == .schedule(.rest, at: at(30)))
+        await audio.finishSpeaking()
+        advance(to: 43.5)
+        #expect(await calls.next() == .schedule(.work, at: at(45)))
+
+        #expect(await audio.lowerings == [lowersOtherAudio, lowersOtherAudio, false])
+    }
+
+    @Test func `With lowering off, no Cue lowers other audio`() async {
+        let engine = makeEngine([prepare, firstWork, rest, secondWork, cooldown])
+        var calls = audio.calls.makeAsyncIterator()
+        await engine.start()
+        #expect(await calls.next() == .activate)
+
+        advance(to: 83.5)
+        #expect(await calls.next() == .schedule(.cooldown, at: at(85)))
+        await audio.finishSpeaking()
+        advance(to: 143.5)
+        #expect(await calls.next() == .schedule(.workoutComplete, at: at(145)))
+
+        #expect(await audio.lowerings == [false, false])
     }
 
     // MARK: Exercises

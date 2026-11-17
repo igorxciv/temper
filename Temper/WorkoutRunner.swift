@@ -27,6 +27,8 @@ final class WorkoutRunner {
     @ObservationIgnored private var liveActivity: LiveActivityAdapter?
     /// Opens the Watch at each Start and keeps it in step with the Workout.
     @ObservationIgnored private let watch: WatchLink
+    /// Read at each Start.
+    @ObservationIgnored private let musicLowering: MusicLowering
 
     /// The UUID of the Workout last started, made at Start, until it ends.
     @ObservationIgnored private var workoutID: UUID?
@@ -36,8 +38,9 @@ final class WorkoutRunner {
 
     /// Rendering begins here, at launch, so the Cues are usually ready before the first Start. The Watch link is made
     /// here too, because HealthKit may launch the app in the background to hand over the Watch's session.
-    init(watch: WatchLink = WatchLink()) {
+    init(watch: WatchLink = WatchLink(), musicLowering: MusicLowering = MusicLowering()) {
         self.watch = watch
+        self.musicLowering = musicLowering
         cues.render()
         watch.tapped = { [weak self] command, tap in self?.apply(command, at: tap) }
         Task { await LiveActivityAdapter.endLeftovers() }
@@ -51,7 +54,8 @@ final class WorkoutRunner {
         self.workoutID = workoutID
         startDate = nil
         let audio = AudioAdapter(cues: cues)
-        let engine = WorkoutEngine(workout: workout, clock: ContinuousClock(), audio: audio)
+        let engine = WorkoutEngine(
+            workout: workout, clock: ContinuousClock(), audio: audio, lowersOtherAudio: musicLowering.isOn)
         self.engine = engine
         liveActivity = LiveActivityAdapter()
         cues.render(CueBank.sounds(for: workout))
