@@ -25,11 +25,6 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
         let exercise: Exercise?
         let deadline: Instant
         let token: CueToken
-
-        /// Every Cue speaks except a bare gong: a Work or Rest that says no Exercise.
-        var speaks: Bool {
-            exercise != nil || (cue != .work && cue != .rest)
-        }
     }
 
     private var timeline: Timeline
@@ -232,7 +227,7 @@ actor CueRules<EngineClock: Clock> where EngineClock.Duration == Duration {
             // Audio can take a while to start after this check, so it's told the latest start as well.
             try await audio.schedule(
                 armed.cue, saying: armed.exercise, at: armed.deadline, startingBy: latest,
-                lowersOtherAudio: lowersOtherAudio && armed.speaks, token: armed.token)
+                lowersOtherAudio: lowersOtherAudio && armed.cue.speaks(saying: armed.exercise), token: armed.token)
         } catch {
             guard armed.token == token else { return }
             session = .released

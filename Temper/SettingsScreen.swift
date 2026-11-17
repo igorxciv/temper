@@ -25,8 +25,10 @@ struct SettingsScreen: View {
             } header: {
                 Text("Sound").foregroundStyle(colors.secondary)
             } footer: {
-                Text("Other apps' audio dips while a Cue is spoken, and comes back up after. The gongs leave it alone.")
-                    .foregroundStyle(colors.secondary)
+                Text(
+                    "Other apps' audio dips while Temper speaks, and comes back up after. A gong on its own leaves it alone."
+                )
+                .foregroundStyle(colors.secondary)
             }
             AppleWatchSection(health: health, colors: colors)
             Section {

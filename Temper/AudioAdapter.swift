@@ -10,13 +10,14 @@ nonisolated enum AudioAdapterError: Error {
 }
 
 /// Carries out what the Cue rules ask for, using a `.playback` session that mixes with other audio, and an engine
-/// that renders zeros between Cues. It decides nothing. It reports what iOS does to the session, and makes only the
-/// changes that report describes: an engine stopped for a new route, or a new engine after a media-services reset.
+/// that renders zeros between Cues. It decides nothing about which Cues play, or when. It reports what iOS does to
+/// the session, and makes only the changes that report describes: an engine stopped for a new route, or a new engine
+/// after a media-services reset.
 ///
 /// A Cue the rules say lowers other audio adds `.duckOthers` to the live session, and it comes off once every such
-/// Cue has played or been cut. The session stays active throughout, because deactivating it between Cues would stop
-/// the engine that keeps the app running while locked. Changing the options posts a category change, which isn't
-/// taken for a new route.
+/// Cue has played or been cut, as `AudioOutput` promises. The session stays active throughout, because deactivating it
+/// between Cues would stop the engine that keeps the app running while locked. Changing the options posts a category
+/// change, which isn't taken for a new route.
 ///
 /// One adapter serves one Workout. All adapters share one queue and never suspend inside a call, so calls run
 /// strictly in the order they arrive, even a new Workout's activate right after the last one's deactivate.
@@ -53,7 +54,8 @@ actor AudioAdapter: AudioOutput {
     /// The Cues lowering other audio that haven't finished. Other audio stays lowered while any remain, because the
     /// next Cue is handed over while the one before is still speaking.
     private var loweringCues: Set<CueToken> = []
-    private var isLoweringOthers = false
+    /// Whether the session has `.duckOthers` on.
+    private var isOtherAudioLowered = false
     private var sessionObservers: [any NSObjectProtocol] = []
 
     init(cues: CueBank) {
@@ -73,23 +75,25 @@ actor AudioAdapter: AudioOutput {
         observeSessionIfNeeded()
         if !isActive {
             forgetLowering()
-            try session.setCategory(.playback, mode: .default, options: Self.mixing)
+            try setCategory(lowering: false)
             try session.setActive(true)
             isActive = true
         }
         try startAudio()
     }
 
+    /// Other audio is raised first, so a deactivate that fails can't leave it lowered.
     func deactivate() throws {
         stopAudio()
-        forgetLowering()
+        loweringCues = []
+        matchLowering()
         isActive = false
         try session.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    /// A Cue whose Exercise isn't rendered yet plays plain, so the Phase change is still heard. A Prepare's start
-    /// says only its Exercise, so then there's nothing to play: it ends at once, quietly, rather than as a failure
-    /// that would let go of the session.
+    /// A Cue whose Exercise isn't rendered yet plays plain, so the Phase change is still heard, and lowers other audio
+    /// only if it still speaks without its Exercise. A Prepare's start says only its Exercise, so then there's nothing
+    /// to play: it ends at once, quietly, rather than as a failure that would let go of the session.
     ///
     /// Other audio is lowered before the engine starts and the Cue is placed, in case the option change stops the
     /// engine, since starting it again would lose a Cue already placed.
@@ -101,14 +105,15 @@ actor AudioAdapter: AudioOutput {
         lowersOtherAudio: Bool,
         token: CueToken
     ) throws {
-        guard let buffer = cues.buffer(for: cue, saying: exercise) ?? cues.buffer(for: cue) else {
+        let whole = cues.buffer(for: cue, saying: exercise)
+        guard let buffer = whole ?? cues.buffer(for: cue) else {
             guard cue != .prepare else {
                 eventSender.yield(.cueFinished(token))
                 return
             }
             throw AudioAdapterError.cueNotRendered
         }
-        if lowersOtherAudio {
+        if lowersOtherAudio, whole != nil || cue.speaks(saying: nil) {
             lowerOtherAudio(for: token)
         }
         do {
@@ -122,7 +127,8 @@ actor AudioAdapter: AudioOutput {
     func cancel() throws {
         guard isGraphBuilt else { return }
         player.stop()
-        raiseOtherAudio()
+        loweringCues = []
+        matchLowering()
         if engine.isRunning {
             try player.playAudio()
         }
@@ -169,36 +175,37 @@ actor AudioAdapter: AudioOutput {
 
     // MARK: Lowering other audio
 
-    private static let mixing: AVAudioSession.CategoryOptions = [.mixWithOthers]
+    private func setCategory(lowering: Bool) throws {
+        try session.setCategory(
+            .playback, mode: .default, options: lowering ? [.mixWithOthers, .duckOthers] : [.mixWithOthers])
+    }
 
-    /// Best effort: a Cue that can't lower other audio still plays.
     private func lowerOtherAudio(for token: CueToken) {
         loweringCues.insert(token)
-        guard isActive, !isLoweringOthers else { return }
-        if (try? session.setCategory(.playback, mode: .default, options: Self.mixing.union(.duckOthers))) != nil {
-            isLoweringOthers = true
-        }
+        matchLowering()
     }
 
-    /// Raises other audio once the last Cue lowering it has finished. A token it doesn't hold belongs to a Cue that
-    /// didn't lower, or one already cut, so it changes nothing.
+    /// A token it doesn't hold belongs to a Cue that didn't lower, or one already cut, so it changes nothing. Once
+    /// other audio is raised, the engine is started again in case the option change stopped it, because it renders
+    /// the silence that keeps the app running while locked.
     private func stopLowering(for token: CueToken) {
-        guard loweringCues.remove(token) != nil, loweringCues.isEmpty else { return }
-        raiseOtherAudio()
+        guard loweringCues.remove(token) != nil, loweringCues.isEmpty, isActive else { return }
+        matchLowering()
+        try? startAudio()
     }
 
-    private func raiseOtherAudio() {
-        loweringCues = []
-        guard isLoweringOthers else { return }
-        if (try? session.setCategory(.playback, mode: .default, options: Self.mixing)) != nil {
-            isLoweringOthers = false
-        }
+    /// Lowers other audio while any Cue in `loweringCues` is unfinished, and raises it otherwise. Best effort: a Cue
+    /// that can't lower other audio still plays, and a failed raise is tried again by the next change.
+    private func matchLowering() {
+        let lowers = !loweringCues.isEmpty
+        guard isActive, lowers != isOtherAudioLowered, (try? setCategory(lowering: lowers)) != nil else { return }
+        isOtherAudioLowered = lowers
     }
 
     /// For a session that's inactive or about to be set up again, which no longer lowers anything.
     private func forgetLowering() {
         loweringCues = []
-        isLoweringOthers = false
+        isOtherAudioLowered = false
     }
 
     // MARK: What iOS does to the session
