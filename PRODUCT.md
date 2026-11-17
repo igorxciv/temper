@@ -42,7 +42,7 @@ A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and 
 
 ## Evidence on Hand
 
-No marketing assets, testimonials or store listing exist yet. Do not invent them.
+The App Store listing's text is in `AppStore/`. No other marketing assets and no testimonials exist yet. Do not invent them.
 
 ## Product Principles
 

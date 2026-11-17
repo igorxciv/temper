@@ -1,15 +1,18 @@
-.PHONY: check lint identifiers test test-app
+.PHONY: check lint identifiers listing test test-app
 
 SWIFT := $(shell git ls-files -co --exclude-standard -- '*.swift' 2>/dev/null)
 OLD_APIS := \b(NavigationView|ObservableObject|StateObject|ObservedObject|EnvironmentObject)\b|\.(navigationBarTitle|navigationBarItems|navigationBarHidden|foregroundColor|cornerRadius|edgesIgnoringSafeArea|actionSheet|tabItem|autocapitalization)\b|\.accentColor\(|@Published|Timer\.publish|@State (var|let)\b
 
-check: identifiers lint test
+check: identifiers lint listing test
 
 test:
 	swift test --package-path Packages/TemperCore -Xswiftc -warnings-as-errors
 
 test-app:
 	xcodebuild -scheme Temper -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -quiet -only-test-configuration Default test
+
+listing:
+	@AppStore/check.sh
 
 lint:
 ifneq ($(strip $(SWIFT)),)
