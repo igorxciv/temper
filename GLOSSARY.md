@@ -85,7 +85,7 @@ The sound announcing a Phase change, the end of the Workout, that Rest is about 
 _Avoid_: Alert, notification, beep
 
 **Round Sound**:
-The sound that starts and ends every Work, and that Cooldown, the end of the Workout and an Exercise are spoken over: a gong, a chime or a beep, as the owner picks in Settings. It's the gong until they pick another.
+The sound that starts and ends every Work, and that Cooldown, the end of the Workout and an Exercise are spoken over: a gong, chime, beep, bowl, marimba or drum, as the owner picks in Settings. It's the gong until they pick another.
 _Avoid_: Bell, gong, tone
 
 **Countdown**:
