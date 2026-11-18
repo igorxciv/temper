@@ -7,10 +7,19 @@
     /// `-debugStart intervals|stopwatch|openRounds|openRoundsRest|planComplete|roundsComplete` starts a Workout:
     /// `openRoundsRest` ends its first Work after 4 seconds, so it shows the Rest after an open Work, and the last two
     /// are short ones that end on their complete screens. It returns the Plan of the Workout it started, for the complete screen.
+    /// `-debugTipThanks small|medium|large` opens Settings with the tip jar showing that tip's thank-you celebration.
     @MainActor
     enum DebugLaunch {
+        /// The celebration `-debugTipThanks` asks for, if any.
+        static var tipCelebration: TipCelebration? {
+            UserDefaults.standard.string(forKey: "debugTipThanks").map { TipCelebration(productID: "tip.\($0)") }
+        }
+
         static func apply(runner: WorkoutRunner, remembered: RememberedValues) -> PlanBoard? {
             let defaults = UserDefaults.standard
+            if tipCelebration != nil {
+                remembered.selectedTab = .settings
+            }
             switch defaults.string(forKey: "debugTab") {
             case "describe"?: remembered.selectedTab = .describe
             case "settings"?: remembered.selectedTab = .settings

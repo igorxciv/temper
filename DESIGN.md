@@ -161,7 +161,7 @@ Scope: this records the iPhone app. The Apple Watch app and the Live Activity dr
 - Each Phase has a field, ring, track and text color; a Phase is recognised by its field from across a room.
 - Setup labels are hollow words in the Phase's ring color; digits are large, semibold and tabular.
 - Liquid Glass for buttons: prominent amber for the primary action, plain glass for the running controls.
-- One motion: the complete ring draws closed once, with a success haptic when it closes.
+- Two motions: the complete ring draws closed once, with a success haptic when it closes, and the tip jar's thank-you ring does the same in the four Phase colors before it bursts into confetti.
 
 ## Colors
 
@@ -290,6 +290,9 @@ The running screen's ring: a track circle in the Phase's track and a fill in its
 ### Complete Ring (signature)
 The running ring, run full. It draws closed once as the complete screen appears, in 0.8 s ease-out, in the last Phase's ring color over its track, and the success haptic plays when the animation completes. With Reduce Motion it is shown closed and the haptic plays at once. If no last Phase is known (rare: the app falls back to the Workout's final Phase), the ring is secondary gray over the separator, never amber. Both complete screens use it around the total. The total sits inside; under it, the recap reads "8 × 0:40 Work · 0:20 Rest" with each Phase in its ring color and the "×" and "·" in secondary gray, and nothing for a Workout without a set number of Rounds. Then one Health line in secondary gray, with a heart symbol in warm white only when the Workout is going to Health ("Saving to Apple Health.", or "Saving to Apple Health, without heart rate." when workouts are allowed but heart rate isn't).
 
+### Tip Thanks
+What the tip jar sheet turns into when a tip goes through while it's open. A ring 72 to 150 pt wide, 14 pt stroke over an ink separator track, draws closed in 1 s ease-in-out as four quarter arcs in Phase order (Prepare, Work, Rest, Cooldown), each in its ring color with round caps and a small gap between them. As it closes the success haptic plays, a heart in Work's ring color pops in with a bouncy spring and keeps breathing, and "Thank you!" (Title 2 bold, warm white) with "Your tip keeps Temper on the App Store." (Body, secondary gray) fades up under it. Then confetti bursts out of the ring and falls behind the ring and the words: dots, capsules, small rings and the odd heart in the four Phase ring colors and warm white, never amber. A bigger tip gets more: a small tip one burst from the ring; a medium tip adds cannons from the sheet's bottom corners; a large tip adds a second burst from the ring, with a soft haptic for each later burst. The confetti is gone within about 4.5 s and the frame stops redrawing. With Reduce Motion the ring is shown closed round the heart, the words are there, the haptic plays at once and nothing is thrown.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -298,7 +301,7 @@ The running ring, run full. It draws closed once as the complete screen appears,
 - **Do** use tabular figures for every number, and fixed sizes that scale down for anything read at a distance.
 - **Do** give every new color an Increase Contrast value in `Shared/Ink.swift`.
 - **Do** cap Dynamic Type on bottom-bar buttons and running controls at XXX Large so they can't crowd the iPhone SE.
-- **Do** show the complete ring closed, without animation, under Reduce Motion.
+- **Do** show the complete ring and the tip thank-you ring closed, without animation or confetti, under Reduce Motion.
 
 ### Don't:
 - **Don't** color Rounds, a label or a decoration amber.
