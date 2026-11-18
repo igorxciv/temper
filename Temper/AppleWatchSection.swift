@@ -14,16 +14,20 @@ struct AppleWatchSection: View {
             Group {
                 switch health.row {
                 case .allowHeartRate:
-                    Button("Allow Heart Rate", action: requestPermission)
-                        .foregroundStyle(colors.accent)
-                case .allowed:
-                    LabeledContent("Heart Rate") {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(colors.text)
-                            .accessibilityHidden(true)
+                    // The whole row asks, with the action in amber where a status sits once it's answered.
+                    Button(action: requestPermission) {
+                        LabeledContent {
+                            Text("Allow").foregroundStyle(colors.accent)
+                        } label: {
+                            Text("Heart Rate").foregroundStyle(colors.text)
+                        }
+                        .contentShape(.rect)
                     }
+                    .accessibilityLabel("Allow Heart Rate")
+                case .allowed:
+                    status("Allowed")
                 case .notAllowed:
-                    Text("Not allowed")
+                    status("Not Allowed")
                 case nil:
                     EmptyView()
                 }
@@ -38,6 +42,15 @@ struct AppleWatchSection: View {
             if scenePhase == .active {
                 await health.refreshStatus()
             }
+        }
+    }
+
+    /// The row once Health has its answer: what was decided, as a status rather than something to tap.
+    private func status(_ value: String) -> some View {
+        LabeledContent {
+            Text(value).foregroundStyle(colors.secondary)
+        } label: {
+            Text("Heart Rate")
         }
     }
 

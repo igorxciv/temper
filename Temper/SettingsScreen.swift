@@ -8,7 +8,6 @@ struct SettingsScreen: View {
     let roundSound: RoundSoundSetting
     let tipJar: TipJar
 
-    @State private var preview = RoundSoundPreview()
     @Environment(\.colorSchemeContrast) private var contrast
 
     private var version: String {
@@ -24,45 +23,40 @@ struct SettingsScreen: View {
 
         Form {
             Section {
+                NavigationLink {
+                    RoundSoundScreen(roundSound: roundSound)
+                } label: {
+                    LabeledContent {
+                        Text(roundSound.sound.name).foregroundStyle(colors.secondary)
+                    } label: {
+                        Text("Round Sound")
+                    }
+                }
+                Toggle("Lower music when Temper speaks", isOn: $musicLowering.isOn)
+            } header: {
+                Text("Sound").foregroundStyle(colors.secondary)
+            } footer: {
+                Text("Other apps' audio dips while Temper speaks, then comes back up.")
+                    .foregroundStyle(colors.secondary)
+            }
+            .listRowBackground(colors.raised)
+            Section {
                 Toggle("Set times to the second", isOn: $secondsWheel.offersEverySecond)
                     .listRowBackground(colors.raised)
             } header: {
                 Text("Setup").foregroundStyle(colors.secondary)
             } footer: {
-                Text("The seconds wheel offers every second instead of every 5. Times already set keep their seconds.")
+                Text("The seconds wheel steps by 1 instead of 5.")
                     .foregroundStyle(colors.secondary)
-            }
-            Section {
-                Toggle("Lower music when Temper speaks", isOn: $musicLowering.isOn)
-                    .listRowBackground(colors.raised)
-            } header: {
-                Text("Sound").foregroundStyle(colors.secondary)
-            } footer: {
-                Text(
-                    "Other apps' audio dips while Temper speaks, and comes back up after. A round sound on its own leaves it alone."
-                )
-                .foregroundStyle(colors.secondary)
-            }
-            Section {
-                ForEach(RoundSound.allCases, id: \.self) { sound in
-                    RoundSoundRow(sound: sound, isChosen: sound == roundSound.sound, colors: colors) {
-                        roundSound.sound = sound
-                        preview.play(sound)
-                    }
-                }
-                .listRowBackground(colors.raised)
-            } header: {
-                Text("Round Sound").foregroundStyle(colors.secondary)
-            } footer: {
-                Text(
-                    "Starts and ends every round, and plays under “Cooldown” and “Workout complete”. Tap one to hear it."
-                )
-                .foregroundStyle(colors.secondary)
             }
             AppleWatchSection(health: health, colors: colors)
             TipJarSection(tipJar: tipJar, colors: colors)
             Section {
-                LabeledContent("Version", value: version)
+                LabeledContent {
+                    Text(version).foregroundStyle(colors.secondary)
+                } label: {
+                    Text("Version")
+                }
                 if let privacyPolicy = SupportLinks.privacyPolicy {
                     Link(destination: privacyPolicy) {
                         LinkLabel(title: "Privacy Policy", colors: colors)
@@ -79,7 +73,7 @@ struct SettingsScreen: View {
                 Text("About").foregroundStyle(colors.secondary)
             } footer: {
                 // A footer rather than a row, since a row of its own read as something to tap.
-                Text("Temper keeps everything on this device, and saves nothing to Apple Health.")
+                Text("Temper keeps everything on this device.")
                     .foregroundStyle(colors.secondary)
             }
             .listRowBackground(colors.raised)
@@ -89,33 +83,6 @@ struct SettingsScreen: View {
         .foregroundStyle(colors.text)
         .background(colors.background.ignoresSafeArea())
         .navigationTitle("Settings")
-    }
-}
-
-/// A Round Sound to pick, ticked if it's the one chosen. Tapping it picks it and plays it, even if it's already chosen,
-/// so the owner can hear it again.
-private struct RoundSoundRow: View {
-    let sound: RoundSound
-    let isChosen: Bool
-    let colors: InkColors
-    let choose: () -> Void
-
-    var body: some View {
-        Button(action: choose) {
-            LabeledContent {
-                if isChosen {
-                    Image(systemName: "checkmark")
-                        .fontWeight(.semibold)
-                        .foregroundStyle(colors.accent)
-                        .accessibilityHidden(true)
-                }
-            } label: {
-                Text(sound.name).foregroundStyle(colors.text)
-            }
-            .contentShape(.rect)
-        }
-        .accessibilityAddTraits(isChosen ? .isSelected : [])
-        .accessibilityHint("Plays the sound")
     }
 }
 

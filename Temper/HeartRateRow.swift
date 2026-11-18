@@ -1,10 +1,11 @@
 /// The one row in Settings' Apple Watch section.
 enum HeartRateRow {
-    /// "Allow Heart Rate": some of the set hasn't been asked for yet.
+    /// "Heart Rate", "Allow": some of the set hasn't been asked for yet.
     case allowHeartRate
-    /// "Heart Rate" with a checkmark: nothing is left to ask.
+    /// "Heart Rate", "Allowed": nothing is left to ask.
     case allowed
-    /// "Not allowed": the owner said no to workouts, which the Watch's session needs, or the device has no Health.
+    /// "Heart Rate", "Not Allowed": the owner said no to workouts, which the Watch's session needs, or the device has
+    /// no Health.
     case notAllowed
 
     init(writeStatus: HealthWriteStatus, requestStatus: HealthRequestStatus) {
