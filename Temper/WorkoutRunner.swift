@@ -23,12 +23,14 @@ final class WorkoutRunner {
     }
 
     @ObservationIgnored private var engine: WorkoutEngine<ContinuousClock>?
-    @ObservationIgnored private let cues = CueBank()
+    @ObservationIgnored private let cues: CueBank
     @ObservationIgnored private var liveActivity: LiveActivityAdapter?
     /// Opens the Watch at each Start and keeps it in step with the Workout.
     @ObservationIgnored private let watch: WatchLink
     /// Read at each Start.
     @ObservationIgnored private let musicLowering: MusicLowering
+    /// Read at each Start.
+    @ObservationIgnored private let roundSound: RoundSoundSetting
 
     /// The UUID of the Workout last started, made at Start, until it ends.
     @ObservationIgnored private var workoutID: UUID?
@@ -38,9 +40,14 @@ final class WorkoutRunner {
 
     /// Rendering begins here, at launch, so the Cues are usually ready before the first Start. The Watch link is made
     /// here too, because HealthKit may launch the app in the background to hand over the Watch's session.
-    init(watch: WatchLink = WatchLink(), musicLowering: MusicLowering = MusicLowering()) {
+    init(
+        watch: WatchLink = WatchLink(), musicLowering: MusicLowering = MusicLowering(),
+        roundSound: RoundSoundSetting = RoundSoundSetting()
+    ) {
         self.watch = watch
         self.musicLowering = musicLowering
+        self.roundSound = roundSound
+        cues = CueBank(roundSound: roundSound.sound)
         cues.render()
         watch.tapped = { [weak self] command, tap in self?.apply(command, at: tap) }
         Task { await LiveActivityAdapter.endLeftovers() }
@@ -58,6 +65,7 @@ final class WorkoutRunner {
             workout: workout, clock: ContinuousClock(), audio: audio, lowersOtherAudio: musicLowering.isOn)
         self.engine = engine
         liveActivity = LiveActivityAdapter()
+        cues.use(roundSound.sound)
         cues.render(CueBank.sounds(for: workout))
         Task { [cues] in
             await cues.waitForRendering(atMost: renderingWaitLimit)
@@ -72,6 +80,11 @@ final class WorkoutRunner {
                 show(snapshot)
             }
         }
+    }
+
+    /// Renders the Cues for a Round Sound just picked in Settings, so the next Start doesn't wait for them.
+    func roundSoundChanged() {
+        cues.use(roundSound.sound)
     }
 
     func pause() {

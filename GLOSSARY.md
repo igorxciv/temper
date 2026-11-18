@@ -61,7 +61,7 @@ The Phase in which the exercise is performed: one per Round in Intervals and Ope
 _Avoid_: Work round, active time
 
 **Exercise**:
-What the owner calls the activity of a Work in a Plan, such as Squats. A Work may have none. The Phase before a named Work shows it as next and, if that Phase is timed and has room, says it after its own Cue. Otherwise the Work says it over its gong. The Work shows it in place of "Work".
+What the owner calls the activity of a Work in a Plan, such as Squats. A Work may have none. The Phase before a named Work shows it as next and, if that Phase is timed and has room, says it after its own Cue. Otherwise the Work says it over its Round Sound. The Work shows it in place of "Work".
 _Avoid_: Name, label, move, title
 
 **Rest**:
@@ -81,8 +81,12 @@ On Apple Watch, stopping following a Workout while the iPhone is out of reach, c
 _Avoid_: Leave, disconnect, Stop
 
 **Cue**:
-The sound announcing a Phase change, the end of the Workout, that Rest is about to end, that a Phase is about to reach its set length, that a Stopwatch's Work has reached it, or the next Exercise. Work starts and ends on a boxing gong. Cooldown and the end of the Workout add their name, spoken over the gong, and the other Cues are spoken. Apple Watch can also mark it with a tap on the wrist.
+The sound announcing a Phase change, the end of the Workout, that Rest is about to end, that a Phase is about to reach its set length, that a Stopwatch's Work has reached it, or the next Exercise. Work starts and ends on the Round Sound. Cooldown and the end of the Workout add their name, spoken over the Round Sound, and the other Cues are spoken. Apple Watch can also mark it with a tap on the wrist.
 _Avoid_: Alert, notification, beep
+
+**Round Sound**:
+The sound that starts and ends every Work, and that Cooldown, the end of the Workout and an Exercise are spoken over: a gong, a chime or a beep, as the owner picks in Settings. It's the gong until they pick another.
+_Avoid_: Bell, gong, tone
 
 **Countdown**:
 The Cue that counts "5, 4, 3, 2, 1" aloud, one number a second, over the last five seconds before a Phase reaches its set length. A Phase too short to fit it after its own Cue has none, and Apple Watch doesn't tap for it.

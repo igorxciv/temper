@@ -375,7 +375,9 @@ nonisolated struct TimelineTests {
         #expect(cue(at: 60, in: timeline)?.exercise == nil)
     }
 
-    @Test func `A named Work after another Work, or after an open Rest, says its Exercise over its own gong`() throws {
+    @Test func `A named Work after another Work, or after an open Rest, says its Exercise over its own Round Sound`()
+        throws
+    {
         let openRest = Phase(kind: .rest, length: .open)
         let pushUps = Phase(kind: .work, duration: .seconds(30), round: 2, exercise: Exercise("Push-ups"))
         let timeline = try #require(

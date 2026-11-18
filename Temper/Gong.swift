@@ -5,14 +5,13 @@ import AVFAudio
 nonisolated enum Gong {
     /// The bell's lowest partial, in Hz.
     private static let fundamental = 820.0
-    /// Each partial's frequency as a multiple of the fundamental, its starting level, and the seconds it takes to
-    /// fall to 1/e. The second sits just above the fundamental, so the two beat the way a real bell shimmers.
-    private static let partials: [(ratio: Double, level: Double, decay: Double)] = [
-        (1, 1, 0.55),
-        (1.004, 0.6, 0.5),
-        (2.76, 0.5, 0.3),
-        (5.4, 0.3, 0.15),
-        (8.93, 0.15, 0.07),
+    /// The second partial sits just above the fundamental, so the two beat the way a real bell shimmers.
+    private static let partials = [
+        Partial(ratio: 1, level: 1, decay: 0.55),
+        Partial(ratio: 1.004, level: 0.6, decay: 0.5),
+        Partial(ratio: 2.76, level: 0.5, decay: 0.3),
+        Partial(ratio: 5.4, level: 0.3, decay: 0.15),
+        Partial(ratio: 8.93, level: 0.15, decay: 0.07),
     ]
     /// The hammer's click, a burst of noise this loud next to the partials, falling to 1/e in `clickDecay`.
     private static let clickLevel = 0.3
@@ -23,65 +22,16 @@ nonisolated enum Gong {
     private static let length = 1.6
     private static let fadeOut = 0.25
     private static let peak: Float = 0.8
-    /// How far into the strike any words start, once the clang has rung out.
-    private static let wordsOffset = 0.45
 
     /// The strike alone, in `format`, which has to be mono floats.
     static func strike(in format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        let rate = format.sampleRate
-        let frames = AVAudioFrameCount(length * rate)
-        guard format.channelCount == 1, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
-            let samples = buffer.floatChannelData?[0]
-        else { return nil }
-        buffer.frameLength = frames
-
         // A fixed seed, so the click sounds the same every time.
         var noise = SplitMix(seed: 0x6F6E_67)
-        var loudest: Float = 0
-        for frame in 0..<Int(frames) {
-            let time = Double(frame) / rate
-            let ring = partials.reduce(0.0) { sum, partial in
-                sum + partial.level * exp(-time / partial.decay)
-                    * sin(2 * .pi * fundamental * partial.ratio * time)
-            }
+        return RoundSound.synthesize(in: format, seconds: length, peak: peak) { time in
+            let ring = partials.reduce(0.0) { $0 + $1.value(at: time, over: fundamental) }
             let click = clickLevel * exp(-time / clickDecay) * noise.nextSigned()
-            let envelope = min(1, time / attack) * min(1, (length - time) / fadeOut)
-            let sample = Float((ring + click) * envelope)
-            samples[frame] = sample
-            loudest = max(loudest, abs(sample))
+            return (ring + click) * min(1, time / attack) * min(1, (length - time) / fadeOut)
         }
-        guard loudest > 0 else { return nil }
-        for frame in 0..<Int(frames) {
-            samples[frame] *= peak / loudest
-        }
-        return buffer
-    }
-
-    /// The strike with `words` coming in over its tail, in their format. Too loud a sum is scaled down to fit.
-    static func strike(under words: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
-        guard let gong = strike(in: words.format), let gongSamples = gong.floatChannelData?[0],
-            let wordSamples = words.floatChannelData?[0]
-        else { return nil }
-        let offset = Int(wordsOffset * words.format.sampleRate)
-        let frames = max(Int(gong.frameLength), offset + Int(words.frameLength))
-        guard let mixed = AVAudioPCMBuffer(pcmFormat: words.format, frameCapacity: AVAudioFrameCount(frames)),
-            let samples = mixed.floatChannelData?[0]
-        else { return nil }
-        mixed.frameLength = AVAudioFrameCount(frames)
-
-        var loudest: Float = 0
-        for frame in 0..<frames {
-            let ring = frame < Int(gong.frameLength) ? gongSamples[frame] : 0
-            let word = (offset..<offset + Int(words.frameLength)).contains(frame) ? wordSamples[frame - offset] : 0
-            samples[frame] = ring + word
-            loudest = max(loudest, abs(ring + word))
-        }
-        if loudest > 1 {
-            for frame in 0..<frames {
-                samples[frame] /= loudest
-            }
-        }
-        return mixed
     }
 }
 
