@@ -168,7 +168,7 @@ Scope: this records the iPhone app. The Apple Watch app and the Live Activity dr
 A blue-black ink with a warm white, one amber, and four Phase sets that each run from a deep field to a light ring.
 
 ### Primary
-- **Amber** (amber): the action to take on this screen. The fill of Start, Close, Confirm and Make Plan; the selected tab; text buttons that ask for something (Allow Heart Rate); the label and symbol of Make New Plan.
+- **Amber** (amber): the action to take on this screen. The fill of Start, Close, Confirm and Make Plan; the selected tab; a row's value when the row asks for something (Allow on Settings' Heart Rate row); the label and symbol of Make New Plan.
 - **On Amber** (on-amber): the label on an amber fill.
 
 ### Secondary (the Phase sets)
@@ -267,7 +267,7 @@ Round, everywhere. Buttons are capsules, as Liquid Glass draws them; Stop is a 7
 
 ### Lists
 - **Style:** native grouped forms and lists on the ink ground (`scrollContentBackground` hidden), rows in ink raised, row text in warm white, headers and footers in secondary gray.
-- **Used by:** Settings, Describe, Open Rounds' complete screen, the Preset sheets. A footer, not a row, holds anything that isn't tappable (the About line).
+- **Used by:** Settings, Describe, Open Rounds' complete screen, the Preset sheets. A footer, not a row, holds anything that isn't tappable (the About line). A row that states something shows it as a secondary gray value at the trailing edge (Version, Round Sound, Heart Rate's Allowed); a choice of more than a few options gets a screen of its own, as Round Sound does, so Settings stays one short page.
 
 ### Inputs / Fields
 - **Text field:** a native field in an ink raised row, warm white text, secondary gray prompt. Describe's field grows from 3 to 8 lines.

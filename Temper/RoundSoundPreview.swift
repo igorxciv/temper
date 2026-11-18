@@ -1,7 +1,8 @@
 import AVFAudio
 
-/// Plays a Round Sound once in Settings, so the owner hears what they pick. Like the Cues, it mixes with other audio
-/// and plays on silent. Settings isn't on screen during a Workout, so it never meets the Workout's audio.
+/// Plays a Round Sound once on Settings' Round Sound screen, so the owner hears what they pick. Like the Cues, it mixes
+/// with other audio and plays on silent. Settings isn't on screen during a Workout, so it never meets the Workout's
+/// audio.
 ///
 /// Best effort: a sound that can't play leaves the choice made all the same.
 final class RoundSoundPreview {
@@ -11,7 +12,7 @@ final class RoundSoundPreview {
     }
 
     private let session = AVAudioSession.sharedInstance()
-    /// Built at the first play, since SwiftUI makes a new preview each time it remakes Settings and keeps only one.
+    /// Built at the first play, since SwiftUI makes a new preview each time it remakes the screen and keeps only one.
     private var graph: Graph?
     /// Counts the plays, so the end of one that's been cut short doesn't stop the one that replaced it.
     private var plays = 0
