@@ -19,6 +19,8 @@
          <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "AA0000000000000000000010" BuildableName = "Temper.app" BlueprintName = "Temper" ReferencedContainer = "container:Temper.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference identifier = "../../TemperTests/Temper.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction buildConfiguration = "Release" shouldUseLaunchSchemeArgsEnv = "YES" savedToolIdentifier = "" useCustomWorkingDirectory = "NO" debugDocumentVersioning = "YES">
    </ProfileAction>

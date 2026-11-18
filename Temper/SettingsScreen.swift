@@ -4,6 +4,7 @@ import UIKit
 struct SettingsScreen: View {
     let health: HealthAccess
     @Bindable var musicLowering: MusicLowering
+    let tipJar: TipJar
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -31,6 +32,7 @@ struct SettingsScreen: View {
                 .foregroundStyle(colors.secondary)
             }
             AppleWatchSection(health: health, colors: colors)
+            TipJarSection(tipJar: tipJar, colors: colors)
             Section {
                 LabeledContent("Version", value: version)
                 if let privacyPolicy = SupportLinks.privacyPolicy {
