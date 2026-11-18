@@ -15,7 +15,7 @@ public nonisolated enum Cue: String, Codable, Equatable, Sendable {
     /// starts silently.
     case prepare
 
-    /// Whether any of it is spoken: every Cue but a bare gong, which is a Work or Rest that says no Exercise.
+    /// Whether any of it is spoken: every Cue but a bare Round Sound, which is a Work or Rest that says no Exercise.
     public func speaks(saying exercise: Exercise?) -> Bool {
         exercise != nil || (self != .work && self != .rest)
     }
@@ -37,7 +37,7 @@ private nonisolated let restWarning = Duration.seconds(10)
 private nonisolated let shortestWarnedRest = Duration.seconds(20)
 /// How long before a Phase reaches its set length the Countdown is due.
 private nonisolated let countdownLength = Duration.seconds(5)
-/// How long after a Phase's own Cue the Countdown can start at the earliest. That Cue, spoken or the 1.6 s gong,
+/// How long after a Phase's own Cue the Countdown can start at the earliest. That Cue, spoken or a Round Sound of at most 1.6 s,
 /// finishes well within this time, so a Cue never starts while the one before plays.
 private nonisolated let countdownRoom = Duration.seconds(5)
 /// A Done this soon after the last one is the second tap of a double tap. With a Rest of zero, the next Round's open
@@ -48,7 +48,7 @@ private nonisolated let doubleTapLimit = Duration.seconds(1)
 public nonisolated struct UpcomingCue: Equatable, Sendable {
     public let cue: Cue
     public let due: Duration
-    /// The Exercise said with it, if any: a named Work's own, said over its gong, or the next Work's, said after
+    /// The Exercise said with it, if any: a named Work's own, said over its Round Sound, or the next Work's, said after
     /// the Cue of the Phase before it.
     public let exercise: Exercise?
 
@@ -77,7 +77,7 @@ public nonisolated struct UpcomingCue: Equatable, Sendable {
 ///
 /// A timed Phase before a named Work says that Work's Exercise is next, after its own Cue, if it has
 /// `countdownRoom` for it before its Countdown, or before its end if it has none. Otherwise the Work says its
-/// Exercise over its own gong, as it does after another Work, after an open Phase, or at the start.
+/// Exercise over its own Round Sound, as it does after another Work, after an open Phase, or at the start.
 public nonisolated struct Timeline: Sendable {
     /// Where the Workout is at one active time.
     public struct Position: Equatable, Sendable {

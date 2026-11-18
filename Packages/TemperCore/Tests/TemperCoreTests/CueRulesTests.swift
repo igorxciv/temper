@@ -80,7 +80,7 @@ nonisolated struct CueRulesTests {
 
     // MARK: Lowering other audio
 
-    @Test func `With lowering on, the gongs leave other audio alone and Cooldown and "Workout complete" lower it`()
+    @Test func `With lowering on, Cooldown and "Workout complete" lower other audio and bare Round Sounds don't`()
         async
     {
         let engine = makeEngine([prepare, firstWork, rest, secondWork, cooldown], lowersOtherAudio: true)
@@ -100,7 +100,7 @@ nonisolated struct CueRulesTests {
     }
 
     @Test(arguments: [true, false])
-    func `A gong that says an Exercise lowers other audio only with lowering on`(lowersOtherAudio: Bool) async {
+    func `A Round Sound that says an Exercise lowers other audio only with lowering on`(lowersOtherAudio: Bool) async {
         let squats = Phase(kind: .work, duration: .seconds(30), round: 1, exercise: Exercise("Squats"))
         let pushUps = Phase(kind: .work, duration: .seconds(30), round: 2, exercise: Exercise("Push-ups"))
         let engine = makeEngine([squats, rest, pushUps], lowersOtherAudio: lowersOtherAudio)

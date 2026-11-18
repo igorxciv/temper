@@ -30,7 +30,7 @@ public actor WorkoutEngine<EngineClock: Clock> where EngineClock.Duration == Dur
     private var latest: Snapshot?
     private var wake: Task<Void, Never>?
 
-    /// With `lowersOtherAudio`, other apps' audio is lowered while a Cue speaks, and left alone for a bare gong.
+    /// With `lowersOtherAudio`, other apps' audio is lowered while a Cue speaks, and left alone for a bare Round Sound.
     public init(
         workout: Workout, clock: EngineClock, audio: any AudioOutput<Instant>, lowersOtherAudio: Bool = false
     ) {
