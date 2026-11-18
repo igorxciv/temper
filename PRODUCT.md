@@ -31,7 +31,7 @@ A Workout is a Plan of Blocks, not a fixed timer type. Intervals, Stopwatch and 
 
 - Vocabulary is fixed by `GLOSSARY.md`: Workout, Workout Type, Plan, Block, Preset, Phase (Prepare, Work, Rest, Cooldown), Open, Done, Round, Pause, Cue, Zone.
 - iOS 27, SwiftUI, Liquid Glass. No network access and no third-party packages; everything stays on the device. The one exception is Settings' tip jar, whose StoreKit purchases go through Apple, not to Temper.
-- Times run 0:00 to 30:00 in 5-second steps; Rounds 1 to 99.
+- Times run 0:00 to 30:00 in 5-second steps, or 1-second steps if the owner turns them on in Settings; Rounds 1 to 99.
 - Timing and Phase logic lives in `Packages/TemperCore`; screens adapt to it rather than the other way round.
 - The Watch app and Live Activity follow the iPhone's design in a later round.
 

@@ -22,15 +22,25 @@ public nonisolated enum WorkoutValue: CaseIterable, Hashable, Identifiable, Send
     /// What the value sheet's wheels offer: one wheel of Rounds, or two wheels of minutes and seconds for a time.
     public static let roundChoices = Array(1...99)
     public static let minuteChoices = Array(0...30)
-    public static let secondChoices = Array(stride(from: 0, to: 60, by: 5))
 
-    /// The nearest amount this value allows. A time stops at 30:00 because a locked iPhone has been seen to stay
-    /// alive through 30 minutes of silence between Cues, and no longer.
+    /// The seconds wheel's choices: every second if the owner asked for them in Settings, or else every 5 seconds.
+    /// The seconds of `amount` are offered either way, so a time set to the second before the owner went back to
+    /// steps of 5 opens as it is, and stays so unless the wheel is turned.
+    public static func secondChoices(everySecond: Bool, keeping amount: Int) -> [Int] {
+        let step = everySecond ? 1 : 5
+        let kept = (amount % 60 + 60) % 60
+        let choices = Array(stride(from: 0, to: 60, by: step))
+        return choices.contains(kept) ? choices : (choices + [kept]).sorted()
+    }
+
+    /// The nearest amount this value allows. A time is whole seconds, whichever steps the wheel offers, so a Preset
+    /// keeps its seconds when the owner changes the steps. A time stops at 30:00 because a locked iPhone has been
+    /// seen to stay alive through 30 minutes of silence between Cues, and no longer.
     public func clamped(_ amount: Int) -> Int {
         switch self {
         case .rounds: min(max(amount, 1), 99)
-        case .work: min(max(onStep(amount), 5), 1800)
-        case .prepare, .rest, .cooldown: min(max(onStep(amount), 0), 1800)
+        case .work: min(max(amount, 5), 1800)
+        case .prepare, .rest, .cooldown: min(max(amount, 0), 1800)
         }
     }
 
@@ -45,10 +55,6 @@ public nonisolated enum WorkoutValue: CaseIterable, Hashable, Identifiable, Send
         case .rounds: amount == WorkoutType.roundsUntilStop ? "∞" : "\(amount)"
         case .prepare, .work, .rest, .cooldown: amount == 0 ? "Off" : Duration.seconds(amount).clockText
         }
-    }
-
-    private func onStep(_ seconds: Int) -> Int {
-        seconds - seconds % 5
     }
 }
 

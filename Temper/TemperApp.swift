@@ -7,6 +7,7 @@ struct TemperApp: App {
     @State private var remembered = RememberedValues()
     @State private var health = HealthAccess()
     @State private var musicLowering: MusicLowering
+    @State private var secondsWheel = SecondsWheel()
     @State private var tipJar = TipJar()
 
     init() {
@@ -22,7 +23,8 @@ struct TemperApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(
-                runner: runner, remembered: remembered, health: health, musicLowering: musicLowering, tipJar: tipJar)
+                runner: runner, remembered: remembered, health: health, musicLowering: musicLowering,
+                secondsWheel: secondsWheel, tipJar: tipJar)
         }
     }
 }
@@ -35,6 +37,7 @@ struct RootView: View {
     @Bindable var remembered: RememberedValues
     let health: HealthAccess
     let musicLowering: MusicLowering
+    let secondsWheel: SecondsWheel
     let tipJar: TipJar
 
     /// The Plan the Workout was started from, for the complete screen's recap, or `nil` if it isn't known, as after a
@@ -79,7 +82,9 @@ struct RootView: View {
                             value: RootTab.workoutType(workoutType)
                         ) {
                             NavigationStack {
-                                SetupScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
+                                SetupScreen(
+                                    workoutType: workoutType, remembered: remembered, secondsWheel: secondsWheel
+                                ) { workoutType, workout in
                                     ranBoard = PlanBoard(workoutType: workoutType, settings: remembered[workoutType])
                                     runner.start(workout, runningAs: ActivityType(workoutType))
                                 }
@@ -96,7 +101,9 @@ struct RootView: View {
                     }
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
                         NavigationStack {
-                            SettingsScreen(health: health, musicLowering: musicLowering, tipJar: tipJar)
+                            SettingsScreen(
+                                health: health, musicLowering: musicLowering, secondsWheel: secondsWheel,
+                                tipJar: tipJar)
                         }
                     }
                 }
