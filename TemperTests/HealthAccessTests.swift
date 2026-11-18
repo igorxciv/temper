@@ -42,15 +42,12 @@ struct HealthAccessTests {
     }
 
     @Test(arguments: [
-        (
-            HeartRateRow.allowHeartRate,
-            "Apple Watch shows your heart rate and Zone during a Workout. Temper saves nothing to Health."
-        ),
-        (.allowed, "Apple Watch shows your heart rate and Zone during a Workout. Temper saves nothing to Health."),
-        (.notAllowed, "Allow Temper under Settings › Health › Data Access & Devices."),
+        (HeartRateRow.allowHeartRate, "Shown on Apple Watch"),
+        (.allowed, "Shown on Apple Watch"),
+        (.notAllowed, "Change in Settings › Health"),
     ])
-    func `Each row has its footer`(row: HeartRateRow, footer: String) {
-        #expect(row.footer == footer)
+    func `Each row has its subtitle`(row: HeartRateRow, subtitle: String) {
+        #expect(row.subtitle == subtitle)
     }
 
     /// Anyone who allowed workouts in an earlier build is asked once more for the reads, and the row settles on the
