@@ -1,4 +1,4 @@
-/// The one row in Settings' Apple Watch section.
+/// Settings' Heart Rate row, by what Health reports.
 enum HeartRateRow {
     /// "Heart Rate", "Allow": some of the set hasn't been asked for yet.
     case allowHeartRate
@@ -16,13 +16,11 @@ enum HeartRateRow {
         }
     }
 
-    /// The section's footer under this row.
-    var footer: String {
+    /// The line under "Heart Rate".
+    var subtitle: String {
         switch self {
-        case .allowHeartRate, .allowed:
-            "Apple Watch shows your heart rate and Zone during a Workout. Temper saves nothing to Health."
-        case .notAllowed:
-            "Allow Temper under Settings › Health › Data Access & Devices."
+        case .allowHeartRate, .allowed: "Shown on Apple Watch"
+        case .notAllowed: "Change in Settings › Health"
         }
     }
 }

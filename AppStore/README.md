@@ -23,7 +23,7 @@ Keep prices and the word "Free" out of the name, subtitle and screenshots: guide
 - **Support URL:** https://igorxciv.github.io/temper/
 - **Privacy Policy URL:** https://igorxciv.github.io/temper/privacy/
 - **Primary category:** Health & Fitness. **Secondary:** Sports, where boxing and rounds timers sit.
-- **Price:** Free, with three consumable tips in Settings that unlock nothing: `tip.small`, `tip.medium` and `tip.large`, named "Small Tip", "Medium Tip" and "Large Tip", at about $1.99, $4.99 and $9.99. Create them in App Store Connect with those product IDs, each with a review screenshot of Settings' Support Temper section, and submit them with the build. They don't load in production until the Paid Applications Agreement and the tax and banking forms are done. Enroll in the App Store Small Business Program so Apple keeps 15%. `TemperTests/Temper.storekit` mirrors the three for the Simulator and the tests, so change both together.
+- **Price:** Free, with three consumable tips in Settings that unlock nothing: `tip.small`, `tip.medium` and `tip.large`, named "Small Tip", "Medium Tip" and "Large Tip", at about $1.99, $4.99 and $9.99. Create them in App Store Connect with those product IDs, each with a review screenshot of the tip jar that Settings' Leave a Tip button opens, and submit them with the build. They don't load in production until the Paid Applications Agreement and the tax and banking forms are done. Enroll in the App Store Small Business Program so Apple keeps 15%. `TemperTests/Temper.storekit` mirrors the three for the Simulator and the tests, so change both together.
 
 ### Open decision
 
