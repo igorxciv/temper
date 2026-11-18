@@ -11,6 +11,10 @@ struct Shot {
     let field: UInt32
     let ring: UInt32
     let track: UInt32
+    /// The most the capture is enlarged, so a small Watch capture stays sharp.
+    var maxScale = CGFloat.infinity
+    /// An iPhone capture drawn behind this one, which then stands in front of it at the bottom right.
+    var behind: String?
 }
 
 let shots = [
@@ -21,11 +25,11 @@ let shots = [
         capture: "2-work.png", caption: ("Readable from", "across the room"),
         field: 0x351C17, ring: 0xFFAE8A, track: 0x59332A),
     Shot(
-        capture: "3-live-activity.png", caption: ("On your Lock Screen", "and Dynamic Island"),
+        capture: "3-live-activity.png", caption: ("Stays on your", "Lock Screen"),
         field: 0x0F2A2B, ring: 0x86DCCB, track: 0x254A48),
     Shot(
         capture: "4-watch.png", caption: ("Heart rate and Zone", "on your wrist"),
-        field: 0x18223F, ring: 0xAFC4FF, track: 0x2F3D66),
+        field: 0x18223F, ring: 0xAFC4FF, track: 0x2F3D66, maxScale: 1.7, behind: "4-iphone.png"),
     Shot(
         capture: "5-presets.png", caption: ("Presets,", "one tap away"),
         field: 0x0F2433, ring: 0x8FCBEF, track: 0x274A60),
@@ -63,10 +67,50 @@ let captionSize: CGFloat = {
     return size
 }()
 
+func load(_ name: String, from raw: URL) -> CGImage? {
+    guard let source = CGImageSourceCreateWithURL(raw.appending(path: name) as CFURL, nil) else { return nil }
+    return CGImageSourceCreateImageAtIndex(source, 0, nil)
+}
+
+/// The largest frame of `capture`'s shape that fits `size`, enlarging it at most `maxScale` times.
+func fitted(_ capture: CGImage, in size: CGSize, maxScale: CGFloat = .infinity) -> CGSize {
+    let scale = min(size.width / CGFloat(capture.width), size.height / CGFloat(capture.height), maxScale)
+    return CGSize(width: CGFloat(capture.width) * scale, height: CGFloat(capture.height) * scale)
+}
+
+/// Draws a capture in `frame` with a shadow, its corners rounded past the display's own, and an outline.
+func draw(_ capture: CGImage, in frame: CGRect, outline color: NSColor, on context: CGContext) {
+    // A watch display is far rounder for its size than an iPhone's.
+    let isWatch = CGFloat(capture.width) / CGFloat(capture.height) > 0.7
+    let radius = frame.width * (isWatch ? 0.22 : 0.135)
+    let outline = CGPath(roundedRect: frame, cornerWidth: radius, cornerHeight: radius, transform: nil)
+
+    context.saveGState()
+    context.setShadow(
+        offset: CGSize(width: 0, height: 24), blur: 80, color: NSColor.black.withAlphaComponent(0.45).cgColor)
+    context.addPath(outline)
+    context.setFillColor(NSColor.black.cgColor)
+    context.fillPath()
+    context.restoreGState()
+
+    context.saveGState()
+    context.addPath(outline)
+    context.clip()
+    // Drawn upside down to undo the flip, since CGContext draws images with a bottom-left origin.
+    context.translateBy(x: frame.minX, y: frame.maxY)
+    context.scaleBy(x: 1, y: -1)
+    context.interpolationQuality = .high
+    context.draw(capture, in: CGRect(origin: .zero, size: frame.size))
+    context.restoreGState()
+
+    context.addPath(outline)
+    context.setStrokeColor(color.cgColor)
+    context.setLineWidth(6)
+    context.strokePath()
+}
+
 func compose(_ shot: Shot, from raw: URL, to output: URL) throws {
-    guard let source = CGImageSourceCreateWithURL(raw.appending(path: shot.capture) as CFURL, nil),
-        let capture = CGImageSourceCreateImageAtIndex(source, 0, nil)
-    else {
+    guard let capture = load(shot.capture, from: raw) else {
         print("skipped \(shot.capture): not found in \(raw.path)")
         return
     }
@@ -98,43 +142,26 @@ func compose(_ shot: Shot, from raw: URL, to output: URL) throws {
             in: rect, withAttributes: [.font: font, textColor: color(hex), .paragraphStyle: paragraph])
     }
 
-    // The capture, as large as fits below the caption, its corners rounded past the display's own.
+    // The space below the caption.
     let top = captionTop + 2 * lineHeight * 1.04 + 96
-    let bottom = canvas.height - 120
-    let aspect = CGFloat(capture.width) / CGFloat(capture.height)
-    var height = bottom - top
-    var width = height * aspect
-    if width > canvas.width - 2 * margin {
-        width = canvas.width - 2 * margin
-        height = width / aspect
+    let area = CGRect(x: margin, y: top, width: canvas.width - 2 * margin, height: canvas.height - 120 - top)
+    let outline = color(shot.track)
+
+    if let name = shot.behind, let behind = load(name, from: raw) {
+        // The iPhone at the left, full height, and the capture in front of it at the bottom right.
+        draw(
+            behind, in: CGRect(origin: area.origin, size: fitted(behind, in: area.size)), outline: outline, on: context)
+        let front = fitted(capture, in: area.size, maxScale: shot.maxScale)
+        let frame = CGRect(
+            x: canvas.width - margin / 2 - front.width, y: area.maxY - front.height - 80, width: front.width,
+            height: front.height)
+        draw(capture, in: frame, outline: outline, on: context)
+    } else {
+        let size = fitted(capture, in: area.size, maxScale: shot.maxScale)
+        let frame = CGRect(
+            x: area.midX - size.width / 2, y: area.midY - size.height / 2, width: size.width, height: size.height)
+        draw(capture, in: frame, outline: outline, on: context)
     }
-    let frame = CGRect(x: (canvas.width - width) / 2, y: top, width: width, height: height)
-    // A watch display is far rounder for its size than an iPhone's.
-    let radius = width * (aspect > 0.7 ? 0.22 : 0.135)
-    let outline = CGPath(roundedRect: frame, cornerWidth: radius, cornerHeight: radius, transform: nil)
-
-    context.saveGState()
-    context.setShadow(
-        offset: CGSize(width: 0, height: 24), blur: 80, color: NSColor.black.withAlphaComponent(0.45).cgColor)
-    context.addPath(outline)
-    context.setFillColor(NSColor.black.cgColor)
-    context.fillPath()
-    context.restoreGState()
-
-    context.saveGState()
-    context.addPath(outline)
-    context.clip()
-    // Drawn upside down to undo the flip, since CGContext draws images with a bottom-left origin.
-    context.translateBy(x: frame.minX, y: frame.maxY)
-    context.scaleBy(x: 1, y: -1)
-    context.interpolationQuality = .high
-    context.draw(capture, in: CGRect(origin: .zero, size: frame.size))
-    context.restoreGState()
-
-    context.addPath(outline)
-    context.setStrokeColor(color(shot.track).cgColor)
-    context.setLineWidth(6)
-    context.strokePath()
 
     guard let image = context.makeImage(),
         let destination = CGImageDestinationCreateWithURL(
@@ -155,4 +182,13 @@ let output = URL(filePath: arguments[2])
 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 for shot in shots {
     try compose(shot, from: raw, to: output)
+}
+
+// The Apple Watch set takes the Watch capture as it is: 416 × 496, a size App Store Connect accepts, with no alpha.
+let watchCapture = raw.appending(path: "4-watch.png")
+let watchShot = output.appending(path: "watch-1-running.png")
+if FileManager.default.fileExists(atPath: watchCapture.path) {
+    try? FileManager.default.removeItem(at: watchShot)
+    try FileManager.default.copyItem(at: watchCapture, to: watchShot)
+    print("wrote \(watchShot.path)")
 }

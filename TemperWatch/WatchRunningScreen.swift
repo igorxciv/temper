@@ -256,7 +256,7 @@ private struct QuickActionCapsule: View {
 
 extension LiveHeartRate {
     /// A reading in Zones worked out for a 40-year-old with a resting rate of 60: boundaries at 132, 144, 156 and 168.
-    fileprivate static func preview(bpm: Double) -> LiveHeartRate {
+    static func preview(bpm: Double) -> LiveHeartRate {
         let heartRate = LiveHeartRate()
         let start = Date.now
         let birth = Calendar.current.dateComponents(

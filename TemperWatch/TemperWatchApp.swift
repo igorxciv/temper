@@ -32,6 +32,20 @@ struct WatchRootView: View {
     let session: WatchSession
 
     var body: some View {
+        #if DEBUG
+            if WatchDebugLaunch.isRunning {
+                WatchRunningPages(
+                    phase: WatchDebugLaunch.phase(), isConnected: true, heartRate: WatchDebugLaunch.heartRate,
+                    tap: { _ in })
+            } else {
+                screen
+            }
+        #else
+            screen
+        #endif
+    }
+
+    @ViewBuilder private var screen: some View {
         switch session.screen {
         case .idle:
             IdleScreen()

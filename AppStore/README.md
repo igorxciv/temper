@@ -48,21 +48,24 @@ Answer **None** or **No** to every question, which gives 4+:
 
 The required set is the 6.9" iPhone, portrait, 1320 × 2868: the iPhone 18 Pro Max Simulator captures at that size. App Store Connect scales it down for smaller iPhones. Temper ships a Watch app, so Apple asks for Watch screenshots too, all at one size, for example 416 × 496 from a 46 mm Series 11.
 
-Lead with what no competitor has, in this order. The captions are drafts.
+The finished images are in `Screenshots/en-US/`. Upload `1-describe.png` to `5-presets.png` to the 6.9" iPhone set in that order, and `watch-1-running.png` to the Apple Watch set. They lead with what no competitor has:
 
-| # | Shows | Caption | How to stage it |
-| --- | --- | --- | --- |
-| 1 | Describe: a spoken Workout turned into a Plan outline | Say it. Temper plans it. | An iPhone with Apple Intelligence on. Open Describe, say or type "10 sets, open Work, exactly 1 minute of Rest between them", and capture once the outline shows. |
-| 2 | A running Work Phase, readable across a room | Readable from across the room | Start Intervals and capture during Work, after the 10 s Prepare. |
-| 3 | The Live Activity on the Lock Screen and in the Dynamic Island | Stays on your Lock Screen | Lock the iPhone during a Workout for the Lock Screen. For the Dynamic Island, start a Workout and switch to another app. |
-| 4 | Apple Watch with heart rate and Zone | Heart rate and Zone on your wrist | A paired Watch with Heart Rate allowed in Settings, during Work. Capture on the Watch, at the Watch size. |
-| 5 | Setup with Presets | Your Presets, one tap away | Save three Presets for Intervals, such as "Tabata", "Boxing 3 min" and "EMOM 10", then open the Preset menu. |
+| File | Caption | Shows |
+| --- | --- | --- |
+| `1-describe.png` | Say it. Temper plans it. | Describe, with the Plan Apple Intelligence made of "4 rounds of 40 seconds of Burpees, 40 seconds of Squats and 20 seconds of rest" |
+| `2-work.png` | Readable from across the room | That Plan's first Work, named Burpees |
+| `3-live-activity.png` | Stays on your Lock Screen | The Live Activity on the Lock Screen |
+| `4-watch.png` | Heart rate and Zone on your wrist | The iPhone and the Watch on the same Work, at 158 bpm in Zone 4 |
+| `5-presets.png` | Presets, one tap away | Setup with the Preset menu open |
 
-Before capturing in the Simulator, set a clean status bar:
+Everything is the real app in the Simulator, staged with the DEBUG launch arguments in `Temper/DebugLaunch.swift`. The one exception is the Watch's heart rate: a Watch Simulator can't run the iPhone's Workout, so its screen shows a sample Work with a sample reading (`TemperWatch/WatchDebugLaunch.swift`).
+
+To make them again, after changing a screen or a caption:
 
 ```sh
-xcrun simctl status_bar booted override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
-xcrun simctl io booted screenshot shot.png
+brew install cameroncooke/axe/axe   # once: taps and the lock button in the Simulator
+AppStore/Screenshots/capture.sh /tmp/temper-raw
+swift AppStore/Screenshots/compose.swift /tmp/temper-raw AppStore/Screenshots/en-US
 ```
 
-Screenshots must be PNG or JPEG with no transparency. The images aren't kept in the repo.
+`capture.sh` stages and captures each screen. `compose.swift` puts each capture under its caption, on the color of the Phase it shows, at 1320 × 2868 with no alpha channel, as App Store Connect requires. Captions and colors are at the top of `compose.swift`. Look over each image before uploading it: the first launch of Describe can make a different Plan, and Apple's model may change.
