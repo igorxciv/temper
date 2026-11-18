@@ -4,7 +4,7 @@ import TemperCore
 /// The Cues, rendered once and kept in memory only. It outlives any one Workout.
 ///
 /// The plain Cues are rendered at launch. A Cue that says an Exercise is rendered when a Workout that needs it
-/// starts, and kept for the next one.
+/// starts, and kept for the next one. A new Round Sound renders again every Cue made with it, and nothing else.
 ///
 /// A class with a lock, because the audio adapter has to read it without suspending. Buffers are never written
 /// to after rendering.
@@ -26,28 +26,49 @@ nonisolated final class CueBank: @unchecked Sendable {
     /// Every Sound asked for so far, rendered or not.
     private var wanted = Set(CueSounds.plain.keys.map { Sound(cue: $0, exercise: nil) })
     private var isRendering = false
+    /// What every Cue made with a Round Sound is made with. A render under way when it changes is thrown away for
+    /// those Cues, which follow with the new one.
+    private var roundSound: RoundSound
+
+    init(roundSound: RoundSound = .gong) {
+        self.roundSound = roundSound
+    }
+
+    /// Switches to `roundSound`, if it's new, and renders again each Cue made with the old one.
+    func use(_ roundSound: RoundSound) {
+        let changed = lock.withLock {
+            guard roundSound != self.roundSound else { return false }
+            self.roundSound = roundSound
+            buffers = buffers.filter { !CueSounds.usesRoundSound($0.key) }
+            return true
+        }
+        if changed {
+            render()
+        }
+    }
 
     /// Renders any Sound asked for and not rendered yet, along with `sounds`, unless that's already under way, in which
     /// case it follows once that's done.
     func render(_ sounds: Set<Sound> = []) {
-        let missing: Set<Sound>? = lock.withLock {
+        let missing: (sounds: Set<Sound>, roundSound: RoundSound)? = lock.withLock {
             wanted.formUnion(sounds)
             let missing = wanted.subtracting(buffers.keys)
             guard !isRendering, !missing.isEmpty else { return nil }
             isRendering = true
-            return missing
+            return (missing, roundSound)
         }
         guard let missing else { return }
-        startRendering(missing)
+        startRendering(missing.sounds, with: missing.roundSound)
     }
 
-    private func startRendering(_ missing: Set<Sound>) {
+    private func startRendering(_ missing: Set<Sound>, with roundSound: RoundSound) {
         Task { @MainActor in
-            store(RenderedCues(buffers: await CueSounds.render(missing), attempted: missing))
+            let buffers = await CueSounds.render(missing, with: roundSound)
+            store(RenderedCues(buffers: buffers, attempted: missing, roundSound: roundSound))
         }
     }
 
-    /// Every Sound saying an Exercise that `workout` might play: each named Work's own, said over its gong, and the
+    /// Every Sound saying an Exercise that `workout` might play: each named Work's own, said over its Round Sound, and the
     /// Cue of the Phase before it saying it's next. Whether a Phase has room to say it is the Timeline's call, so
     /// both are rendered.
     static func sounds(for workout: Workout) -> Set<Sound> {
@@ -94,17 +115,20 @@ nonisolated final class CueBank: @unchecked Sendable {
 
     /// A Sound that failed to render isn't tried again until it's asked for again, so a voice that's missing can't
     /// keep rendering in a loop. Sounds asked for meanwhile follow at once, still rendering throughout, so a wait
-    /// that began before them doesn't end early.
+    /// that began before them doesn't end early. Cues made with a Round Sound that's since been replaced are thrown
+    /// away and still wanted, so they follow with the new one.
     private func store(_ rendered: RenderedCues) {
-        let followUp: Set<Sound>? = lock.withLock {
-            buffers.merge(rendered.buffers) { _, new in new }
-            wanted = Set(buffers.keys).union(wanted.subtracting(rendered.attempted))
+        let followUp: (sounds: Set<Sound>, roundSound: RoundSound)? = lock.withLock {
+            let stale: Set<Sound> =
+                rendered.roundSound == roundSound ? [] : rendered.attempted.filter(CueSounds.usesRoundSound)
+            buffers.merge(rendered.buffers.filter { !stale.contains($0.key) }) { _, new in new }
+            wanted = Set(buffers.keys).union(wanted.subtracting(rendered.attempted.subtracting(stale)))
             let missing = wanted.subtracting(buffers.keys)
             isRendering = !missing.isEmpty
-            return missing.isEmpty ? nil : missing
+            return missing.isEmpty ? nil : (missing, roundSound)
         }
         if let followUp {
-            startRendering(followUp)
+            startRendering(followUp.sounds, with: followUp.roundSound)
         }
     }
 }
@@ -113,53 +137,64 @@ nonisolated final class CueBank: @unchecked Sendable {
 private nonisolated struct RenderedCues: @unchecked Sendable {
     let buffers: [CueBank.Sound: AVAudioPCMBuffer]
     let attempted: Set<CueBank.Sound>
+    let roundSound: RoundSound
 }
 
-/// Makes each Cue's audio: the gong, or words in a fixed system voice.
+/// Makes each Cue's audio: the Round Sound, words in a fixed system voice, or words over the Round Sound.
 @MainActor
 private enum CueSounds {
     enum Sound {
-        case gong
+        case roundSound
         /// One or more utterances. Each starts a second after the one before, so the Countdown's numbers land on
         /// the seconds the running screen shows.
         case words([String])
-        case gongThenWords(String)
+        case wordsOverRoundSound(String)
     }
 
-    /// A Round's Work starts and ends on the gong, as in a boxing ring. Cooldown and "Workout complete" also end
-    /// the last Round's Work, so their words come in over the gong.
+    /// A Round's Work starts and ends on the Round Sound, as on a boxing ring's bell. Cooldown and "Workout complete"
+    /// also end the last Round's Work, so their words come in over it.
     nonisolated static let plain: [Cue: Sound] = [
-        .work: .gong,
-        .rest: .gong,
-        .cooldown: .gongThenWords("Cooldown"),
-        .workoutComplete: .gongThenWords("Workout complete"),
+        .work: .roundSound,
+        .rest: .roundSound,
+        .cooldown: .wordsOverRoundSound("Cooldown"),
+        .workoutComplete: .wordsOverRoundSound("Workout complete"),
         .tenSeconds: .words(["10 seconds"]),
         .finish: .words(["Finish"]),
         .countdown: .words(["Five", "Four", "Three", "Two", "One"]),
     ]
 
-    /// How a Cue says an Exercise. A Work says it over its gong. Any other Cue says it's next: over the Rest's gong,
+    /// How a Cue says an Exercise. A Work says it over its Round Sound. Any other Cue says it's next: over the Rest's,
     /// after "Cooldown", or on its own at a Prepare's start. Each fits in the 5 s a Phase leaves after its own Cue.
     nonisolated static func sound(for sound: CueBank.Sound) -> Sound? {
         guard let exercise = sound.exercise else { return plain[sound.cue] }
         switch sound.cue {
-        case .work: return .gongThenWords(exercise.name)
-        case .rest: return .gongThenWords("Next, \(exercise.name)")
-        case .cooldown: return .gongThenWords("Cooldown. Next, \(exercise.name)")
+        case .work: return .wordsOverRoundSound(exercise.name)
+        case .rest: return .wordsOverRoundSound("Next, \(exercise.name)")
+        case .cooldown: return .wordsOverRoundSound("Cooldown. Next, \(exercise.name)")
         case .prepare: return .words(["Next, \(exercise.name)"])
         case .workoutComplete, .tenSeconds, .finish, .countdown: return nil
         }
     }
 
-    static func render(_ wanted: Set<CueBank.Sound>) async -> [CueBank.Sound: AVAudioPCMBuffer] {
+    /// Whether the Round Sound is part of it, so it has to be made again when the owner picks another.
+    nonisolated static func usesRoundSound(_ cue: CueBank.Sound) -> Bool {
+        switch sound(for: cue) {
+        case .roundSound, .wordsOverRoundSound: true
+        case .words, nil: false
+        }
+    }
+
+    static func render(
+        _ wanted: Set<CueBank.Sound>, with roundSound: RoundSound
+    ) async -> [CueBank.Sound: AVAudioPCMBuffer] {
         var rendered: [CueBank.Sound: AVAudioPCMBuffer] = [:]
         let synthesizer = AVSpeechSynthesizer()
-        let gong = CueBank.format.flatMap(Gong.strike(in:))
+        let bare = CueBank.format.flatMap(roundSound.sound(in:))
         for cue in wanted {
             guard let sound = sound(for: cue) else { continue }
             switch sound {
-            case .gong:
-                rendered[cue] = gong
+            case .roundSound:
+                rendered[cue] = bare
             case .words(let utterances):
                 var buffers: [AVAudioPCMBuffer] = []
                 for words in utterances {
@@ -169,8 +204,8 @@ private enum CueSounds {
                 if buffers.count == utterances.count {
                     rendered[cue] = spacedOneSecondApart(buffers)
                 }
-            case .gongThenWords(let words):
-                rendered[cue] = joined(await chunks(of: words, from: synthesizer)).flatMap(Gong.strike(under:))
+            case .wordsOverRoundSound(let words):
+                rendered[cue] = joined(await chunks(of: words, from: synthesizer)).flatMap(roundSound.sound(under:))
             }
         }
         return rendered

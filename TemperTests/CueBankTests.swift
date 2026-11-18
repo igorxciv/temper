@@ -30,6 +30,38 @@ struct CueBankTests {
         #expect(seconds(buffer) <= 5)
     }
 
+    private func frames(of roundSound: RoundSound) throws -> AVAudioFrameCount {
+        let format = try #require(CueBank.format)
+        return try #require(roundSound.sound(in: format)).frameLength
+    }
+
+    @Test func `A new Round Sound replaces the Work and Rest Cues, and leaves the spoken ones as they were`()
+        async throws
+    {
+        let bank = CueBank(roundSound: .gong)
+        bank.render()
+        await bank.waitForRendering(atMost: .seconds(30))
+        let countdown = try #require(bank.buffer(for: .countdown))
+        #expect(try #require(bank.buffer(for: .work)).frameLength == frames(of: .gong))
+
+        bank.use(.beep)
+        await bank.waitForRendering(atMost: .seconds(30))
+
+        #expect(try #require(bank.buffer(for: .work)).frameLength == frames(of: .beep))
+        #expect(try #require(bank.buffer(for: .rest)).frameLength == frames(of: .beep))
+        #expect(bank.buffer(for: .countdown) === countdown)
+    }
+
+    @Test func `A Round Sound picked while the Cues are rendering still ends up in them`() async throws {
+        let bank = CueBank(roundSound: .gong)
+        bank.render()
+        bank.use(.chime)
+        await bank.waitForRendering(atMost: .seconds(30))
+
+        #expect(try #require(bank.buffer(for: .work)).frameLength == frames(of: .chime))
+        #expect(bank.buffer(for: .cooldown) != nil)
+    }
+
     @Test func `A Workout's named sounds are each Work's own and the Cue of the Phase before it`() throws {
         let squats = try #require(Exercise("Squats"))
         let pushUps = try #require(Exercise("Push-ups"))

@@ -8,12 +8,15 @@ struct TemperApp: App {
     @State private var health = HealthAccess()
     @State private var musicLowering: MusicLowering
     @State private var secondsWheel = SecondsWheel()
+    @State private var roundSound: RoundSoundSetting
     @State private var tipJar = TipJar()
 
     init() {
         let musicLowering = MusicLowering()
         _musicLowering = State(initialValue: musicLowering)
-        let runner = WorkoutRunner(musicLowering: musicLowering)
+        let roundSound = RoundSoundSetting()
+        _roundSound = State(initialValue: roundSound)
+        let runner = WorkoutRunner(musicLowering: musicLowering, roundSound: roundSound)
         _runner = State(initialValue: runner)
         // The Live Activity's Pause, Resume and Done run in this process, and may be what launched it, so the
         // runner is set before any of them can run.
@@ -24,7 +27,7 @@ struct TemperApp: App {
         WindowGroup {
             RootView(
                 runner: runner, remembered: remembered, health: health, musicLowering: musicLowering,
-                secondsWheel: secondsWheel, tipJar: tipJar)
+                secondsWheel: secondsWheel, roundSound: roundSound, tipJar: tipJar)
         }
     }
 }
@@ -38,6 +41,7 @@ struct RootView: View {
     let health: HealthAccess
     let musicLowering: MusicLowering
     let secondsWheel: SecondsWheel
+    let roundSound: RoundSoundSetting
     let tipJar: TipJar
 
     /// The Plan the Workout was started from, for the complete screen's recap, or `nil` if it isn't known, as after a
@@ -103,7 +107,7 @@ struct RootView: View {
                         NavigationStack {
                             SettingsScreen(
                                 health: health, musicLowering: musicLowering, secondsWheel: secondsWheel,
-                                tipJar: tipJar)
+                                roundSound: roundSound, tipJar: tipJar)
                         }
                     }
                 }
@@ -127,6 +131,9 @@ struct RootView: View {
                 }
             }
         #endif
+        .onChange(of: roundSound.sound) {
+            runner.roundSoundChanged()
+        }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 runner.refresh()

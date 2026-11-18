@@ -35,7 +35,7 @@ public nonisolated protocol AudioOutput<Instant>: Sendable {
     /// Arranges for a Cue to start speaking at `deadline`, or at once if that has passed. Throws instead if
     /// the Cue would start after `latest`. Returns when it's arranged, not when it has played.
     ///
-    /// A Cue with an `exercise` says it too: a Work's Cue says it over the gong, and any other Cue says it's next,
+    /// A Cue with an `exercise` says it too: a Work's Cue says it over the Round Sound, and any other Cue says it's next,
     /// after its own sound.
     ///
     /// A Cue that `lowersOtherAudio` lowers other apps' audio from now until it has finished speaking, or is cut.
