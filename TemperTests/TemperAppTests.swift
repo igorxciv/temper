@@ -736,7 +736,7 @@ struct RememberedPresetsTests {
                         prepare: .seconds(10),
                         rounds: 1,
                         work: .seconds(1800),
-                        rest: .seconds(5),
+                        rest: .seconds(7),
                         cooldown: .seconds(60)
                     )
             )

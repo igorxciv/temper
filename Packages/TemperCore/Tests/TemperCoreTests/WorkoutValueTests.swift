@@ -24,14 +24,27 @@ struct WorkoutValueTests {
     @Test func `The wheels offer 1 to 99 Rounds, 00 to 30 minutes and seconds in steps of 5`() {
         #expect(WorkoutValue.roundChoices == Array(1...99))
         #expect(WorkoutValue.minuteChoices == Array(0...30))
-        #expect(WorkoutValue.secondChoices == [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55])
+        #expect(
+            WorkoutValue.secondChoices(everySecond: false, keeping: 40)
+                == [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55])
     }
 
-    @Test(arguments: WorkoutValue.allCases)
-    func `Every wheel choice below the limits is kept as it is`(value: WorkoutValue) {
+    @Test func `The seconds wheel can offer every second`() {
+        #expect(WorkoutValue.secondChoices(everySecond: true, keeping: 40) == Array(0...59))
+    }
+
+    @Test func `Steps of 5 still offer the seconds a time already has`() {
+        #expect(
+            WorkoutValue.secondChoices(everySecond: false, keeping: 77)
+                == [0, 5, 10, 15, 17, 20, 25, 30, 35, 40, 45, 50, 55])
+    }
+
+    @Test(arguments: WorkoutValue.allCases, [false, true])
+    func `Every wheel choice below the limits is kept as it is`(value: WorkoutValue, everySecond: Bool) {
         if value.isTime {
+            let secondChoices = WorkoutValue.secondChoices(everySecond: everySecond, keeping: 0)
             for minutes in WorkoutValue.minuteChoices.dropLast() {
-                for seconds in WorkoutValue.secondChoices where value != .work || minutes * 60 + seconds >= 5 {
+                for seconds in secondChoices where value != .work || minutes * 60 + seconds >= 5 {
                     #expect(value.amount(minutes: minutes, seconds: seconds) == minutes * 60 + seconds)
                 }
             }
@@ -46,8 +59,8 @@ struct WorkoutValueTests {
         #expect(WorkoutValue.rounds.clamped(42) == 42)
     }
 
-    @Test func `A time falls back to a 5-second step inside its range`() {
-        #expect(WorkoutValue.rest.clamped(17) == 15)
+    @Test func `A time keeps its seconds inside its range`() {
+        #expect(WorkoutValue.rest.clamped(17) == 17)
         #expect(WorkoutValue.rest.clamped(-20) == 0)
         #expect(WorkoutValue.work.clamped(3) == 5)
         #expect(WorkoutValue.prepare.clamped(9000) == 1800)

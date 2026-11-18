@@ -102,7 +102,7 @@ struct WorkoutTypeTests {
         #expect(WorkoutType.openRounds.clamped(-3, as: .rounds) == WorkoutType.roundsUntilStop)
         #expect(WorkoutType.openRounds.clamped(100, as: .rounds) == 99)
         #expect(WorkoutType.intervals.clamped(0, as: .rounds) == 1)
-        #expect(WorkoutType.openRounds.clamped(17, as: .rest) == 15)
+        #expect(WorkoutType.openRounds.clamped(17, as: .rest) == 17)
     }
 
     @Test func `With Prepare Off, Open Rounds repeats an open Work and its Rest until Stop`() {

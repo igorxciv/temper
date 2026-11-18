@@ -4,6 +4,7 @@ import UIKit
 struct SettingsScreen: View {
     let health: HealthAccess
     @Bindable var musicLowering: MusicLowering
+    @Bindable var secondsWheel: SecondsWheel
     let roundSound: RoundSoundSetting
     let tipJar: TipJar
 
@@ -22,6 +23,15 @@ struct SettingsScreen: View {
         let colors = InkColors(contrast: contrast)
 
         Form {
+            Section {
+                Toggle("Set times to the second", isOn: $secondsWheel.offersEverySecond)
+                    .listRowBackground(colors.raised)
+            } header: {
+                Text("Setup").foregroundStyle(colors.secondary)
+            } footer: {
+                Text("The seconds wheel offers every second instead of every 5. Times already set keep their seconds.")
+                    .foregroundStyle(colors.secondary)
+            }
             Section {
                 Toggle("Lower music when Temper speaks", isOn: $musicLowering.isOn)
                     .listRowBackground(colors.raised)

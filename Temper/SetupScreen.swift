@@ -12,6 +12,7 @@ import TemperCore
 struct SetupScreen: View {
     let workoutType: WorkoutType
     let remembered: RememberedValues
+    let secondsWheel: SecondsWheel
     let start: (WorkoutType, Workout) -> Void
 
     @State private var editing: WorkoutValue?
@@ -101,7 +102,10 @@ struct SetupScreen: View {
             }
         #endif
         .sheet(item: $editing) { value in
-            ValueSheet(workoutType: workoutType, value: value, amount: settings[value]) { draft in
+            ValueSheet(
+                workoutType: workoutType, value: value, amount: settings[value],
+                offersEverySecond: secondsWheel.offersEverySecond
+            ) { draft in
                 remembered[workoutType][value] = draft
             }
         }

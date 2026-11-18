@@ -7,6 +7,7 @@ struct TemperApp: App {
     @State private var remembered = RememberedValues()
     @State private var health = HealthAccess()
     @State private var musicLowering: MusicLowering
+    @State private var secondsWheel = SecondsWheel()
     @State private var roundSound: RoundSoundSetting
     @State private var tipJar = TipJar()
 
@@ -26,7 +27,7 @@ struct TemperApp: App {
         WindowGroup {
             RootView(
                 runner: runner, remembered: remembered, health: health, musicLowering: musicLowering,
-                roundSound: roundSound, tipJar: tipJar)
+                secondsWheel: secondsWheel, roundSound: roundSound, tipJar: tipJar)
         }
     }
 }
@@ -39,6 +40,7 @@ struct RootView: View {
     @Bindable var remembered: RememberedValues
     let health: HealthAccess
     let musicLowering: MusicLowering
+    let secondsWheel: SecondsWheel
     let roundSound: RoundSoundSetting
     let tipJar: TipJar
 
@@ -84,7 +86,9 @@ struct RootView: View {
                             value: RootTab.workoutType(workoutType)
                         ) {
                             NavigationStack {
-                                SetupScreen(workoutType: workoutType, remembered: remembered) { workoutType, workout in
+                                SetupScreen(
+                                    workoutType: workoutType, remembered: remembered, secondsWheel: secondsWheel
+                                ) { workoutType, workout in
                                     ranBoard = PlanBoard(workoutType: workoutType, settings: remembered[workoutType])
                                     runner.start(workout, runningAs: ActivityType(workoutType))
                                 }
@@ -102,7 +106,8 @@ struct RootView: View {
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
                         NavigationStack {
                             SettingsScreen(
-                                health: health, musicLowering: musicLowering, roundSound: roundSound, tipJar: tipJar)
+                                health: health, musicLowering: musicLowering, secondsWheel: secondsWheel,
+                                roundSound: roundSound, tipJar: tipJar)
                         }
                     }
                 }

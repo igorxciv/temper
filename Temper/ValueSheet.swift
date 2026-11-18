@@ -6,16 +6,22 @@ struct ValueSheet: View {
     let workoutType: WorkoutType
     let value: WorkoutValue
     let confirm: (Int) -> Void
+    /// Fixed for the sheet's life, from the amount it opened with, so the wheel's rows don't shift as it turns.
+    private let secondChoices: [Int]
 
     @State private var draft: Int
 
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.dismiss) private var dismiss
 
-    init(workoutType: WorkoutType, value: WorkoutValue, amount: Int, confirm: @escaping (Int) -> Void) {
+    init(
+        workoutType: WorkoutType, value: WorkoutValue, amount: Int, offersEverySecond: Bool,
+        confirm: @escaping (Int) -> Void
+    ) {
         self.workoutType = workoutType
         self.value = value
         self.confirm = confirm
+        secondChoices = WorkoutValue.secondChoices(everySecond: offersEverySecond, keeping: amount)
         _draft = State(initialValue: amount)
     }
 
@@ -87,7 +93,7 @@ struct ValueSheet: View {
                     .font(.system(size: 54, weight: .semibold))
                     .accessibilityHidden(true)
                 DigitWheel(
-                    values: WorkoutValue.secondChoices,
+                    values: secondChoices,
                     selection: seconds,
                     label: "\(value.title) seconds",
                     digits: twoDigits
