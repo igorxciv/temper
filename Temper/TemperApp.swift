@@ -104,11 +104,18 @@ struct RootView: View {
                         }
                     }
                     Tab("Settings", systemImage: "gearshape", value: RootTab.settings) {
-                        NavigationStack {
-                            SettingsScreen(
+                        #if DEBUG
+                            // PROTOTYPE: Settings layout variants. See SettingsPrototype.swift.
+                            SettingsPrototype(
                                 health: health, musicLowering: musicLowering, secondsWheel: secondsWheel,
                                 roundSound: roundSound, tipJar: tipJar)
-                        }
+                        #else
+                            NavigationStack {
+                                SettingsScreen(
+                                    health: health, musicLowering: musicLowering, secondsWheel: secondsWheel,
+                                    roundSound: roundSound, tipJar: tipJar)
+                            }
+                        #endif
                     }
                 }
                 // Dragging the setup rows scrolls, and the tabs stay in view through it.
