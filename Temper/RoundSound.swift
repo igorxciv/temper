@@ -12,6 +12,12 @@ nonisolated enum RoundSound: String, CaseIterable, Sendable {
     case chime
     /// Two short electronic pips.
     case beep
+    /// A low singing bowl, calm and shimmering.
+    case bowl
+    /// A low, warm marimba note.
+    case marimba
+    /// A soft, deep drum.
+    case drum
 
     /// How far into the sound any words start, once its attack has passed.
     private static let wordsOffset = 0.45
@@ -21,6 +27,9 @@ nonisolated enum RoundSound: String, CaseIterable, Sendable {
         case .gong: "Gong"
         case .chime: "Chime"
         case .beep: "Beep"
+        case .bowl: "Bowl"
+        case .marimba: "Marimba"
+        case .drum: "Drum"
         }
     }
 
@@ -31,6 +40,9 @@ nonisolated enum RoundSound: String, CaseIterable, Sendable {
         case .gong: Gong.strike(in: format)
         case .chime: Chime.strike(in: format)
         case .beep: Beep.pips(in: format)
+        case .bowl: Bowl.strike(in: format)
+        case .marimba: Marimba.strike(in: format)
+        case .drum: Drum.hit(in: format)
         }
     }
 
