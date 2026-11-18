@@ -6,9 +6,14 @@ import Testing
 @testable import Temper
 
 /// Runs the tip jar against `Temper.storekit` through a local StoreKit test session. The session is one per process,
-/// so these tests run one at a time.
+/// so these tests run one at a time. CI skips them: StoreKit testing on a new Simulator often gets no products, and
+/// every CI run starts on one.
 @MainActor
-@Suite(.serialized)
+@Suite(
+    .serialized,
+    .disabled(
+        if: ProcessInfo.processInfo.environment["TEMPER_SKIP_STOREKIT_TESTS"] != nil,
+        "StoreKit testing is unreliable on CI's new Simulators"))
 struct TipJarTests {
     /// Read from beside this file, since a buildable folder doesn't copy a `.storekit` into the bundle. The Simulator
     /// reads the Mac's files, so the path holds there.

@@ -40,19 +40,11 @@ jobs:
         with:
           persist-credentials: false
       - run: make lint test
-      # A new Simulator's first StoreKit test process gets no products, so the tip jar's tests run once here, their
-      # result ignored, before the run that counts.
-      - name: Warm up StoreKit testing on Simulator
-        run: >
-          xcodebuild -scheme Temper
-          -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
-          -quiet
-          CODE_SIGNING_ALLOWED=NO
-          SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
-          -only-test-configuration Default
-          -only-testing:TemperTests/TipJarTests
-          test || true
       - name: Test on Simulator, unsigned
+        env:
+          # StoreKit testing on a new Simulator often gets no products, and every run here starts on one, so the tip
+          # jar's tests run only under `make test-app`. xcodebuild passes this to the tests without its prefix.
+          TEST_RUNNER_TEMPER_SKIP_STOREKIT_TESTS: "1"
         run: >
           xcodebuild -scheme Temper
           -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0'
