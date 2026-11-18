@@ -109,6 +109,11 @@ struct SettingsScreen: View {
         .sheet(isPresented: $showsTipJar) {
             TipJarSheet(tipJar: tipJar)
         }
+        #if DEBUG
+            .onAppear {
+                if DebugLaunch.tipCelebration != nil { showsTipJar = true }
+            }
+        #endif
         .task(id: scenePhase) {
             if scenePhase == .active {
                 await health.refreshStatus()

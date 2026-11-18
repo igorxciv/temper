@@ -486,6 +486,11 @@
     "shadows": [],
     "motion": [
       {
+        "name": "tip-thanks",
+        "value": "easeInOut 1s, four quarter arcs in Phase order from 12 o'clock; heart bouncy spring 0.5s; confetti with linear drag 2.4/s and gravity 620pt/s², gone within about 4.5s",
+        "purpose": "When a tip goes through, the tip jar's ring closes round a heart with the success haptic, then bursts into confetti behind the ring and the words; a bigger tip throws more, with a soft haptic per later burst. Under Reduce Motion it is shown closed, the haptic plays at once and nothing is thrown."
+      },
+      {
         "name": "complete-ring-close",
         "value": "easeOut 0.8s, trim 0 to 1, from 12 o'clock",
         "purpose": "The complete ring draws closed once as the complete screen appears; the success haptic plays when the animation completes. Under Reduce Motion it is shown closed and the haptic plays at once."
@@ -633,6 +638,14 @@
       "css": ".ds-complete { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #11151D; padding: 16px; text-align: center; } .ds-ctitle { color: #F3F1EA; font-size: 34px; font-weight: 600; } .ds-cring { width: 240px; height: 240px; margin: 20px auto; display: block; } .ds-cfill { animation: ds-close .8s ease-out both; } @keyframes ds-close { from { stroke-dashoffset: 698; } to { stroke-dashoffset: 0; } } @media (prefers-reduced-motion: reduce) { .ds-cfill { animation: none; } } .ds-ctotal { fill: #F3F1EA; font-size: 64px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-recap { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-sec { color: #A9ADB5; }"
     },
     {
+      "name": "Tip thanks",
+      "kind": "custom",
+      "refersTo": "list-row",
+      "description": "What the tip jar sheet becomes when a tip goes through while it's open: a 72 to 150 pt ring, 14 pt stroke over the separator track, closing as four quarter arcs in the Phase ring colors (Prepare, Work, Rest, Cooldown) round a heart in Work's ring color, then \"Thank you!\" in Title 2 bold and one secondary gray line. Confetti in the Phase ring colors and warm white, never amber, bursts from the ring and falls behind it: one burst for a small tip, corner cannons added for a medium one, a second ring burst for a large one.",
+      "html": "<div class=\"ds-thanks\"><svg class=\"ds-tring\" viewBox=\"0 0 160 160\" aria-hidden=\"true\"><circle cx=\"80\" cy=\"80\" r=\"70\" fill=\"none\" stroke=\"#2E3643\" stroke-width=\"14\"/><circle class=\"ds-q\" cx=\"80\" cy=\"80\" r=\"70\" stroke=\"#8FCBEF\" style=\"transform:rotate(-79deg)\"/><circle class=\"ds-q\" cx=\"80\" cy=\"80\" r=\"70\" stroke=\"#FFAE8A\" style=\"transform:rotate(11deg)\"/><circle class=\"ds-q\" cx=\"80\" cy=\"80\" r=\"70\" stroke=\"#86DCCB\" style=\"transform:rotate(101deg)\"/><circle class=\"ds-q\" cx=\"80\" cy=\"80\" r=\"70\" stroke=\"#AFC4FF\" style=\"transform:rotate(191deg)\"/><text x=\"80\" y=\"98\" text-anchor=\"middle\" class=\"ds-heart\">♥</text></svg><div class=\"ds-ttitle\">Thank you!</div><div class=\"ds-sec\">Your tip keeps Temper on the App Store.</div></div>",
+      "css": ".ds-thanks { font-family: ui-rounded, 'SF Pro Rounded', system-ui; background: #11151D; padding: 24px 16px; text-align: center; } .ds-tring { width: 150px; height: 150px; display: block; margin: 0 auto 20px; } .ds-q { fill: none; stroke-width: 14; stroke-linecap: round; stroke-dasharray: 83 357; transform-origin: 80px 80px; } .ds-heart { fill: #FFAE8A; font-size: 56px; } .ds-ttitle { color: #F3F1EA; font-size: 22px; font-weight: 700; margin-bottom: 6px; } .ds-sec { color: #A9ADB5; font-size: 17px; }"
+    },
+    {
       "name": "Value sheet",
       "kind": "input",
       "refersTo": "value-band",
@@ -658,7 +671,7 @@
       "Each Phase has a field, ring, track and text color; a Phase is recognised by its field from across a room.",
       "Setup labels are hollow words in the Phase's ring color; digits are large, semibold and tabular.",
       "Liquid Glass for buttons: prominent amber for the primary action, plain glass for the running controls.",
-      "One motion: the complete ring draws closed once, with a success haptic when it closes."
+      "Two motions: the complete ring draws closed once, with a success haptic when it closes, and the tip jar's thank-you ring does the same in the four Phase colors before it bursts into confetti."
     ],
     "rules": [
       {
@@ -703,7 +716,7 @@
       "Do use tabular figures for every number, and fixed sizes that scale down for anything read at a distance.",
       "Do give every new color an Increase Contrast value in `Shared/Ink.swift`.",
       "Do cap Dynamic Type on bottom-bar buttons and running controls at XXX Large so they can't crowd the iPhone SE.",
-      "Do show the complete ring closed, without animation, under Reduce Motion."
+      "Do show the complete ring and the tip thank-you ring closed, without animation or confetti, under Reduce Motion."
     ],
     "donts": [
       "Don't color Rounds, a label or a decoration amber.",

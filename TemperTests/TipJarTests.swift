@@ -67,7 +67,7 @@ struct TipJarTests {
 
         await jar.tip("tip.medium")
 
-        #expect(jar.outcome == .thanks)
+        #expect(jar.outcome == .thanks("tip.medium"))
         await expectFinished("tip.medium", since: start)
     }
 
@@ -122,7 +122,7 @@ struct TipJarTests {
 
         try await session.buyProduct(identifier: "tip.small")
 
-        for await outcome in Observations({ jar.outcome }) where outcome == .thanks {
+        for await outcome in Observations({ jar.outcome }) where outcome == .thanks("tip.small") {
             break
         }
         await expectFinished("tip.small", since: start)

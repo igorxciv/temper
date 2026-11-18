@@ -22,7 +22,8 @@ final class TipJar {
     /// What the last tip came to, said in place. A cancel or a wait for Ask to Buy says nothing, and a new tip clears
     /// it.
     enum Outcome: Equatable {
-        case thanks
+        /// Names the tip, so the thanks can be as big as it was.
+        case thanks(Tip.ID)
         case failed
     }
 
@@ -87,7 +88,7 @@ final class TipJar {
     private func finish(_ transaction: Transaction) async {
         await transaction.finish()
         if transaction.revocationDate == nil, Self.productIDs.contains(transaction.productID) {
-            outcome = .thanks
+            outcome = .thanks(transaction.productID)
         }
     }
 }
