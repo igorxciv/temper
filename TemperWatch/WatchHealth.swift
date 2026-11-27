@@ -37,6 +37,19 @@ enum WatchHealth {
         let resting = try? await newest.result(for: store).first?.quantity.doubleValue(for: .beatsPerMinute)
         return ZoneInputs(dateOfBirth: dateOfBirth, restingHeartRate: resting)
     }
+
+    /// The number of heart-rate readings that started at or after `start`, for ``OtherWorkout``. A read that isn't
+    /// allowed or fails counts none, so the Watch starts its session as it would without the check.
+    static func heartRateReadings(since start: Date) async -> Int {
+        let recent = HKSampleQueryDescriptor(
+            predicates: [
+                .quantitySample(
+                    type: HKQuantityType(.heartRate),
+                    predicate: HKQuery.predicateForSamples(withStart: start, end: nil, options: .strictStartDate))
+            ],
+            sortDescriptors: [])
+        return (try? await recent.result(for: store).count) ?? 0
+    }
 }
 
 extension HKUnit {

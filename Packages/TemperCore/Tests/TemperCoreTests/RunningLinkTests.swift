@@ -162,6 +162,7 @@ nonisolated struct RunningLinkTests {
             case .idle: "idle"
             case .waiting: "waiting"
             case .updateNeeded: "update needed"
+            case .otherWorkout: "other workout"
             case .running(let phase, _):
                 [
                     phase.kind.name, phase.round.map(String.init), phase.pausedAt == nil ? nil : "paused", "·",

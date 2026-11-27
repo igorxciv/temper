@@ -21,6 +21,10 @@ import WatchKit
 /// rate and keeps the Watch app awake and reachable with the wrist down. So a dropout doesn't stop it: HealthKit
 /// reconnects the session by itself, and the iPhone catches the Watch up through the new mirrored instance. After a
 /// Watch app crash, HealthKit hands the session back and the same thing happens.
+///
+/// Apple Watch runs one workout session at a time, and a new one ends any other app's, such as Apple Workout's. So
+/// before it starts one, the Watch checks Health for another app's workout and leaves it running if it finds one.
+/// See `OtherWorkout`.
 @Observable
 final class WatchSession: NSObject {
     static let shared = WatchSession()
@@ -51,11 +55,30 @@ final class WatchSession: NSObject {
     @ObservationIgnored private var lastHeard: Date?
     /// Counts the time out of contact during a dropout, for the flow.
     @ObservationIgnored private var outOfContactTimer: Task<Void, Never>?
+    /// When the Watch's own last session ended, so the check for another app's workout skips its readings.
+    @ObservationIgnored private var lastSessionEnded: Date?
 
     /// Called from the app delegate's `handle(_:)`, after the iPhone's `startWatchApp` at Start.
+    ///
+    /// A Watch with no session of its own first checks for another app's workout, which its session would end. One
+    /// that holds a session knows none runs, and the readings would be its own.
     func handle(_ configuration: HKWorkoutConfiguration) {
         self.configuration = configuration
-        apply(.launched(workoutsAllowed: WatchHealth.workoutsAllowed))
+        let workoutsAllowed = WatchHealth.workoutsAllowed
+        guard workoutsAllowed, session == nil else {
+            apply(.launched(workoutsAllowed: workoutsAllowed))
+            return
+        }
+        let start = OtherWorkout.countStart(now: .now, ownSessionEnded: lastSessionEnded)
+        Task {
+            let readings = await WatchHealth.heartRateReadings(since: start)
+            apply(.launched(workoutsAllowed: true, otherWorkoutRunning: OtherWorkout.isRunning(readings: readings)))
+        }
+    }
+
+    /// Called as the Watch app goes to the background.
+    func backgrounded() {
+        apply(.backgrounded)
     }
 
     /// Called from the app delegate's `handleActiveWorkoutRecovery()`, when the Watch app opens again after a crash
@@ -244,6 +267,7 @@ final class WatchSession: NSObject {
             apply(.sessionEnded)
             self.session = nil
             builder = nil
+            lastSessionEnded = date
         case .notStarted, .paused:
             break
         @unknown default:

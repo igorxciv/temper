@@ -6,6 +6,8 @@ public nonisolated enum WatchIdle: Equatable, Sendable {
     /// Watch, so the
     /// Watch points to the only place that asks.
     case allowHeartRate
+    /// The iPhone opened the Watch while another app's workout ran, and the Watch left it running.
+    case otherWorkoutRunning
 
     /// `workoutsAllowed` is the Watch's own workout status, which is the iPhone's, because the two share one grant.
     public init(workoutsAllowed: Bool) {
@@ -16,6 +18,7 @@ public nonisolated enum WatchIdle: Equatable, Sendable {
         switch self {
         case .startOnIPhone: "Start on iPhone"
         case .allowHeartRate: "Allow Heart Rate in Temper’s Settings on iPhone"
+        case .otherWorkoutRunning: "Another Workout Is Running"
         }
     }
 
@@ -24,6 +27,7 @@ public nonisolated enum WatchIdle: Equatable, Sendable {
         switch self {
         case .startOnIPhone: "Pick a Workout on your iPhone and tap Start."
         case .allowHeartRate: nil
+        case .otherWorkoutRunning: "Temper left it running. Follow this Workout on your iPhone."
         }
     }
 }
