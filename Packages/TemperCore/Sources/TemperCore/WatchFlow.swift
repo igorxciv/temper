@@ -20,6 +20,10 @@ import Foundation
 ///
 /// A Watch whose session reached the iPhone after the 10 s window is late. It doesn't join the Workout under way: it
 /// ends its session and goes back to idle.
+///
+/// Starting a session would end another app's workout, such as Apple Workout, so a Watch opened while one seems to
+/// run starts none. It says why until it leaves the screen, and the Workout runs on, on the iPhone. See
+/// ``OtherWorkout``.
 public nonisolated struct WatchFlow: Equatable, Sendable {
     public enum Screen: Equatable, Sendable {
         /// "Start on iPhone", or the Health hint when workouts aren't allowed.
@@ -33,11 +37,16 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
         case complete(Completion)
         /// The iPhone sends a version of the messages this Watch can't follow.
         case updateNeeded
+        /// Opened while another app's workout ran, which the Watch left running, so it follows nothing.
+        case otherWorkout
     }
 
     public enum Event: Equatable, Sendable {
-        /// The iPhone opened the Watch for a Workout, with `workoutsAllowed` read from the Watch's own Health status.
-        case launched(workoutsAllowed: Bool)
+        /// The iPhone opened the Watch for a Workout, with `workoutsAllowed` read from the Watch's own Health status,
+        /// and `otherWorkoutRunning` from ``OtherWorkout``.
+        case launched(workoutsAllowed: Bool, otherWorkoutRunning: Bool = false)
+        /// The Watch app went to the background.
+        case backgrounded
         /// HealthKit handed back the session of a Watch app that crashed, with whether that session is paused.
         case recovered(isPaused: Bool)
         /// A message from the iPhone arrived, at `at` on the Watch's clock.
@@ -116,9 +125,14 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
 
     public mutating func handle(_ event: Event) -> [Effect] {
         switch event {
-        case .launched(let workoutsAllowed):
+        case .launched(let workoutsAllowed, let otherWorkoutRunning):
             guard workoutsAllowed else { return [] }
             let ending = endSession()
+            guard !otherWorkoutRunning else {
+                self = Self()
+                screen = .otherWorkout
+                return ending
+            }
             follow(isPaused: false)
             return ending + [.startSession, .awaitFirstMessage(for: Self.firstMessageTimeout)]
         case .recovered(let isPaused):
@@ -154,6 +168,12 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
             }
             leaveRunning()
             return endSession()
+        case .backgrounded:
+            // The notice is about the Start that opened the Watch, and would be stale on its next raise.
+            if screen == .otherWorkout {
+                screen = .idle
+            }
+            return []
         case .doneTapped:
             if case .complete = screen {
                 screen = .idle
@@ -165,7 +185,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
             case .waiting, .running(_, isConnected: false):
                 leaveRunning()
                 return endSession()
-            case .idle, .running, .complete, .updateNeeded:
+            case .idle, .running, .complete, .updateNeeded, .otherWorkout:
                 return []
             }
         case .firstMessageTimedOut:
@@ -243,7 +263,7 @@ public nonisolated struct WatchFlow: Equatable, Sendable {
     private mutating func leaveRunning() {
         switch screen {
         case .waiting, .running: screen = .idle
-        case .idle, .complete, .updateNeeded: break
+        case .idle, .complete, .updateNeeded, .otherWorkout: break
         }
     }
 

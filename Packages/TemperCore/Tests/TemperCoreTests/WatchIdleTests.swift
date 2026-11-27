@@ -17,4 +17,11 @@ struct WatchIdleTests {
         #expect(idle.title == "Allow Heart Rate in Temper’s Settings on iPhone")
         #expect(idle.message == nil)
     }
+
+    @Test func `Left beside another app's workout, the Watch says it left it running and points to the iPhone`() {
+        let idle = WatchIdle.otherWorkoutRunning
+
+        #expect(idle.title == "Another Workout Is Running")
+        #expect(idle.message == "Temper left it running. Follow this Workout on your iPhone.")
+    }
 }

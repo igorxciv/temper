@@ -57,6 +57,67 @@ nonisolated struct WatchFlowTests {
         #expect(flow.screen == .idle)
     }
 
+    /// Starting a session would end the other app's workout, such as Apple Workout, so the Workout runs on the iPhone
+    /// alone.
+    @Test func `Opened while another app's workout runs, the Watch starts no session and says why`() {
+        var flow = WatchFlow()
+
+        let effects = flow.handle(.launched(workoutsAllowed: true, otherWorkoutRunning: true))
+
+        #expect(effects == [])
+        #expect(flow.screen == .otherWorkout)
+    }
+
+    @Test func `Without workouts allowed, another app's workout changes nothing, and the Watch stays idle`() {
+        var flow = WatchFlow()
+
+        let effects = flow.handle(.launched(workoutsAllowed: false, otherWorkoutRunning: true))
+
+        #expect(effects == [])
+        #expect(flow.screen == .idle)
+    }
+
+    /// The notice is about the Start that opened the Watch, and would be stale on a later raise.
+    @Test func `The notice about another app's workout gives way to idle once the Watch app goes to the background`() {
+        var flow = WatchFlow()
+        _ = flow.handle(.launched(workoutsAllowed: true, otherWorkoutRunning: true))
+
+        let effects = flow.handle(.backgrounded)
+
+        #expect(effects == [])
+        #expect(flow.screen == .idle)
+    }
+
+    @Test func `Going to the background leaves every other screen as it is`() {
+        var flow = running()
+
+        let effects = flow.handle(.backgrounded)
+
+        #expect(effects == [])
+        #expect(flow.screen == .running(work, isConnected: true))
+    }
+
+    /// The Watch checks for another app's workout only while it has no session of its own, but one can be recovered
+    /// after a crash while the check runs.
+    @Test func `Opened while another app's workout runs, a Watch that holds a session ends it without saving`() {
+        var flow = running()
+
+        let effects = flow.handle(.launched(workoutsAllowed: true, otherWorkoutRunning: true))
+
+        #expect(effects == [.endWithoutSaving])
+        #expect(flow.screen == .otherWorkout)
+    }
+
+    @Test func `The notice about another app's workout gives way when the iPhone opens the Watch again`() {
+        var flow = WatchFlow()
+        _ = flow.handle(.launched(workoutsAllowed: true, otherWorkoutRunning: true))
+
+        let effects = flow.handle(.launched(workoutsAllowed: true))
+
+        #expect(effects == [.startSession, .awaitFirstMessage(for: .seconds(600))])
+        #expect(flow.screen == .waiting)
+    }
+
     @Test func `The iPhone's begin starts collection at the Workout's Start, and the Watch waits on for an update`() {
         var flow = WatchFlow()
         _ = flow.handle(.launched(workoutsAllowed: true))

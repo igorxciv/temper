@@ -30,8 +30,18 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
 /// Shows the screen the session's flow is on.
 struct WatchRootView: View {
     let session: WatchSession
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        screen
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background {
+                    session.backgrounded()
+                }
+            }
+    }
+
+    @ViewBuilder private var screen: some View {
         switch session.screen {
         case .idle:
             IdleScreen()
@@ -46,6 +56,8 @@ struct WatchRootView: View {
                 completion: completion, heartRate: session.heartRate.current.summary, done: session.done)
         case .updateNeeded:
             UpdateNeededScreen()
+        case .otherWorkout:
+            IdleNotice(idle: .otherWorkoutRunning)
         }
     }
 }

@@ -37,3 +37,7 @@ struct IdleNotice: View {
 #Preview("Allow Heart Rate") {
     IdleNotice(idle: .allowHeartRate)
 }
+
+#Preview("Another Workout Is Running") {
+    IdleNotice(idle: .otherWorkoutRunning)
+}
